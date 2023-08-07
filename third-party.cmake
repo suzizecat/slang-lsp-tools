@@ -23,6 +23,11 @@ GIT_REPOSITORY git@github.com:nlohmann/json.git
 GIT_TAG v3.11.2
 GIT_SHALLOW ON)
 
+FetchContent_Declare(uri 
+GIT_REPOSITORY https://github.com/ben-zen/uri-library.git
+GIT_TAG 23690f8
+GIT_SHALLOW ON)
+
 
 # Core feature providers
 FetchContent_Declare( slang
@@ -40,6 +45,9 @@ FetchContent_Declare(argparse
   GIT_TAG v2.9
   GIT_SHALLOW ON)
 
+FetchContent_Populate(uri)
+include_directories(${uri_SOURCE_DIR})
+
 FetchContent_MakeAvailable(fmt)  
 FetchContent_MakeAvailable(json spdlog httplib)
-FetchContent_MakeAvailable(argparse rpc slang)
+FetchContent_MakeAvailable(argparse slang)

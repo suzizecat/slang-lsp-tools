@@ -30,6 +30,7 @@ add_executable(slang-lsp
 lsp-server/main_lsp.cpp
 lsp-server/include/rpc_transport.hpp
 lsp-server/rpc_transport.cpp
+lsp-server/include/lsp_initialization.hpp
 lsp-server/include/lsp.hpp
 lsp-server/lsp/lsp.cpp
 

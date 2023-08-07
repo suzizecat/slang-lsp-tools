@@ -22,19 +22,16 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
 
     RPCPipeTransport::~RPCPipeTransport()
     {
-        spdlog::info("Pipe transport desctructor call.");
         _ss.request_stop();
 
         if(_outbox_manager.joinable())
             _outbox_manager.join();
-        
-        spdlog::info("Outbox joined");
+    
         
         if(_inbox_manager.joinable())
             _inbox_manager.join();
-        spdlog::info("Inbox joined");
         
-        spdlog::info("Pipe transport desctructor done.");
+        spdlog::info("Pipe transport destructed");
     }
 
     std::string RPCPipeTransport::_get_line()
@@ -87,7 +84,6 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
             std::future_status status;
             if(status = future_line.wait_for(100ms); status == std::future_status::ready )
             {
-                spdlog::info("Got something to handle !");
                 json data = future_line.get();
                 t.join();
                 spdlog::info("Captured data {}", data.dump());
