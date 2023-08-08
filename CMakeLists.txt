@@ -25,18 +25,31 @@ PRIVATE slang::slang
 PRIVATE nlohmann_json::nlohmann_json)
 
 
-
-add_executable(slang-lsp 
-lsp-server/main_lsp.cpp
-lsp-server/include/rpc_transport.hpp
-lsp-server/rpc_transport.cpp
-lsp-server/include/lsp_initialization.hpp
-lsp-server/include/lsp.hpp
-lsp-server/lsp/lsp.cpp
+set(HEADERS 
 
 )
 
-target_include_directories(slang-lsp PRIVATE lsp-server/include)
+add_executable(slang-lsp 
+lsp-server/main_lsp.cpp
+lsp-server/rpc_transport.cpp
+lsp-server/lsp/lsp.cpp
+
+# lsp-server/include/rpc_transport.hpp
+lsp-server/include/types/client_capabilities.hpp
+lsp-server/include/types/client_capabilities_workspace.hpp
+lsp-server/include/types/client_capabilities_workspace_edit.hpp
+lsp-server/include/types/client_info.hpp
+lsp-server/include/types/enums.hpp
+lsp-server/include/types/lsp_initialization.hpp
+lsp-server/include/types/workspace_folder.hpp
+# lsp-server/include/types/client_info.hpp
+# lsp-server/include/lsp.hpp
+)
+
+
+
+target_include_directories(slang-lsp PRIVATE lsp-server/include
+PRIVATE )
 
 target_link_libraries(slang-lsp 
 PRIVATE argparse::argparse

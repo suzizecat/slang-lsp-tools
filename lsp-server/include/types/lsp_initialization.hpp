@@ -6,45 +6,13 @@
 #include "uri.hh"
 #include "nlohmann/json.hpp"
 
+#include "client_info.hpp"
+#include "enums.hpp"
+#include "workspace_folder.hpp"
+#include "client_capabilities.hpp"
+
 namespace slsp {
-
-	typedef struct clientInfo_t
-	{
-		/**
-		 * The name of the client as defined by the client.
-		 */
-		std::string name;
-
-		/**
-		 * The client's version as defined by the client.
-		 */
-		std::optional<std::string> version;
-
-	} clientInfo_t;
-
-
-	typedef enum class TraceValue {Off, Messages, Verbose, _Invalid=-1} TraceValue_t;
-
-	NLOHMANN_JSON_SERIALIZE_ENUM(TraceValue,{
-		{_Invalid, nullptr},
-		{ Off, "off"},
-		{Messages, "messages"},
-		{Verbose, "verbose"},
-	})
-
-	typedef struct WorkspaceFolder {
-		uri uri;
-		std::string name;
-	} WorkspaceFolder_t;
-
-	typedef struct _ClientCapabilities_workspace {
-		std::optional<bool> applyEdit;
-	} _ClientCapabilities_workspace_t;
-
-	typedef struct ClientCapabilities
-	{
-		std::optional<_ClientCapabilities_workspace_t> workspace;
-	} ClientCapabilities_t;
+namespace type {
 
 	struct InitializationParams
 	{
@@ -105,5 +73,5 @@ namespace slsp {
 		std::optional<std::vector<WorkspaceFolder_t>> workspaceFolders;
 
 	};
-	
+}
 }
