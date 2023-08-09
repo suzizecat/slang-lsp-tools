@@ -8,16 +8,16 @@ namespace slsp{
 namespace type{
     
 
-    typedef struct _changeAnnotationSupport_t{
+    typedef struct _changeAnnotationSupport{
         /**
          * Whether the client groups edits with equal labels into tree nodes,
          * for instance all edits labelled with "Changes in Strings" would
          * be a tree node.
          */
         std::optional<bool> groupsOnLabel;
-    } _changeAnnotationSupport_t;
+    } _changeAnnotationSupport;
 
-    typedef struct WorkspaceEditClientCapabilities_t {
+    typedef struct WorkspaceEditClientCapabilities {
         /**
          * The client supports versioned document changes in `WorkspaceEdit`s
          */
@@ -30,7 +30,7 @@ namespace type{
          *
          * @since 3.13.0
          */
-        std::optional<std::vector<RessourceOperationKind_t>> resourceOperations;
+        std::optional<std::vector<RessourceOperationKind> > resourceOperations;
 
         /**
          * The failure handling strategy of a client if applying the workspace edit
@@ -38,7 +38,7 @@ namespace type{
          *
          * @since 3.13.0
          */
-        std::optional<FailureHandlingKind_t> failureHandling;
+        std::optional<FailureHandlingKind> failureHandling;
 
         /**
          * Whether the client normalizes line endings to the client specific
@@ -56,8 +56,8 @@ namespace type{
          *
          * @since 3.16.0
          */
-        std::optional<_changeAnnotationSupport_t> changeAnnotationSupport;
+        std::optional<_changeAnnotationSupport> changeAnnotationSupport;
 
-    } WorkspaceEditClientCapabilities_t;
+    } WorkspaceEditClientCapabilities;
 } // namespace type
 } // namespace slsp

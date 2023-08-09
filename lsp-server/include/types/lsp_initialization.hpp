@@ -24,6 +24,11 @@ namespace type {
 		*/
 		std::optional<int> processId;
 
+		/**
+		 * Information about the client
+		 *
+		 * @since 3.15.0
+		 */
 		std::optional<clientInfo_t> clientInfo;
 
 		/**
@@ -55,7 +60,7 @@ namespace type {
 		/**
 	 	 * The capabilities provided by the client (editor or tool)
 	 	 */
-		// capabilities: ClientCapabilities;
+		ClientCapabilities_t clientCapabilities;
 
 		/**
 		 * The initial trace setting. If omitted trace is disabled ('off').
