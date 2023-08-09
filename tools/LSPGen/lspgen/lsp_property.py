@@ -18,11 +18,7 @@ class LSPProperty(LSPTypedBase):
 		if idt is None :
 			idt = IndentHandler(base_indent="\t")
 		ret = ""
-		if len(self.documentation) > 0:
-			ret += f"{idt}/**\n"
-			for line in self.documentation.split("\n") :
-				ret += f"{idt} * {line}\n"
-			ret += f"{idt} */\n"
+		ret += self._doc.as_cpp(idt)
 
 		ret += f"{idt}{self.cpp_type} {self.name};\n"
 		return ret

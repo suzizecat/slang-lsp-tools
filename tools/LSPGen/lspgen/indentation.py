@@ -1,7 +1,8 @@
 class IndentHandler:
-	def __init__(self, base_indent = "  ", base_level = 0):
+	DEFAULT_INDENT = "    "
+	def __init__(self, base_indent = None, base_level = 0):
 		self.level = base_level
-		self.idt = base_indent
+		self.idt = base_indent if base_indent is not None else IndentHandler.DEFAULT_INDENT
 		self.tab_eq_size = 4
 
 	def __str__(self):

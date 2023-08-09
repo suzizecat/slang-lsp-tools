@@ -27,7 +27,7 @@ if __name__ == "__main__":
 	reader.type_override["LSPAny"] = json
 	reader.type_override["string"] = string
 
-	reader.read("meta/metaModel.json")
+	reader.read("in/metaModel.json")
 	reader.process()
 	reader.write_files("out")
 
