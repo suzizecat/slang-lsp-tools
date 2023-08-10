@@ -31,7 +31,7 @@ class LSPEnum(LSPTypedBase):
 
 	def finalize(self):
 		if self.value_type.type_name not in self.AUTO_TYPES :
-			invalid_handler = LSPEnumValue("_Invalid",-1,"Automatically added by generator as invalid handler")
+			invalid_handler = LSPEnumValue(f"_{self.type.type_name}_Invalid",-1,"Automatically added by generator as invalid handler")
 			invalid_handler.json_value = None
 			self.enum_values.insert(0,invalid_handler)
 
@@ -50,7 +50,7 @@ class LSPEnum(LSPTypedBase):
 				started = True
 
 			ret += value._doc.as_cpp(idt)
-			ret += f"{idt}{value.name}"
+			ret += f"{idt}{self.type.type_name}_{value.name}"
 			if self.value_type.type_name in ["int", "unsigned int"] :
 				if value.value is not None :
 					ret += f" = {value.value}"
@@ -73,7 +73,7 @@ class LSPEnum(LSPTypedBase):
 		idt.add_indent_level()
 
 		for value in self.enum_values :
-			ret += f"{idt}{{{value.name},{value.cpp_jsonvalue}}},\n"
+			ret += f"{idt}{{{self.type.type_name}_{value.name},{value.cpp_jsonvalue}}},\n"
 
 		idt.sub_indent_level()
 		ret += f"{idt}}})\n"

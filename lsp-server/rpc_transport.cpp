@@ -45,22 +45,36 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
     json RPCPipeTransport::_get_json()
     {
         json ret;
-        try{
-        _in >> ret;
-        }
-        catch (nlohmann::json::parse_error e)
+        bool data_valid = false;
+        do
         {
-            if(_in.eof())
+            ret = json();
+            try
             {
-                ret = json();
-                ret["exit"] = 0;
-                return ret;
+                _in >> ret;
+                data_valid = true;
             }
-            else
+            catch (nlohmann::json::parse_error e)
             {
-                throw e;
+                if(_in.eof())
+                {
+                    spdlog::warn("Catched EOF");
+                    _in.ignore(std::numeric_limits<std::streamsize>::max());
+                    ret = R"({
+                        	"jsonrpc": "2.0",
+                            "id": 0,
+                            "method": "exit",
+                            "params": null
+                            })"_json;
+                    return ret;
+                }
+                else
+                {
+                    spdlog::error("Ignored ill-formed JSON input : {}",e.what());
+                    _in.ignore(std::numeric_limits<std::streamsize>::max());
+                }
             }
-        }
+        } while (!data_valid);
 
         return ret;
     }
@@ -78,7 +92,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         future_line = task.get_future();
         t = std::thread((std::move(task)));
 
-        while (!stok.stop_requested())
+        while (!stok.stop_requested() && !_in.eof())
         {
             //spdlog::info("Check {}", stok.stop_requested());
             std::future_status status;
@@ -91,6 +105,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 {
                     std::lock_guard<std::mutex> lock(_rx_access);
                     _inbox.push(data);
+                    data = json();
                 }
                 _data_available.notify_all();
                 if(! stok.stop_requested())

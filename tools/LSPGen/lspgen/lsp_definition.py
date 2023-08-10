@@ -11,6 +11,9 @@ class LSPDefinition(LSPTypedBase):
 		self.extend_list : _T.List[LSPType] = list()
 		self.properties : _T.List[LSPProperty] = list()
 
+		# List of definitions found when resolving the extends list.
+		# Particularly used for the to/from json operations.
+		self.extend_definitions : _T.List[LSPDefinition] = list()
 		self.documentation : str = ""
 
 	def as_cpp(self, idt: IndentHandler = None):
@@ -68,6 +71,9 @@ class LSPDefinition(LSPTypedBase):
 		idt.add_indent_level()
 		ret += f"{idt}j = json();\n"
 		ret +=  self._to_json_bindings(idt)
+		for ext in self.extend_definitions :
+			ret += f"{idt}// Bindings inherited from {ext.type.type_name}\n"
+			ret += ext._to_json_bindings(idt)
 		idt.sub_indent_level()
 		ret += f"{idt}}}\n"
 		return ret
@@ -76,6 +82,9 @@ class LSPDefinition(LSPTypedBase):
 		ret = f"{idt}void from_json(const json& j, {self.type.type_name}& s) {{\n"
 		idt.add_indent_level()
 		ret +=  self._from_json_bindings(idt)
+		for ext in self.extend_definitions :
+			ret += f"{idt}// Bindings inherited from {ext.type.type_name}\n"
+			ret += ext._from_json_bindings(idt)
 		idt.sub_indent_level()
 		ret += f"{idt}}}\n"
 		return ret
@@ -83,29 +92,13 @@ class LSPDefinition(LSPTypedBase):
 	def _to_json_bindings(self, idt):
 		jsbinding = ""
 		for p in self.properties:
-			if p.type.is_def_optional:
-				if p.type.is_optional:
-					jsbinding += f'{idt}if (s.{p.name})\n{idt + 1} j["{p.name}"] = s.{p.name}.value();\n\n'
-				elif p.type.is_nullable:
-					jsbinding += f'{idt}j["{p.name}"] = s.{p.name} ? s.{p.name}.value() : nullptr;\n'
-			else:
-				jsbinding += f'{idt}j["{p.name}"] = s.{p.name};\n'
+			jsbinding += p.type.to_json(idt,p.name)
 		return jsbinding
 
 	def _from_json_bindings(self, idt):
 		jsbinding = ""
 		for p in self.properties:
-			add_level = 0
-			if p.type.is_def_optional:
-				if p.type.is_optional:
-					jsbinding += f'{idt}if (j.contains("{p.name}"))\n'
-					add_level += 1
-				if p.type.is_nullable:
-					jsbinding += f'{idt + add_level}if (! j["{p.name}"].is_null()))\n'
-					add_level += 1
-			jsbinding += f'{idt+add_level}j.at("{p.name}").get_to(s.{p.name});\n'
-			if p.type.is_def_optional :
-				jsbinding += "\n"
+			jsbinding += p.type.from_json(idt,p.name)
 		return jsbinding
 
 	def get_include_list(self):

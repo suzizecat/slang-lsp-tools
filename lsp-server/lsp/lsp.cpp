@@ -5,7 +5,7 @@ using json = nlohmann::json;
 
 namespace slsp{
     BaseLSP::BaseLSP() : 
-    _is_shutdown(false),
+    _is_stopping(false),
     _is_initialized(false),
     _rpc(std::cin, std::cout),
     _bound_requests(),
@@ -74,12 +74,17 @@ namespace slsp{
 
     void BaseLSP::run()
     {
-        while(! _rpc.is_closed() && ! _is_shutdown)
+        while(! _rpc.is_closed() && ! _is_stopped)
         {
             json raw_input = _rpc.get();
             bool require_send = false;
             json ret = json();
             std::optional<json> fct_ret;
+            if(! raw_input.contains("method"))
+            {
+                spdlog::error("Missing method attribute in recieved request. Discarding.");
+                continue;
+            }
             std::string method = raw_input["method"].template get<std::string>();
             if (is_bound(method))
             {

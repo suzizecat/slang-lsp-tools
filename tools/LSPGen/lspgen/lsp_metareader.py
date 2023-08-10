@@ -16,8 +16,10 @@ class LSPMetareader:
 		self.data = None
 
 		self.type_override : _T.Dict[str,LSPType] = dict()
-		self.structures : _T.List[LSPDefinition] = list()
+		self.structures : _T.Dict[str,LSPDefinition] = dict()
 		self.enumerations : _T.List[LSPEnum] = list()
+
+		self.or_resolution : _T.Dict[str,str] = dict()
 
 
 	def read(self, path):
@@ -27,11 +29,18 @@ class LSPMetareader:
 			self.data = json.loads(text)
 
 	def process(self):
-		for struct in self.data["structures"] :
-			self.add_structure_from_json(struct)
 		for enum in self.data["enumerations"] :
 			self.add_enum_from_json(enum)
+		for struct in self.data["structures"] :
+			self.add_structure_from_json(struct)
 
+		self.resolve_structures_extends()
+
+	def resolve_structures_extends(self):
+		for struct in self.structures.values() :
+			for ext in struct.extend_list :
+				if ext.type_name in self.structures :
+					struct.extend_definitions.append(self.structures[ext.type_name])
 
 	def add_structure_from_json(self, struct, override_name : str = None):
 		new_struct = LSPDefinition(struct["name"] if override_name is None else override_name)
@@ -47,7 +56,14 @@ class LSPMetareader:
 		for elt in struct["properties"]:
 			new_prop = self.property_from_json(elt, master_name=new_struct.type.type_name)
 			new_struct.properties.append(new_prop)
-		self.structures.append(new_struct)
+		self.structures[new_struct.type.type_name] = new_struct
+
+	@staticmethod
+	def make_or_resolution_key(or_values):
+		return "".join(sorted(or_values))
+	def add_or_resolution(self,or_values,resolution : str):
+		key = self.make_or_resolution_key(or_values)
+		self.or_resolution[key] = resolution
 
 	def add_enum_from_json(self,enum):
 		enum_name = enum["name"]
@@ -58,12 +74,16 @@ class LSPMetareader:
 		if enumeration.value_type.type_name in self.type_override :
 			enumeration.value_type.update(self.type_override[enumeration.value_type.type_name])
 
+		# Required to rewrite the include path.
+		if enumeration.type.type_name not in self.type_override :
+			bind = LSPType(enumeration.type.type_name,optional=None,array=None,nullable=None,include=f'"../enums/{enumeration.type.type_name}.hpp"')
+			self.type_override[enumeration.type.type_name] = bind
+
 		for value in enum["values"] :
 			enumeration.enum_values.append(LSPEnumValue(value["name"],value["value"],value["documentation"] if "documentation" in value else None))
 
 		enumeration.finalize()
 		self.enumerations.append(enumeration)
-
 
 
 	def property_from_json(self, elt, master_name = "" ):
@@ -97,7 +117,15 @@ class LSPMetareader:
 						json_type = it
 						break
 			else:
-				typename = "json"
+				try :
+					key = self.make_or_resolution_key([it["name"] for it in json_type["items"]])
+					if key in self.or_resolution :
+						typename = self.or_resolution[key]
+					else :
+						typename = "json"
+				except KeyError :
+					typename = "json"
+
 		is_array = json_type["kind"] == "array"
 		if typename is None:
 			try:
@@ -118,16 +146,16 @@ class LSPMetareader:
 
 	def write(self,path):
 		with open(path,"w") as f :
-			for d in self.structures :
+			for d in self.structures.values() :
 				f.write(d.as_cpp())
 
-	def write_files(self,root):
+	def write_files(self,root,force_write = False):
 		struct_path = f"{root}/structs"
 		enum_path = f"{root}/enums"
-		os.makedirs(struct_path,exist_ok=True)
-		os.makedirs(enum_path, exist_ok=True)
+		os.makedirs(struct_path,exist_ok=force_write)
+		os.makedirs(enum_path, exist_ok=force_write)
 
-		for d in self.structures :
+		for d in self.structures.values() :
 			with open(f"{struct_path}/{d.type.type_name}.hpp","w") as f :
 				f.write(d.as_cpp_file(None,["slsp","types"]))
 		print(f"Processed {len(self.structures)} structures")

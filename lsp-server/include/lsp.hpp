@@ -17,7 +17,8 @@ namespace slsp{
     class BaseLSP
     {
         bool _is_initialized;
-        bool _is_shutdown;
+        bool _is_stopping;
+        bool _is_stopped;
         rpc::RPCPipeTransport _rpc;
 
         std::unordered_map<std::string, std::function<json(BaseLSP*,json&)>> _bound_requests;
@@ -36,7 +37,8 @@ namespace slsp{
         bool is_request(const std::string& fct) const;
         bool is_bound(const std::string& fct) const;
 
-        inline void shutdown() {_is_shutdown = true;};
+        inline void shutdown() {_is_stopping = true;};
+        inline void exit() {_is_stopped = true;};
         
         void run();
         
