@@ -7,8 +7,14 @@ project(sv_explorer)
 # this to a specific tag and only update when ready
 # to accept a new version.
 
+# Use sockpp as a static lib
+set(SOCKPP_BUILD_SHARED OFF)
+set(SOCKPP_BUILD_STATIC ON)
+
 # Add all third parties 
 include(third-party.cmake)
+
+
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,15 +39,10 @@ add_executable(slang-lsp
 lsp-server/main_lsp.cpp
 lsp-server/rpc_transport.cpp
 lsp-server/lsp/lsp.cpp
+lsp-server/lsp/lsp_errors.cpp
+lsp-server/lsp/lsp_default_binds.cpp
 
 # lsp-server/include/rpc_transport.hpp
-lsp-server/include/types/client_capabilities.hpp
-lsp-server/include/types/client_capabilities_workspace.hpp
-lsp-server/include/types/client_capabilities_workspace_edit.hpp
-lsp-server/include/types/client_info.hpp
-lsp-server/include/types/enums.hpp
-lsp-server/include/types/lsp_initialization.hpp
-lsp-server/include/types/workspace_folder.hpp
 # lsp-server/include/types/client_info.hpp
 # lsp-server/include/lsp.hpp
 )
@@ -53,9 +54,9 @@ PRIVATE )
 
 target_link_libraries(slang-lsp 
 PRIVATE argparse::argparse
+PRIVATE sockpp-static
 PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
-PRIVATE httplib::httplib
 PRIVATE slang::slang
 # PRIVATE json-rpc-cxx
 )

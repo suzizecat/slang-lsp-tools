@@ -8,6 +8,9 @@
 #include <functional>
 #include <optional>
 
+#include "types/enums/TraceValues.hpp"
+#include "lsp_errors.hpp"
+
 namespace slsp{
     using json = nlohmann::json;
 
@@ -19,6 +22,9 @@ namespace slsp{
         bool _is_initialized;
         bool _is_stopping;
         bool _is_stopped;
+
+        types::TraceValues _trace_level;
+
         rpc::RPCPipeTransport _rpc;
 
         std::unordered_map<std::string, std::function<json(BaseLSP*,json&)>> _bound_requests;
@@ -27,8 +33,8 @@ namespace slsp{
     public:
         explicit BaseLSP();
 
-        void bind_request(const std::string& fct_name, std::function<json(BaseLSP*,json&)> cb);
-        void bind_notification(const std::string& fct_name, std::function<void(BaseLSP*,json&)> cb);
+        void bind_request(const std::string& fct_name, std::function<json(BaseLSP*,json&)> cb, bool allow_override = false);
+        void bind_notification(const std::string& fct_name, std::function<void(BaseLSP*,json&)> cb, bool allow_override = false);
         json invoke_request(const std::string& fct_name, json& args);
         void invoke_notif(const std::string& fct_name, json& args);
         std::optional<json> invoke(const std::string& fct, json& params);
@@ -36,6 +42,8 @@ namespace slsp{
         bool is_notif(const std::string& fct) const;
         bool is_request(const std::string& fct) const;
         bool is_bound(const std::string& fct) const;
+
+        void set_trace_level(const types::TraceValues level);
 
         inline void shutdown() {_is_stopping = true;};
         inline void exit() {_is_stopped = true;};

@@ -1,8 +1,11 @@
 #include "rpc_transport.hpp"
 #include <future>
 #include <chrono>
+#include <string>
 #include "spdlog/spdlog.h"
 using json = nlohmann::json;
+
+using namespace std::chrono_literals;
 
 namespace rpc {
 RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
@@ -49,6 +52,13 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         do
         {
             ret = json();
+            std::string buf = "";
+
+            do
+            {
+                std::getline(_in, buf);
+            } while (buf.length() == 0);
+            
             try
             {
                 _in >> ret;
@@ -70,8 +80,13 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 }
                 else
                 {
-                    spdlog::error("Ignored ill-formed JSON input : {}",e.what());
-                    _in.ignore(std::numeric_limits<std::streamsize>::max());
+                    std::this_thread::sleep_for(100ms);
+                    spdlog::error("Ignored ill-formed JSON input : {}", std::string(e.what()));
+                    ret.clear();
+                    char* buf = new char(_in.rdbuf()->in_avail());
+                    _in.readsome(buf, _in.rdbuf()->in_avail());
+                    delete buf;
+                    //_in.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
                 }
             }
         } while (!data_valid);
@@ -132,7 +147,10 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 std::lock_guard<std::mutex> lock(_tx_access);
                 if(! _outbox.empty())
                 {
-                    _out << _outbox.front() << std::endl;
+                    std::string to_out = _outbox.front().dump(1);
+                    _out << "Content-Length: " << to_out.length() << "\n\r";
+                    _out << "Content-Type: application/vscode-jsonrpc; charset=utf-8\n\r\n\r";
+                    _out << to_out << std::endl;
                     _outbox.pop();
                     remaining_data = _outbox.empty();
                 }

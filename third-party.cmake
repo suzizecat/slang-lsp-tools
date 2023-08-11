@@ -8,9 +8,9 @@ GIT_REPOSITORY https://github.com/fmtlib/fmt.git
 GIT_TAG 9.1.0 # For correct management with slang
 GIT_SHALLOW ON)
 
-FetchContent_Declare(httplib
-GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-GIT_TAG v0.13.3
+FetchContent_Declare(network
+GIT_REPOSITORY https://github.com/fpagliughi/sockpp.git
+GIT_TAG v0.8.1
 GIT_SHALLOW ON)
 
 FetchContent_Declare(spdlog
@@ -48,6 +48,9 @@ FetchContent_Declare(argparse
 FetchContent_Populate(uri)
 include_directories(${uri_SOURCE_DIR})
 
-FetchContent_MakeAvailable(fmt)  
-FetchContent_MakeAvailable(json spdlog httplib)
+
+
+
+FetchContent_MakeAvailable(fmt network)  
+FetchContent_MakeAvailable(json spdlog)
 FetchContent_MakeAvailable(argparse slang)

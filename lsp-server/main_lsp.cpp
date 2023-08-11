@@ -4,6 +4,7 @@
 
 #include "nlohmann/json.hpp"
 #include "lsp.hpp"
+#include "lsp_default_binds.hpp"
 #include "rpc_transport.hpp"
 
 #include "types/structs/_InitializeParams.hpp"
@@ -41,21 +42,12 @@ json initialize(slsp::BaseLSP* lsp, json& params)
 }
 
 
-void lsp_shutdown(slsp::BaseLSP* lsp, json& params)
-{
-    lsp->shutdown();
-}
-
-void lsp_exit(slsp::BaseLSP* lsp, json& params)
-{
-    lsp->exit();
-}
-
 void runner()
 {
     slsp::BaseLSP lsp;
+    slsp::perform_default_binds(lsp);
+    
     lsp.bind_notification("hello", say_hello);
-    lsp.bind_notification("exit", lsp_exit);
     lsp.bind_request("add", adder);
     lsp.bind_request("initialize", initialize);
     lsp.run();
@@ -64,7 +56,7 @@ void runner()
 
 int main(int argc, char** argv) {
     argparse::ArgumentParser prog("slang Language server", "0.0.1");
-    try{
+    try {
         prog.parse_args(argc, argv);
     }
     catch (const std::runtime_error& err) {
