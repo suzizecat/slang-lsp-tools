@@ -16,6 +16,8 @@ class LSPDefinition(LSPTypedBase):
 		self.extend_definitions : _T.List[LSPDefinition] = list()
 		self.documentation : str = ""
 
+
+
 	def as_cpp(self, idt: IndentHandler = None):
 		if idt is None :
 			idt = IndentHandler()
@@ -51,7 +53,7 @@ class LSPDefinition(LSPTypedBase):
 			idt.add_indent_level()
 
 		ret += self.as_cpp(idt)
-		ret += self.json_binding(idt)
+		ret += self.json_bind_prototypes(idt)
 
 		for ns in namespace :
 			idt.sub_indent_level()
@@ -59,17 +61,24 @@ class LSPDefinition(LSPTypedBase):
 
 		return ret
 
+	def json_bind_prototypes(self,idt : IndentHandler = None):
+		if idt is None:
+			idt = IndentHandler()
+		ret = (f"{idt}void to_json(nlohmann::json& j, const {self.type.type_name}& s);\n"
+			   f"{idt}void from_json(const nlohmann::json& j, {self.type.type_name}& s);\n")
+		return ret
+
 	def json_binding(self,idt:IndentHandler = None):
 		if idt is None:
-			idt = IndentHandler(base_indent="\t")
+			idt = IndentHandler()
 		ret = self._to_json(idt)
 		ret += self._from_json(idt)
 		return ret
 
 	def _to_json(self, idt:IndentHandler):
-		ret = f"{idt}void to_json(json& j, const {self.type.type_name}& s) {{\n"
+		ret = f"{idt}void to_json(nlohmann::json& j, const {self.type.type_name}& s) {{\n"
 		idt.add_indent_level()
-		ret += f"{idt}j = json();\n"
+		ret += f"{idt}j = nlohmann::json();\n"
 		ret +=  self._to_json_bindings(idt)
 		for ext in self.extend_definitions :
 			ret += f"{idt}// Bindings inherited from {ext.type.type_name}\n"
@@ -79,7 +88,7 @@ class LSPDefinition(LSPTypedBase):
 		return ret
 
 	def _from_json(self, idt:IndentHandler):
-		ret = f"{idt}void from_json(const json& j, {self.type.type_name}& s) {{\n"
+		ret = f"{idt}void from_json(const nlohmann::json& j, {self.type.type_name}& s) {{\n"
 		idt.add_indent_level()
 		ret +=  self._from_json_bindings(idt)
 		for ext in self.extend_definitions :
@@ -104,6 +113,7 @@ class LSPDefinition(LSPTypedBase):
 	def get_include_list(self):
 		ret = list()
 		multi = set()
+		multi.add('"nlohmann/json.hpp"')
 		got_optional = False
 		got_array = False
 		for p in self.properties :

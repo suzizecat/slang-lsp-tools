@@ -133,6 +133,8 @@ class LSPMetareader:
 			except KeyError:
 				typename = "json"
 
+		if typename == master_name :
+			typename = "json"
 		new_prop = LSPProperty(prop_name, typename)
 		new_prop.type.is_array = is_array
 		new_prop.type.is_nullable = is_combination_nullable
@@ -152,13 +154,29 @@ class LSPMetareader:
 	def write_files(self,root,force_write = False):
 		struct_path = f"{root}/structs"
 		enum_path = f"{root}/enums"
+		sources_path = f"{root}/src"
 		os.makedirs(struct_path,exist_ok=force_write)
 		os.makedirs(enum_path, exist_ok=force_write)
+		os.makedirs(sources_path, exist_ok=force_write)
 
+		include_list = []
 		for d in self.structures.values() :
 			with open(f"{struct_path}/{d.type.type_name}.hpp","w") as f :
+				include_list.append(f"../structs/{d.type.type_name}.hpp")
 				f.write(d.as_cpp_file(None,["slsp","types"]))
 		print(f"Processed {len(self.structures)} structures")
+
+		with open(f"{sources_path}/structs_json_bindings.cpp","w") as f :
+			includes = "\n".join([f'#include "{x}"' for x in include_list])
+			idt = IndentHandler()
+			f.write(includes)
+			f.write(f"\n\n{idt}namespace slsp::types {{\n")
+			idt.add_indent_level()
+			for s in self.structures.values():
+				f.write(s.json_binding(idt))
+			idt.sub_indent_level()
+			f.write("}")
+
 
 		for e in self.enumerations :
 			with open(f"{enum_path}/{e.type.type_name}.hpp","w") as f :

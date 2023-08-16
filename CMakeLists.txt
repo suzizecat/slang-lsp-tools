@@ -8,8 +8,10 @@ project(sv_explorer)
 # to accept a new version.
 
 # Use sockpp as a static lib
-set(SOCKPP_BUILD_SHARED OFF)
-set(SOCKPP_BUILD_STATIC ON)
+# set(SOCKPP_BUILD_SHARED OFF)
+# set(SOCKPP_BUILD_STATIC ON)
+option(SOCKPP_BUILD_SHARED "" OFF)
+option(SOCKPP_BUILD_STATIC "" ON)
 
 # Add all third parties 
 include(third-party.cmake)
@@ -37,17 +39,16 @@ set(HEADERS
 
 add_executable(slang-lsp 
 lsp-server/main_lsp.cpp
-lsp-server/rpc_transport.cpp
+lsp-server/rpc/tcp_interface_server.cpp
+lsp-server/rpc/rpc_transport.cpp
 lsp-server/lsp/lsp.cpp
 lsp-server/lsp/lsp_errors.cpp
 lsp-server/lsp/lsp_default_binds.cpp
-
+lsp-server/include/types/src/structs_json_bindings.cpp
 # lsp-server/include/rpc_transport.hpp
 # lsp-server/include/types/client_info.hpp
 # lsp-server/include/lsp.hpp
 )
-
-
 
 target_include_directories(slang-lsp PRIVATE lsp-server/include
 PRIVATE )
@@ -61,7 +62,19 @@ PRIVATE slang::slang
 # PRIVATE json-rpc-cxx
 )
 
+add_executable(lsp-test-client 
+lsp-server/main_demo_client.cpp
+lsp-server/rpc/tcp_interface_server.cpp
+)
 
+target_link_libraries(lsp-test-client
+PRIVATE argparse::argparse
+PRIVATE sockpp-static
+PRIVATE spdlog::spdlog
+PRIVATE nlohmann_json::nlohmann_json
+)
+
+target_include_directories(lsp-test-client PRIVATE lsp-server/include)
 # add_executable(rpc-test rpc-test/warehouse/main.cpp
 # rpc-test/inmemoryconnector.hpp
 # rpc-test/cpphttplibconnector.hpp

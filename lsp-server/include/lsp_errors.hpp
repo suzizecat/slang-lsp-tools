@@ -13,6 +13,15 @@ class typename : public rpc_base_exception{\
     typename(const std::string msg, const nlohmann::json& data) : rpc_base_exception(code, msg,data) {};\
 };
 
+
+#define MAKE_BASIC_RPC_EXCEPTION_WITH_MSG(typename, code, msg) \
+class typename : public rpc_base_exception{\
+    public:\
+    typename() : rpc_base_exception(code, msg) {};\
+    typename(const nlohmann::json& data) : rpc_base_exception(code, msg,data) {};\
+};
+
+
 namespace slsp {
 
     /**
@@ -60,8 +69,6 @@ namespace slsp {
     //     rpc_invalid_request_error(const std::string msg, const nlohmann::json& data) : rpc_base_exception(types::ErrorCodes_ParseError, msg,data) {};
     // };
     
-    
-
     /**
      * @brief The requested method does not exists or is not available.
      */
@@ -73,6 +80,12 @@ namespace slsp {
         rpc_method_not_found_error(const std::string method, const nlohmann::json& data) :
             rpc_base_exception(types::ErrorCodes_MethodNotFound, "Method not found : " + method, data) {};
     };
+
+    /**
+     * @brief The server recieved a request for a method while it is not initialized.
+     * 
+     */
+    MAKE_BASIC_RPC_EXCEPTION_WITH_MSG(lsp_server_not_initialized_error,types::ErrorCodes_ServerNotInitialized,"Method call rejected due to uninitialized server.")
 
     void to_json(nlohmann::json& j, const rpc_base_exception& e);
    

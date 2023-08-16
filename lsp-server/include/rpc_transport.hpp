@@ -36,7 +36,6 @@ namespace rpc
         void _poll_inbox(std::stop_token stok);
         void _push_outbox(std::stop_token stok);
 
-        std::string _get_line();
         nlohmann::json _get_json();
 
     public:

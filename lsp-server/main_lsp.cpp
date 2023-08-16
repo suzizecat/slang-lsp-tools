@@ -12,6 +12,8 @@
 #include "types/structs/InitializeResult.hpp"
 #include "types/structs/InitializeResult_serverInfo.hpp"
 
+#include "tcp_interface_server.hpp"
+
 using json = nlohmann::json;
 using namespace slsp::types;
 void say_hello(slsp::BaseLSP* lsp, json& params)
@@ -42,9 +44,8 @@ json initialize(slsp::BaseLSP* lsp, json& params)
 }
 
 
-void runner()
+void runner(slsp::BaseLSP& lsp)
 {
-    slsp::BaseLSP lsp;
     slsp::perform_default_binds(lsp);
     
     lsp.bind_notification("hello", say_hello);
@@ -56,6 +57,16 @@ void runner()
 
 int main(int argc, char** argv) {
     argparse::ArgumentParser prog("slang Language server", "0.0.1");
+    prog.add_argument("--tcp")
+        .help("Use a TCP connection")
+        .default_value(false)
+        .implicit_value(true);
+
+    prog.add_argument("--port","-p")
+        .help("Port to use")
+        .default_value<in_port_t>(8080)
+        .scan<'u', in_port_t>();
+
     try {
         prog.parse_args(argc, argv);
     }
@@ -64,6 +75,25 @@ int main(int argc, char** argv) {
         std::cerr << prog << std::endl;
         std::exit(1);
     }
-    runner();
+
+    if(prog.get<bool>("--tcp"))
+    {
+        in_port_t port = prog.get<in_port_t>("--port");
+        sockpp::initialize();
+        slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);
+        spdlog::info("Await client on port {}...",port);
+        itf.await_client();
+        
+        std::istream tcp_input(&itf);
+        std::ostream tcp_output(&itf);
+
+        slsp::BaseLSP lsp(tcp_input,tcp_output);
+        runner(lsp);
+    }
+    else
+    {
+        slsp::BaseLSP lsp = slsp::BaseLSP();
+        runner(lsp);
+    }
     return 0;
 }

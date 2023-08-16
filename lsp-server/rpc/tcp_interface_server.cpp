@@ -1,0 +1,76 @@
+#include "tcp_interface_server.hpp"
+
+namespace slsp {
+    std::streamsize TCPInterfaceServer::xsputn(const TCPInterfaceServer::char_type *s, std::streamsize n)
+    {
+        spdlog::debug("Trying to write {} bytes : {}",n,std::string(s,n));
+        return _sock.write_n(s,n);
+    }
+
+    int TCPInterfaceServer::_read_data()
+    {
+        int n = 0;
+        spdlog::debug("Read data from TCP");
+        if(gptr() != egptr())
+        {
+            n = _sock.read(gptr(),_rx.end() - gptr());
+            setg(eback(),gptr(),gptr() + n);
+        }
+        else
+        {
+            n = _sock.read(_rx.begin(),_rx.size());
+            setg(_rx.begin(),_rx.begin(),_rx.begin()+n);
+        }
+        spdlog::debug("Read data from TCP done, {} bytes read.",n);
+        spdlog::debug("{} bytes available in stream.",in_avail());
+        return n;
+    }
+
+    int TCPInterfaceServer::underflow()
+    {
+        char buff[2];
+        buff[1] = 0;
+        int n = 0;
+        n = _read_data();
+
+        if (n > 0)
+        {
+            spdlog::debug("Underflow, read data {}",std::string(buff));
+            return *gptr();
+        }
+        else
+        {
+            spdlog::debug("Got EOF");
+            return traits_type::eof();
+        }
+    }
+
+    TCPInterfaceServer::TCPInterfaceServer( in_port_t port, const std::string addr) :
+        _listening_address(addr),
+        _listening_port(port),
+        _acc(port),
+        _out()
+    {    
+        std::stringbuf::setg(_rx.begin(),_rx.begin(),_rx.begin());
+    }
+
+    bool TCPInterfaceServer::await_client()
+    {
+        sockpp::inet_address peer;
+        _sock = _acc.accept(&peer);
+        spdlog::info("Incomming connection from {}", peer.to_string());
+        if(!_sock)
+        {
+            spdlog::error("Issue in accepting client {}", _acc.last_error_str());
+            return false;
+        }
+        
+        return true;
+    }
+
+    void TCPInterfaceServer::send(const std::string& data)
+    {
+        _sock.write(data);
+    }
+
+}

@@ -1,20 +1,41 @@
+
 #include "lsp.hpp"
 #include <iostream>
 #include "spdlog/spdlog.h" 
 #include "lsp_errors.hpp"
+#include "types/structs/LogTraceParams.hpp"
 using json = nlohmann::json;
 
 namespace slsp{
-    BaseLSP::BaseLSP() : 
+    BaseLSP::BaseLSP(std::istream& is, std::ostream& os) : 
     _is_stopping(false),
     _is_stopped(false),
     _trace_level(types::TraceValues::TraceValues_Off),
     _is_initialized(false),
-    _rpc(std::cin, std::cout),
+    _rpc(is,os),
     _bound_requests(),
-    _bound_notifs()
+    _bound_notifs(),
+    capabilities()
     {}
                         
+    void BaseLSP::_filter_invocation(const std::string& fct_name) const
+    {
+        if(! _is_initialized)
+        {
+            if(fct_name != "initialize")
+            {
+                throw lsp_server_not_initialized_error();
+            }
+        }
+        else if( _is_stopping)
+        {
+            if (fct_name != "exit")
+            {
+                throw rpc_invalid_request_error("Request invalid due to server shutting down.");
+            }
+        }
+    }
+
     void BaseLSP::bind_request(const std::string& fct_name, request_handle_t cb, bool allow_override)
     {
         if(! allow_override && _bound_requests.contains(fct_name))
@@ -33,7 +54,7 @@ namespace slsp{
 
     json BaseLSP::invoke_request(const std::string& fct, json& params)
     {
-
+        spdlog::info("Got request {}",fct);
         return _bound_requests[fct](this,params);
     }
 
@@ -80,14 +101,43 @@ namespace slsp{
             _trace_level = level;
     }
 
+    void BaseLSP::trace(const std::string &message, const std::string verbose)
+    {
+
+        types::LogTraceParams params;
+        if(_trace_level == types::TraceValues::TraceValues_Off)
+            return;
+        
+        params.message= message;
+
+        if(_trace_level > types::TraceValues_Messages)
+            params.verbose = verbose;
+
+
+        send_notification("$/logTrace",params);
+    }
+
+    void BaseLSP::send_notification(const std::string &fct, nlohmann::json&& params)
+    {
+        json to_send;
+        to_send["jsonrpc"] = "2.0";
+        to_send["method"] = fct;
+        if(! params.is_null())
+            to_send["params"] = params;
+        
+        _rpc.send(to_send);
+    }
+    
+
     void BaseLSP::run()
     {
+        std::optional<std::string> id;
         while(! _rpc.is_closed() && ! _is_stopped)
         {
             // Reset all parsed content
             json ret = json();
             json params = json();
-            std::string id = "";
+            id.reset();
             std::string method = "";
             
             std::optional<json> fct_ret;
@@ -98,11 +148,6 @@ namespace slsp{
             try
             {
                 json raw_input = _rpc.get();
-                if (!raw_input.contains("id"))
-                {
-                    spdlog::error("Missing id attribute in recieved request. Discarding.");
-                    throw rpc_invalid_request_error("Missing id attribute in recieved request.");
-                }
 
                 if(! raw_input.contains("method"))
                 {
@@ -112,17 +157,25 @@ namespace slsp{
 
                 method = raw_input["method"].template get<std::string>();
 
-                if (raw_input["id"].is_string())
-                    id = raw_input["id"].template get<std::string>();
-                else if (raw_input["id"].is_number())
+                if (is_request(method))
                 {
-                    id = std::to_string(raw_input["id"].template get<int>());
-                }
-                else
-                {
-                    throw rpc_invalid_request_error("Invalid ID format: \"id\": " + raw_input["id"].dump());
-                }
+                    if (!raw_input.contains("id"))
+                    {
+                        spdlog::error("Missing id attribute in recieved request. Discarding.");
+                        throw rpc_invalid_request_error("Missing id attribute in recieved request.");
+                    }
 
+                    if (raw_input["id"].is_string())
+                        id = raw_input["id"].template get<std::string>();
+                    else if (raw_input["id"].is_number())
+                    {
+                        id = std::to_string(raw_input["id"].template get<int>());
+                    }
+                    else
+                    {
+                        throw rpc_invalid_request_error("Invalid ID format: \"id\": " + raw_input["id"].dump());
+                    }
+                }
 
                 if (raw_input.contains("params"))
                 {
@@ -141,11 +194,13 @@ namespace slsp{
             {
                 ret["error"] = e;
                 require_send = true;
+
             }
 
             if(require_send)
             {
-                ret["id"] = id;
+                if(id)
+                    ret["id"] = id.value();
                 ret["jsonrpc"] = "2.0";
                 _rpc.send(ret);
             }

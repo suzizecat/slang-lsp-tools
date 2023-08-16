@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 #include "spdlog/spdlog.h"
+#include "fmt/format.h"
 using json = nlohmann::json;
 
 using namespace std::chrono_literals;
@@ -37,30 +38,33 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         spdlog::info("Pipe transport destructed");
     }
 
-    std::string RPCPipeTransport::_get_line()
-    {
-        std::string ret; 
-        std::getline(_in, ret);
-        spdlog::info("_get_line {}", ret);
-        return ret;
-    }
 
     json RPCPipeTransport::_get_json()
     {
         json ret;
+        std::string rx_header;
+        bool in_header = true;
+        bool got_header = false; 
         bool data_valid = false;
         do
-        {
-            ret = json();
-            std::string buf = "";
-
+        {   
             do
             {
-                std::getline(_in, buf);
-            } while (buf.length() == 0);
+                std::getline(_in,rx_header);
+                if(rx_header.length() > 1)
+                {
+                    got_header = true;
+                }
+                else if(got_header)
+                {
+                    got_header = false;
+                    in_header = false;
+                }
+            }while(in_header);
             
             try
             {
+                in_header = true;
                 _in >> ret;
                 data_valid = true;
             }
@@ -115,7 +119,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
             {
                 json data = future_line.get();
                 t.join();
-                spdlog::info("Captured data {}", data.dump());
+                spdlog::debug("Captured data {}", data.dump());
 
                 {
                     std::lock_guard<std::mutex> lock(_rx_access);
@@ -148,9 +152,14 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 if(! _outbox.empty())
                 {
                     std::string to_out = _outbox.front().dump(1);
-                    _out << "Content-Length: " << to_out.length() << "\n\r";
-                    _out << "Content-Type: application/vscode-jsonrpc; charset=utf-8\n\r\n\r";
-                    _out << to_out << std::endl;
+                   
+                    _out << fmt::format(
+                        "Content-Length: {}\r\n"
+                        "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n"
+                        "\r\n"
+                        "{}"
+                        ,to_out.length(),to_out);
+
                     _outbox.pop();
                     remaining_data = _outbox.empty();
                 }
@@ -193,7 +202,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
 
         json ret = _inbox.front();
         _inbox.pop();
-        spdlog::info("Got valid data {}", ret.dump());
+        spdlog::debug("Got valid data {}", ret.dump());
         lk.unlock();
         return ret;
     }
