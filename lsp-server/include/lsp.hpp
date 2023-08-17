@@ -79,7 +79,9 @@ namespace slsp{
         void set_trace_level(const types::TraceValues level);
 
         inline void shutdown() {_is_stopping = true;};
-        inline void exit() {_is_stopped = true;};
+        inline void exit() { _is_stopped = true; };
+        inline void set_initialized(const bool state) { _is_initialized = state; };
+        
 
         void trace(const std::string& message, const std::string verbose = "");
         void send_notification(const std::string& fct, nlohmann::json && params = json());

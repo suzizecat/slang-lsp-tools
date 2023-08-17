@@ -5,7 +5,7 @@
 #include "sockpp/tcp_connector.h"
 #include <thread>
 #include "nlohmann/json.hpp"
-
+#include <chrono>
 int server(in_port_t port, bool should_reply)
 {
     slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);
@@ -95,9 +95,10 @@ int server(in_port_t port, bool should_reply)
 int client(in_port_t port, bool expect_reply)
 {
     using namespace std::chrono_literals;
-    spdlog::info("Trying to connect to localhost:{} (5s...)",port);
+    
+    spdlog::info("Trying to connect to localhost:{} (5s...)", port);
     sockpp::tcp_connector conn({"localhost", port}, 5s);
-
+    conn.read_timeout(3s);
     if(!conn)
     {
         spdlog::error("Did not manage to connect in time: {}",conn.last_error_str());
@@ -147,11 +148,14 @@ int client(in_port_t port, bool expect_reply)
             int n = 0;
             do
             {
-                n = conn.read(buffer,sizeof(buffer));
-                received += std::string(buffer,n);
+                
+                n = conn.read(buffer, sizeof(buffer));
+                if(n > 0)
+                    received += std::string(buffer, n);
             } while (n == sizeof(buffer));
 
-            spdlog::info("Received {}",received);
+            if(n > 0)
+                spdlog::info("Received {}", received);
         }
     }
 

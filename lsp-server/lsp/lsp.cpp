@@ -67,7 +67,8 @@ namespace slsp{
 
     std::optional<json> BaseLSP::invoke(const std::string& fct, json& params)
     {
-        if(is_request(fct))
+        _filter_invocation(fct);
+        if (is_request(fct))
             return invoke_request(fct,params);
         else if (is_notif(fct))
         {
@@ -190,11 +191,22 @@ namespace slsp{
                     require_send = true;
                 }
             }
-            catch(rpc_base_exception e)
+            catch (rpc_base_exception e)
             {
                 ret["error"] = e;
                 require_send = true;
 
+
+            }
+            catch (client_closed_exception e)
+            {
+                require_send = false;
+                spdlog::warn("Client closed the connexion. The server will now exit.");
+            }
+            catch (server_side_base_exception e)
+            {
+                require_send = false;
+                spdlog::error("Unexpected server side error: {}", e.what());
             }
 
             if(require_send)

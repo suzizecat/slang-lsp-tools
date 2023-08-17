@@ -4,6 +4,7 @@
 #include <string>
 #include "spdlog/spdlog.h"
 #include "fmt/format.h"
+#include "lsp_errors.hpp"
 using json = nlohmann::json;
 
 using namespace std::chrono_literals;
@@ -137,6 +138,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         }
         t.detach();
         _closed = true;
+        _data_available.notify_all();
         spdlog::info("Stop polling inbox.");
     }
 
@@ -198,8 +200,12 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         std::unique_lock lk(_rx_access);
         spdlog::info("Await for incomming data...");
         _data_available.wait(lk, [this]
-                             { return !this->_inbox.empty(); });
-
+                             { return !this->_inbox.empty() || this->is_closed(); });
+        if (_closed)
+        {
+            throw slsp::client_closed_exception("The client disconnected");
+        }
+        
         json ret = _inbox.front();
         _inbox.pop();
         spdlog::debug("Got valid data {}", ret.dump());

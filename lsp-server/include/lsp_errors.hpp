@@ -21,11 +21,18 @@ class typename : public rpc_base_exception{\
     typename(const nlohmann::json& data) : rpc_base_exception(code, msg,data) {};\
 };
 
+#define MAKE_BASIC_SRV_EXCEPTION(typename) \
+class typename : public server_side_base_exception{\
+    public:\
+    typename(const std::string msg) : server_side_base_exception(msg) {};\
+};
 
 namespace slsp {
 
     /**
      * @brief Base class for RPC exception (and, by extension any LSP exception)
+     *
+     * Those exception may be converted to RPC message and sent back to the client.
      */
     class rpc_base_exception : public std::exception
     {
@@ -43,31 +50,26 @@ namespace slsp {
         const std::string msg() const { return _message; };
         constexpr int code() const { return _code; };
         std::optional<nlohmann::json> data() const { return _data; };
+        // No need for from_json as we can't really update an exception.
     };
 
-    // No need for from_json as we can't really update an exception.
+    class server_side_base_exception : public std::runtime_error
+    {
+        public:
+        server_side_base_exception(const std::string msg) : std::runtime_error(msg) {};
+    };
+
+    MAKE_BASIC_SRV_EXCEPTION(client_closed_exception);
 
     /**
      * @brief Invalid JSON recieved error
      */
     MAKE_BASIC_RPC_EXCEPTION(rpc_parse_error, types::ErrorCodes_ParseError);
-    // class rpc_parse_error : public rpc_base_exception
-    // {
-    //     public:
-    //     rpc_parse_error(const std::string msg) : rpc_base_exception(types::ErrorCodes_ParseError, msg) {};
-    //     rpc_parse_error(const std::string msg, const nlohmann::json& data) : rpc_base_exception(types::ErrorCodes_ParseError, msg,data) {};
-    // };
 
     /**
      * @brief The recieved JSON is valid, but does not represent a valid RPC object
      */
     MAKE_BASIC_RPC_EXCEPTION(rpc_invalid_request_error, types::ErrorCodes_InvalidRequest);
-    // class rpc_invalid_request_error : public rpc_base_exception
-    // {
-    //     public:
-    //     rpc_invalid_request_error(const std::string msg) : rpc_base_exception(types::ErrorCodes_ParseError, msg) {};
-    //     rpc_invalid_request_error(const std::string msg, const nlohmann::json& data) : rpc_base_exception(types::ErrorCodes_ParseError, msg,data) {};
-    // };
     
     /**
      * @brief The requested method does not exists or is not available.
@@ -86,6 +88,7 @@ namespace slsp {
      * 
      */
     MAKE_BASIC_RPC_EXCEPTION_WITH_MSG(lsp_server_not_initialized_error,types::ErrorCodes_ServerNotInitialized,"Method call rejected due to uninitialized server.")
+
 
     void to_json(nlohmann::json& j, const rpc_base_exception& e);
    

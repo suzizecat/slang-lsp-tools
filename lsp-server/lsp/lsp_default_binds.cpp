@@ -29,8 +29,8 @@ namespace slsp {
     void perform_default_binds(BaseLSP &server)
     {
         server.bind_notification("$/setTrace", binds::set_trace_level);
-        //server.bind_notification("exit", binds::exit);
+        server.bind_notification("exit", binds::exit);
         
-        //server.bind_request("shutdown", binds::shutdown);
+        server.bind_request("shutdown", binds::shutdown);
     }
 }

@@ -40,6 +40,8 @@ json initialize(slsp::BaseLSP* lsp, json& params)
     sync.save = true;
     sync.change = TextDocumentSyncKind::TextDocumentSyncKind_None;
     reply.capabilities.textDocumentSync = sync;
+
+    lsp->set_initialized(true);
     return reply;
 }
 
