@@ -16,14 +16,18 @@
 #include <unordered_map>
 #include <functional>
 #include <optional>
+#include <vector>
 
 #include "types/enums/TraceValues.hpp"
+#include "types/enums/MessageType.hpp"
 #include "types/structs/ServerCapabilities.hpp"
 #include "lsp_errors.hpp"
 
 #include <istream>
 #include <ostream>
 #include <iostream>
+
+#define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1)
 
 namespace slsp{
     using json = nlohmann::json;
@@ -52,11 +56,16 @@ namespace slsp{
 
         rpc::RPCPipeTransport _rpc; 
 
-        std::unordered_map<std::string, std::function<json(BaseLSP*,json&)>> _bound_requests;
-        std::unordered_map<std::string, std::function<void(BaseLSP*,json&)>> _bound_notifs;
+        std::unordered_map<std::string, std::function<json(json&)>> _bound_requests;
+        std::unordered_map<std::string, std::function<void(json&)>> _bound_notifs;
 
         void _filter_invocation(const std::string& fct_name) const;
-        
+        void _register_custom_command(const std::string& fct_name);
+
+        json _execute_command_handler(json& p);
+
+        virtual json _invoke_request(const std::string& fct_name, json& args);
+        virtual void _invoke_notif(const std::string& fct_name, json& args);
     public:
         /**
          * @brief Construct a new BaseLSP object
@@ -66,11 +75,11 @@ namespace slsp{
          */
         explicit BaseLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
 
-        void bind_request(const std::string& fct_name, std::function<json(BaseLSP*,json&)> cb, bool allow_override = false);
-        void bind_notification(const std::string& fct_name, std::function<void(BaseLSP*,json&)> cb, bool allow_override = false);
-        json invoke_request(const std::string& fct_name, json& args);
-        void invoke_notif(const std::string& fct_name, json& args);
+        void bind_request(const std::string& fct_name, std::function<json(json&)> cb, bool allow_override = false);
+        void bind_notification(const std::string& fct_name, std::function<void(json&)> cb, bool allow_override = false);
+
         std::optional<json> invoke(const std::string& fct, json& params);
+        
 
         bool is_notif(const std::string& fct) const;
         bool is_request(const std::string& fct) const;
@@ -81,9 +90,10 @@ namespace slsp{
         inline void shutdown() {_is_stopping = true;};
         inline void exit() { _is_stopped = true; };
         inline void set_initialized(const bool state) { _is_initialized = state; };
-        
 
         void trace(const std::string& message, const std::string verbose = "");
+        void log(const types::MessageType level, const std::string& message);
+        void show_message(const types::MessageType level, const std::string& message);
         void send_notification(const std::string& fct, nlohmann::json && params = json());
         void run();
 
@@ -91,6 +101,6 @@ namespace slsp{
         
     };
 
-    typedef std::function<json(BaseLSP*,json&)> request_handle_t;
-    typedef std::function<void(BaseLSP*,json&)> notification_handle_t;
+    typedef std::function<json(json&)> request_handle_t;
+    typedef std::function<void(json&)> notification_handle_t;
 }

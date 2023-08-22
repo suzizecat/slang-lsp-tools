@@ -153,7 +153,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 std::lock_guard<std::mutex> lock(_tx_access);
                 if(! _outbox.empty())
                 {
-                    std::string to_out = _outbox.front().dump(1);
+                    std::string to_out = _outbox.front().dump();
                    
                     _out << fmt::format(
                         "Content-Length: {}\r\n"
@@ -198,7 +198,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         }
 
         std::unique_lock lk(_rx_access);
-        spdlog::info("Await for incomming data...");
+        spdlog::debug("Await for incomming data...");
         _data_available.wait(lk, [this]
                              { return !this->_inbox.empty() || this->is_closed(); });
         if (_closed)

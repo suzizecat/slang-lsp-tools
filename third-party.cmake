@@ -32,13 +32,9 @@ GIT_SHALLOW ON)
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
-  GIT_TAG v3.0
+  GIT_TAG v4.0
   GIT_SHALLOW ON)
 
-FetchContent_Declare(rpc
-GIT_REPOSITORY https://github.com/jsonrpcx/json-rpc-cxx.git
-GIT_TAG v0.3.1
-GIT_SHALLOW ON)
 
 FetchContent_Declare(argparse
   GIT_REPOSITORY https://github.com/p-ranav/argparse.git
@@ -46,11 +42,9 @@ FetchContent_Declare(argparse
   GIT_SHALLOW ON)
 
 FetchContent_Populate(uri)
-include_directories(${uri_SOURCE_DIR})
-
-
-
 
 FetchContent_MakeAvailable(fmt network)  
 FetchContent_MakeAvailable(json spdlog)
 FetchContent_MakeAvailable(argparse slang)
+
+include_directories($<BUILD_INTERFACE:${uri_SOURCE_DIR}>)

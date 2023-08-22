@@ -2,6 +2,7 @@ import typing as _T
 
 from lspgen.indentation import IndentHandler
 from lspgen.lsp_type import LSPType
+from lspgen.lsp_methods import LSPMethod, LSPMethodCollection
 from lspgen.lsp_definition import LSPDefinition
 from lspgen.lsp_property import LSPProperty
 from lspgen.lsp_enum import LSPEnumValue, LSPEnum
@@ -18,6 +19,7 @@ class LSPMetareader:
 		self.type_override : _T.Dict[str,LSPType] = dict()
 		self.structures : _T.Dict[str,LSPDefinition] = dict()
 		self.enumerations : _T.List[LSPEnum] = list()
+		self.methods : LSPMethodCollection = LSPMethodCollection()
 
 		self.or_resolution : _T.Dict[str,str] = dict()
 
@@ -33,6 +35,10 @@ class LSPMetareader:
 			self.add_enum_from_json(enum)
 		for struct in self.data["structures"] :
 			self.add_structure_from_json(struct)
+		for method in self.data["requests"] :
+			self.add_method_from_json(method)
+		for method in self.data["notifications"] :
+			self.add_method_from_json(method)
 
 		self.resolve_structures_extends()
 
@@ -41,6 +47,10 @@ class LSPMetareader:
 			for ext in struct.extend_list :
 				if ext.type_name in self.structures :
 					struct.extend_definitions.append(self.structures[ext.type_name])
+
+	def add_method_from_json(self,struct):
+		method = LSPMethod(struct["method"])
+		self.methods.append(method)
 
 	def add_structure_from_json(self, struct, override_name : str = None):
 		new_struct = LSPDefinition(struct["name"] if override_name is None else override_name)
@@ -153,9 +163,11 @@ class LSPMetareader:
 
 	def write_files(self,root,force_write = False):
 		struct_path = f"{root}/structs"
+		methods_path = f"{root}/methods"
 		enum_path = f"{root}/enums"
 		sources_path = f"{root}/src"
 		os.makedirs(struct_path,exist_ok=force_write)
+		os.makedirs(methods_path,exist_ok=force_write)
 		os.makedirs(enum_path, exist_ok=force_write)
 		os.makedirs(sources_path, exist_ok=force_write)
 
@@ -177,11 +189,14 @@ class LSPMetareader:
 			idt.sub_indent_level()
 			f.write("}")
 
-
 		for e in self.enumerations :
 			with open(f"{enum_path}/{e.type.type_name}.hpp","w") as f :
 				f.write(e.as_cpp_file(None,["slsp","types"]))
-		print(f"Processed {len(self.enumerations)} enumerations")
+		print(f"Processed {len(self.enumerations)} enums")
+
+		with open(f"{methods_path}/lsp_reserved_methods.hpp","w") as f :
+			f.write(self.methods.as_cpp_file(None,["slsp","types"]))
+		print(f"Processed {len(self.methods.content)} methods")
 
 
 

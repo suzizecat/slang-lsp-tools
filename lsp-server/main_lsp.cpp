@@ -1,9 +1,10 @@
 #include <iostream>
 #include "argparse/argparse.hpp"
 #include "spdlog/spdlog.h"
+#include "fmt/format.h"
 
 #include "nlohmann/json.hpp"
-#include "lsp.hpp"
+#include "diplomat_lsp.hpp"
 #include "lsp_default_binds.hpp"
 #include "rpc_transport.hpp"
 
@@ -18,7 +19,16 @@ using json = nlohmann::json;
 using namespace slsp::types;
 void say_hello(slsp::BaseLSP* lsp, json& params)
 {
-    spdlog::info("Saying hello to {}",params["name"].template get<std::string>());
+    std::string name = params["name"].template get<std::string>();
+    lsp->show_message(MessageType::MessageType_Info,fmt::format("Hello {} !",name));
+    spdlog::info("Saying hello to {}",name);
+}
+
+void test_function(slsp::BaseLSP* lsp, json& params)
+{
+    lsp->show_message(MessageType::MessageType_Info,"Hello world !");
+    lsp->log(MessageType::MessageType_Info,"Somebody required to say hello.");
+    spdlog::info("Hello world !");
 }
 
 json adder(slsp::BaseLSP* lsp, json& params)
@@ -33,6 +43,7 @@ json initialize(slsp::BaseLSP* lsp, json& params)
 {
     _InitializeParams p = params.template get<_InitializeParams>();
     InitializeResult reply;
+    reply.capabilities = lsp->capabilities;
     reply.serverInfo = InitializeResult_serverInfo{"Slang-LSP","0.0.1"};
 
     TextDocumentSyncOptions sync;
@@ -41,7 +52,7 @@ json initialize(slsp::BaseLSP* lsp, json& params)
     sync.change = TextDocumentSyncKind::TextDocumentSyncKind_None;
     reply.capabilities.textDocumentSync = sync;
 
-    lsp->set_initialized(true);
+    lsp->set_initialized(true) ;
     return reply;
 }
 
@@ -50,9 +61,10 @@ void runner(slsp::BaseLSP& lsp)
 {
     slsp::perform_default_binds(lsp);
     
-    lsp.bind_notification("hello", say_hello);
-    lsp.bind_request("add", adder);
-    lsp.bind_request("initialize", initialize);
+    // lsp.bind_notification("hello", say_hello);
+    // lsp.bind_notification("diplomat-server.full-index", test_function);
+    // lsp.bind_request("add", adder);
+    //lsp.bind_request("initialize", initialize);
     lsp.run();
     spdlog::info("Clean exit.");
 }
@@ -89,12 +101,12 @@ int main(int argc, char** argv) {
         std::istream tcp_input(&itf);
         std::ostream tcp_output(&itf);
 
-        slsp::BaseLSP lsp(tcp_input,tcp_output);
+        DiplomatLSP lsp(tcp_input,tcp_output);
         runner(lsp);
     }
     else
     {
-        slsp::BaseLSP lsp = slsp::BaseLSP();
+        DiplomatLSP lsp = DiplomatLSP();
         runner(lsp);
     }
     return 0;

@@ -1,9 +1,14 @@
 
 #include "lsp.hpp"
 #include <iostream>
+#include <utility>
 #include "spdlog/spdlog.h" 
 #include "lsp_errors.hpp"
 #include "types/structs/LogTraceParams.hpp"
+#include "types/structs/LogMessageParams.hpp"
+#include "types/structs/ShowMessageParams.hpp"
+#include "types/structs/ExecuteCommandParams.hpp"
+#include "types/methods/lsp_reserved_methods.hpp"
 using json = nlohmann::json;
 
 namespace slsp{
@@ -36,11 +41,21 @@ namespace slsp{
         }
     }
 
+    void BaseLSP::_register_custom_command(const std::string& fct_name)
+    {
+        if(! capabilities.executeCommandProvider.has_value())
+            capabilities.executeCommandProvider = types::ExecuteCommandOptions();
+        
+        spdlog::info("Register new command {}",fct_name);
+        capabilities.executeCommandProvider.value().commands.push_back(fct_name);
+    }
+
     void BaseLSP::bind_request(const std::string& fct_name, request_handle_t cb, bool allow_override)
     {
         if(! allow_override && _bound_requests.contains(fct_name))
             throw std::runtime_error("Tried to add a callback to an already handled request " + fct_name);
-
+        if(! types::RESERVED_METHODS.contains(fct_name))
+            _register_custom_command(fct_name);
         _bound_requests[fct_name] = cb;
     }
 
@@ -48,36 +63,47 @@ namespace slsp{
     {
         if(! allow_override && _bound_notifs.contains(fct_name))
             throw std::runtime_error("Tried to add a callback to an already handled request " + fct_name);
-
+        if(! types::RESERVED_METHODS.contains(fct_name))
+            _register_custom_command(fct_name);
         _bound_notifs[fct_name] = cb;
     }
 
-    json BaseLSP::invoke_request(const std::string& fct, json& params)
+    json BaseLSP::_invoke_request(const std::string& fct, json& params)
     {
         spdlog::info("Got request {}",fct);
-        return _bound_requests[fct](this,params);
+        return _bound_requests[fct](params);
     }
 
-    void BaseLSP::invoke_notif(const std::string& fct, json& params)
+    void BaseLSP::_invoke_notif(const std::string& fct, json& params)
     {
         spdlog::info("Got notification {}",fct);
 
-        return _bound_notifs[fct](this,params);
+        return _bound_notifs[fct](params);
     }
 
-    std::optional<json> BaseLSP::invoke(const std::string& fct, json& params)
+    std::optional<json> BaseLSP::invoke(const std::string& fct,  json& params)
     {
         _filter_invocation(fct);
         if (is_request(fct))
-            return invoke_request(fct,params);
+            return _invoke_request(fct,params);
         else if (is_notif(fct))
         {
-            invoke_notif(fct,params);
+            _invoke_notif(fct,params);
             return {};
         }
 
         spdlog::warn("Call requested for unknown method {}", fct);
         throw rpc_method_not_found_error(fct);
+        
+    }
+
+    json BaseLSP::_execute_command_handler(json& p)
+    {
+        const types::ExecuteCommandParams params = p;
+        json args = params.arguments.value_or(json());
+        json ret = invoke(params.command,args).value_or(json());
+        spdlog::info("Invocation return is {}",ret.dump(1));
+        return ret;
         
     }
 
@@ -118,6 +144,26 @@ namespace slsp{
         send_notification("$/logTrace",params);
     }
 
+    void BaseLSP::log(const types::MessageType level, const std::string& message)
+    {
+
+        types::LogMessageParams params;
+        params.type = level;        
+        params.message= message;
+
+        send_notification("window/logMessage",params);
+    }
+
+    void BaseLSP::show_message(const types::MessageType level, const std::string& message)
+    {
+
+        types::ShowMessageParams params;
+        params.type = level;        
+        params.message= message;
+
+        send_notification("window/showMessage",params);
+    }
+
     void BaseLSP::send_notification(const std::string &fct, nlohmann::json&& params)
     {
         json to_send;
@@ -138,6 +184,7 @@ namespace slsp{
             // Reset all parsed content
             json ret = json();
             json params = json();
+            bool has_id = false;
             id.reset();
             std::string method = "";
             
@@ -149,6 +196,7 @@ namespace slsp{
             try
             {
                 json raw_input = _rpc.get();
+                has_id = raw_input.contains("id");
 
                 if(! raw_input.contains("method"))
                 {
@@ -167,9 +215,13 @@ namespace slsp{
                     }
 
                     if (raw_input["id"].is_string())
+                    {
+                        ret["id"] = raw_input["id"];
                         id = raw_input["id"].template get<std::string>();
+                    }
                     else if (raw_input["id"].is_number())
                     {
+                        ret["id"] = raw_input["id"];
                         id = std::to_string(raw_input["id"].template get<int>());
                     }
                     else
@@ -209,10 +261,13 @@ namespace slsp{
                 spdlog::error("Unexpected server side error: {}", e.what());
             }
 
-            if(require_send)
+            if(require_send && has_id)
             {
-                if(id)
-                    ret["id"] = id.value();
+                // It is *required* to send back the ID with the same type (integer or string)
+                // as it was recieved.
+                // Here, the ID is set much above directly.
+                // if(id)
+                //     ret["id"] = id.value();
                 ret["jsonrpc"] = "2.0";
                 _rpc.send(ret);
             }
