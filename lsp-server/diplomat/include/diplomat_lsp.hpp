@@ -30,19 +30,25 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_setTrace(json params);
         json _h_shutdown(json params);
 
+        void _h_set_top_module(json params);
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
 
         void _bind_methods();
 
-        void _read_document(std::string path);
+        SVDocument* _read_document(std::string path);
 
         std::unordered_map<std::string, std::unique_ptr<SVDocument>> _documents;
+        std::unordered_map<std::string, std::string > _module_to_file;
 
         std::vector< std::filesystem::path> _root_dirs;
 
+        std::string _top_level;
+
         void _add_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_add);
         void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);
+
+        void _read_workspace_modules();
 
     public:
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);

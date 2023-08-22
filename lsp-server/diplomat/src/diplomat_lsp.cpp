@@ -70,7 +70,27 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
     }
 }
 
-void DiplomatLSP::_read_document(std::string path)
+void DiplomatLSP::_read_workspace_modules()
+{
+    namespace fs = std::filesystem;
+    _documents.clear();
+    fs::path p;
+    SVDocument* doc;
+    for (const fs::path& root : _root_dirs)
+    {
+        for (const fs::directory_entry& file : fs::recursive_directory_iterator(root))
+        {
+            if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
+            {
+                spdlog::info("Read SV file {}", p.generic_string());
+                doc = _read_document(p.generic_string());
+                _module_to_file[doc->get_module_name()] = p.generic_string();
+            }
+        }
+    }
+}
+
+SVDocument* DiplomatLSP::_read_document(std::string path)
 {
     if(_documents.contains(path))
     {
@@ -82,6 +102,8 @@ void DiplomatLSP::_read_document(std::string path)
         // Create a brand new object.
         _documents.emplace(path,std::make_unique<SVDocument>(path));
     }
+
+    return _documents.at(path).get();
 }
 
 void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
@@ -152,20 +174,21 @@ json DiplomatLSP::_h_shutdown(json params)
     return json();
 }
 
+void DiplomatLSP::_h_set_top_module(json _)
+{
+    _top_level = _[0].at("top").template get<std::string>();
+}
+
 json DiplomatLSP::_h_get_modules(json params)
 {
+    _read_workspace_modules();
+    json ret = json::array();
 
-    return R"(
-  [
-        {
-            "file": "instruction_counter.sv",
-            "name": "instruction_counter"
-        },
-        {
-            "file": "alu.sv",
-            "name": "ALU"
-        }
-    ])"_json;
+    for (auto item : _module_to_file)
+    {
+        ret.push_back({ {"name", item.first},{"file", item.second} });
+    }
+    return ret;
 }
 
 
@@ -173,7 +196,11 @@ json DiplomatLSP::_h_get_module_bbox(json _)
 {
 
     json params = _[0];
-    spdlog::info("Return information for file {}",params.at("file").template get<std::string>());
+    const std::string target_file = params.at("file").template get<std::string>();
+    spdlog::info("Return information for file {}",target_file );
+    SVDocument* doc = _documents.at(target_file).get();
+    
+    spdlog::info("Got {} IOs on the module {}.", doc->bb.value().ports.size(), doc->bb.value().module_name);
     return R"(
   {
             "module": "instruction_counter",
