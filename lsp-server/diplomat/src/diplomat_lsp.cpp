@@ -2,8 +2,12 @@
 #include "spdlog/spdlog.h"
 
 #include "types/structs/SetTraceParams.hpp"
-#include "types/structs/_InitializeParams.hpp"
+
+#include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
+#include "types/structs/DidChangeWorkspaceFoldersParams.hpp"
+
+#include "uri.hh"
 
 using namespace slsp::types;
 
@@ -14,7 +18,16 @@ DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os)
     sync.openClose = true;
     sync.save = true;
     sync.change = TextDocumentSyncKind::TextDocumentSyncKind_None;
+
+    WorkspaceFoldersServerCapabilities ws;
+    ws.supported = true;
+    ws.changeNotifications = true;
+
+    ServerCapabilities_workspace sc_ws;
+    sc_ws.workspaceFolders = ws;
+
     capabilities.textDocumentSync = sync;
+    capabilities.workspace = sc_ws;
 
     _bind_methods();    
 }
@@ -33,7 +46,28 @@ void DiplomatLSP::_bind_methods()
     bind_notification("exit", LSP_MEMBER_BIND(DiplomatLSP,_h_exit));
         
     bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP,_h_shutdown));
+    bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP,_h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
+}
+
+void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_add)
+{
+    for (const WorkspaceFolder& wf : to_add)
+    {
+        uri path = uri(wf.uri);
+        spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
+        _root_dirs.push_back(std::filesystem::path(path.get_path()));
+    }
+}
+
+void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& to_rm)
+{
+    for (const WorkspaceFolder& wf : to_rm)
+    {
+        uri path = uri(wf.uri);
+        spdlog::info("Remove workspace {} ({}) to working directories.", wf.name, wf.uri);
+        std::remove(_root_dirs.begin(), _root_dirs.end(), path.get_path());
+    }
 }
 
 void DiplomatLSP::_read_document(std::string path)
@@ -50,6 +84,13 @@ void DiplomatLSP::_read_document(std::string path)
     }
 }
 
+void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
+{
+    DidChangeWorkspaceFoldersParams params = _.template get<DidChangeWorkspaceFoldersParams>();
+    _remove_workspace_folders(params.event.removed);
+    _add_workspace_folders(params.event.added);
+}
+
 void DiplomatLSP::_h_exit(json params)
 {
     exit();
@@ -57,7 +98,33 @@ void DiplomatLSP::_h_exit(json params)
 
 json DiplomatLSP::_h_initialize(json params)
 {
-    _InitializeParams p = params.template get<_InitializeParams>();
+    InitializeParams p = params.template get<InitializeParams>();
+    bool got_workspace = false;
+
+    if(p.capabilities.workspace && p.capabilities.workspace.value().workspaceFolders.value_or(false))
+    {
+        if (p.workspaceFolders)
+        {
+            _add_workspace_folders(p.workspaceFolders.value());
+            got_workspace = true;
+        }
+    }
+
+    if (!got_workspace)
+    {
+        if (p.rootUri)
+        {
+            spdlog::info("Add root directory from URI: {}", p.rootUri.value());
+            _root_dirs.push_back(std::filesystem::path(uri(p.rootUri.value()).get_path()));
+        }
+        else if(p.rootPath)
+        {
+            spdlog::info("Add root directory from path: {}", p.rootPath.value());
+            _root_dirs.push_back(std::filesystem::path(p.rootPath.value()));
+        }
+        
+    }
+
     InitializeResult reply;
     reply.capabilities = capabilities;
     reply.serverInfo = InitializeResult_serverInfo{"Diplomat-LSP","0.0.1"};
