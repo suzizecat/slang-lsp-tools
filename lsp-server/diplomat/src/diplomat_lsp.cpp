@@ -82,7 +82,7 @@ void DiplomatLSP::_read_workspace_modules()
         {
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
-                spdlog::info("Read SV file {}", p.generic_string());
+                spdlog::debug("Read SV file {}", p.generic_string());
                 doc = _read_document(p.generic_string());
                 _module_to_file[doc->get_module_name()] = p.generic_string();
             }
