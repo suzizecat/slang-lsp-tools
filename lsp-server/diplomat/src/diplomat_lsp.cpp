@@ -56,7 +56,7 @@ void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_
     {
         uri path = uri(wf.uri);
         spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
-        _root_dirs.push_back(std::filesystem::path(path.get_path()));
+        _root_dirs.push_back(std::filesystem::path("/" + path.get_path()));
     }
 }
 
@@ -66,7 +66,7 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
     {
         uri path = uri(wf.uri);
         spdlog::info("Remove workspace {} ({}) to working directories.", wf.name, wf.uri);
-        std::remove(_root_dirs.begin(), _root_dirs.end(), path.get_path());
+        std::remove(_root_dirs.begin(), _root_dirs.end(), "/" + path.get_path());
     }
 }
 
@@ -201,54 +201,7 @@ json DiplomatLSP::_h_get_module_bbox(json _)
     SVDocument* doc = _documents.at(target_file).get();
     
     spdlog::info("Got {} IOs on the module {}.", doc->bb.value().ports.size(), doc->bb.value().module_name);
-    return R"(
-  {
-            "module": "instruction_counter",
-            "parameters": [
-                {
-                    "default": "8",
-                    "name": "K_ADWIDTH",
-                    "type": "ImplicitType"
-                }
-            ],
-            "ports": [
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_clk",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_rstn",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_incr_en",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "o_addr",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_set_addr",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_jump",
-                    "type": "unknown"
-                },
-                {
-                    "kind": "ImplicitType",
-                    "name": "i_addr",
-                    "type": "unknown"
-                }
-            ]
-        })"_json;
+    return doc->bb.value();
 }
 
 void DiplomatLSP::hello(json _)

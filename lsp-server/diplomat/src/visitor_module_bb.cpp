@@ -5,6 +5,56 @@
 using namespace slang::syntax;
 
 
+void to_json(json& j, const ModuleParam& p)
+{
+	j = json{
+			{"name",p.name},
+			{"default",p.default_value},
+			{"type",p.type}
+		};
+}
+void to_json(json& j, const ModulePort& p)
+{
+	j = json{
+		{"name",p.name},
+		{"size",p.size},
+		{"type",p.type},
+		{"direction",p.direction},
+		{"is_interface",p.is_interface},
+		{"modport",p.modport}
+	};
+}
+void to_json(json& j, const ModuleBlackBox& p)
+{
+	j = json{
+		{"module",p.module_name},
+		{"parameters",p.parameters},
+		{"ports",p.ports}
+	};
+}
+
+void from_json(const json& j, ModuleParam& p)
+{
+	j.at("name").get_to(p.name);
+	j.at("default").get_to(p.default_value);
+	j.at("type").get_to(p.type);
+}
+void from_json(const json& j, ModulePort& p)
+{
+	j.at("name").get_to(p.name);
+	j.at("size").get_to(p.size);
+	j.at("type").get_to(p.type);
+	j.at("direction").get_to(p.direction);
+	j.at("is_interface").get_to(p.is_interface);
+	j.at("modport").get_to(p.modport);
+}
+void from_json(const json& j, ModuleBlackBox& p)
+{
+	j.at("module").get_to(p.module_name);
+	j.at("parameters").get_to(p.parameters);
+	j.at("ports").get_to(p.ports);
+}
+
 VisitorModuleBlackBox::VisitorModuleBlackBox(bool only_modules, const slang::SourceManager* sm) : _only_modules(true), _sm(sm) {}
 
 void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_sm)

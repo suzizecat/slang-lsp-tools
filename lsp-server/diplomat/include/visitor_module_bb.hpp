@@ -34,6 +34,14 @@ struct ModuleBlackBox
     std::vector<ModulePort> ports;
 };
 
+    void to_json(json& j, const ModuleParam& p);
+    void to_json(json& j, const ModulePort& p);
+    void to_json(json& j, const ModuleBlackBox& p);
+
+    void from_json(const json& j, ModuleParam& p);
+    void from_json(const json& j, ModulePort& p);
+    void from_json(const json& j, ModuleBlackBox& p);
+
 class VisitorModuleBlackBox : public slang::syntax::SyntaxVisitor<VisitorModuleBlackBox>
 {
 
