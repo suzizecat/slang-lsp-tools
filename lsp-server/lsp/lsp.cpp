@@ -99,12 +99,22 @@ namespace slsp{
 
     json BaseLSP::_execute_command_handler(json& p)
     {
-        const types::ExecuteCommandParams params = p;
-        json args = params.arguments.value_or(json());
-        json ret = invoke(params.command,args).value_or(json());
-        spdlog::info("Invocation return is {}",ret.dump(1));
-        return ret;
-        
+        try
+        {
+            const types::ExecuteCommandParams params = p;
+            json args = params.arguments.value_or(json());
+            json ret = invoke(params.command, args).value_or(json());
+            spdlog::debug("Invocation return is {}",ret.dump(1));
+            return ret;
+        }
+        catch(const rpc_base_exception& e) { throw e; }
+        catch(const server_side_base_exception& e) { throw e; }
+        catch(const std::exception& e)
+        {
+            // If any unhandled exception raises during a call to an execute command, 
+            // Just rethrow as an unknown error.
+            throw lsp_unknown_error(e.what());
+        }        
     }
 
     bool BaseLSP::is_notif(const std::string &fct) const

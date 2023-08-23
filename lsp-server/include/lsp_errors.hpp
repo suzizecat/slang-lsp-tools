@@ -89,6 +89,7 @@ namespace slsp {
      */
     MAKE_BASIC_RPC_EXCEPTION_WITH_MSG(lsp_server_not_initialized_error,types::ErrorCodes_ServerNotInitialized,"Method call rejected due to uninitialized server.")
 
+    MAKE_BASIC_RPC_EXCEPTION(lsp_unknown_error, types::ErrorCodes_UnknownErrorCode);
 
     void to_json(nlohmann::json& j, const rpc_base_exception& e);
    
