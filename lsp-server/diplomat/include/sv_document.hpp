@@ -6,6 +6,8 @@
 
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
+#include "slang/text/SourceLocation.h"
+#include "slang/syntax/SyntaxNode.h"
 
 #include "visitor_module_bb.hpp"
 
@@ -19,7 +21,8 @@ struct SVDocument
     SVDocument(std::string path);
     const std::string get_module_name();
     int buffer_position_from_location(int line, int column);
-    
+    std::optional<const slang::syntax::SyntaxNode&>  get_syntax_node_from_location(const slang::SourceLocation& pos);
+
     std::optional<ModuleBlackBox> bb;
 
     protected:

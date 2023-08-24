@@ -1,5 +1,9 @@
 #include "sv_document.hpp"
 #include <istream>
+#include <stack>
+
+using namespace slang;
+
 SVDocument::SVDocument(std::string path) : sm()
 {
     st = slang::syntax::SyntaxTree::fromFile(path,sm).value();
@@ -42,4 +46,54 @@ void SVDocument::_update_line_cache()
         _line_size_cache.value().push_back(pos);
     }
 
+}
+
+std::optional<const syntax::SyntaxNode&> SVDocument::get_syntax_node_from_location(const SourceLocation& pos)
+{
+    
+    const syntax::SyntaxNode& root = st.get()->root();
+    
+    std::stack<const syntax::SyntaxNode*> position;
+    position.push(&root);
+    
+    while (position.top()->getChildCount() > 0)
+    {
+        const syntax::SyntaxNode* node = position.top();
+        const syntax::SyntaxNode* selected = nullptr;
+
+        for (int i = 0; i < node->getChildCount(); i++)
+        {
+            const syntax::SyntaxNode* child_node = node->childNode(i);
+            // If we got a token instead of a proper node, just skip
+            if (child_node == nullptr)
+                continue;
+
+            const slang::SourceLocation pos_start = child_node->sourceRange().start();
+            const slang::SourceLocation pos_end = child_node->sourceRange().end();
+
+            if (pos_start.buffer() != pos.buffer())
+                continue;
+            if (pos_start > pos || pos > pos_end)
+                continue;
+
+            selected = child_node;
+        }
+
+        if (selected != nullptr)
+            position.push(selected);
+        else
+        {
+            break;
+        }
+    }
+    
+    if (position.size() == 1)
+    {
+        std::optional<const syntax::SyntaxNode&> empty_return;
+        return empty_return;
+    }
+    else
+    {
+        return *(position.top());
+    }
 }

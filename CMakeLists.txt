@@ -73,3 +73,12 @@ PRIVATE nlohmann_json::nlohmann_json
 target_include_directories(lsp-test-client 
 PRIVATE lsp-server/include)
 
+add_executable(sv-explorer
+explorer/main.cpp
+explorer/explorer_visitor.cpp)
+
+target_link_libraries(sv-explorer
+PRIVATE slang::slang)
+
+target_include_directories(sv-explorer 
+PRIVATE explorer/)
