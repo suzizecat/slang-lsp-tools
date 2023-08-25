@@ -8,6 +8,10 @@
 #include "types/structs/ServerCapabilities.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
 
+#include "slang/ast/Compilation.h"
+#include "slang/diagnostics/DiagnosticClient.h"
+#include "slang/diagnostics/DiagnosticEngine.h"
+
 #include <iostream>
 #include <unordered_map>
 #include <memory>
@@ -20,10 +24,11 @@ using json = nlohmann::json;
 
 
 
-class DiplomatLSP : public slsp::BaseLSP
+class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
 {
     protected:
         void _h_didChangeWorkspaceFolders(json params);
+        void _h_didSaveTextDocument(json params);
         void _h_exit(json params);
         json _h_initialize(json params);
         void _h_initialized(json params);
@@ -36,7 +41,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         void _bind_methods();
 
-        SVDocument* _read_document(std::string path);
+        SVDocument* _read_document(std::filesystem::path path);
 
         std::unordered_map<std::string, std::unique_ptr<SVDocument>> _documents;
         std::unordered_map<std::string, std::string > _module_to_file;
@@ -49,11 +54,21 @@ class DiplomatLSP : public slsp::BaseLSP
         void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);
 
         void _read_workspace_modules();
+        void _compile();
+        
+        
+
+        std::unique_ptr<slang::ast::Compilation> _compilation;
+
 
     public:
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
 
+        slang::ast::Compilation* get_compilation();
+        virtual void report(const slang::ReportedDiagnostic& diagnostic);
+
         void hello(json params);
+
 
 
 };

@@ -3,9 +3,14 @@
 
 #include "types/structs/SetTraceParams.hpp"
 
+#include "slang/diagnostics/DiagnosticEngine.h"
+
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
-#include "types/structs/DidChangeWorkspaceFoldersParams.hpp"
+#include "types/structs/DidChangeWorkspaceFoldersParams.hpp" 
+#include "types/structs/DidSaveTextDocumentParams.hpp" 
+
+#include "types/structs/PublishDiagnosticsParams.hpp"
 
 #include "uri.hh"
 
@@ -32,6 +37,60 @@ DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os)
     _bind_methods();    
 }
 
+slang::ast::Compilation* DiplomatLSP::get_compilation()
+{
+    if (_compilation == nullptr)
+        _compile();
+
+    return _compilation.get();
+}
+
+void DiplomatLSP::report(const slang::ReportedDiagnostic& to_report)
+{
+    PublishDiagnosticsParams pub;
+    const slang::SourceManager* sm = _compilation->getSourceManager();
+    SVDocument* doc = _documents.at(sm->getFullPath(to_report.location.buffer())).get();
+
+    Diagnostic diag;
+    diag.code = to_report.originalDiagnostic.code.getCode();
+    diag.source = "diplomat-slang";
+    diag.message = to_report.formattedMessage;
+
+    switch (to_report.severity)
+    {
+    case slang::DiagnosticSeverity::Ignored :
+        // Ignore the diagnostic
+        return;
+        break;
+    case slang::DiagnosticSeverity::Note:
+        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Information;
+        break ;
+    case slang::DiagnosticSeverity::Warning :
+        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Warning;
+        break;
+    case slang::DiagnosticSeverity::Error :
+    case slang::DiagnosticSeverity::Fatal :
+        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Error;
+        break;
+    default:
+        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Hint;
+        break;
+    }
+
+    std::filesystem::path fp = sm->getFullPath(to_report.location.buffer());
+    pub.uri = "file://" + std::filesystem::absolute(fp).generic_string();
+    
+
+    for (slang::SourceRange range : to_report.ranges)
+    {
+        diag.range = doc->range_from_slang(range);
+        pub.diagnostics.push_back(diag);
+    }
+
+    spdlog::info("Send diagnostics");
+    send_notification("textDocument/publishDiagnostics", pub);
+}
+
 void DiplomatLSP::_bind_methods()
 {
     bind_request("initialize",LSP_MEMBER_BIND(DiplomatLSP,_h_initialize));
@@ -45,8 +104,10 @@ void DiplomatLSP::_bind_methods()
     bind_notification("initialized", LSP_MEMBER_BIND(DiplomatLSP,_h_initialized));
     bind_notification("exit", LSP_MEMBER_BIND(DiplomatLSP,_h_exit));
         
-    bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP,_h_shutdown));
-    bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP,_h_didChangeWorkspaceFolders));
+    bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP, _h_shutdown));
+
+    bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
+    bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
 }
 
@@ -83,27 +144,52 @@ void DiplomatLSP::_read_workspace_modules()
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
                 spdlog::debug("Read SV file {}", p.generic_string());
-                doc = _read_document(p.generic_string());
+                doc = _read_document(p);
                 _module_to_file[doc->get_module_name()] = p.generic_string();
             }
         }
     }
 }
 
-SVDocument* DiplomatLSP::_read_document(std::string path)
+void DiplomatLSP::_compile()
 {
-    if(_documents.contains(path))
+    spdlog::info("Request design compilation");
+    _read_workspace_modules();
+    
+    _compilation.reset(new slang::ast::Compilation());
+
+    
+    slang::DiagnosticEngine de(*(_compilation->getSourceManager()));
+    de.addClient(std::shared_ptr<DiplomatLSP>(this));
+
+    spdlog::info("Add syntax trees");
+    for (const auto& [key, value] : _documents)
+    {
+        _compilation->addSyntaxTree(value->st);
+    }
+
+    _compilation->getRoot();
+
+    spdlog::info("Issuing diagnostics");
+    for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
+        de.issue(diag);
+}
+
+SVDocument* DiplomatLSP::_read_document(std::filesystem::path path)
+{
+    std::string canon_path = std::filesystem::canonical(path).generic_string();
+    if (_documents.contains(canon_path))
     {
         // Delete previous SVDocument and build it anew.
-        _documents.at(path).reset(new SVDocument(path));
+        _documents.at(canon_path).reset(new SVDocument(canon_path));
     }
     else 
     {
         // Create a brand new object.
-        _documents.emplace(path,std::make_unique<SVDocument>(path));
+        _documents.emplace(canon_path,std::make_unique<SVDocument>(canon_path));
     }
 
-    return _documents.at(path).get();
+    return _documents.at(canon_path).get();
 }
 
 void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
@@ -111,6 +197,13 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
     DidChangeWorkspaceFoldersParams params = _.template get<DidChangeWorkspaceFoldersParams>();
     _remove_workspace_folders(params.event.removed);
     _add_workspace_folders(params.event.added);
+}
+
+void DiplomatLSP::_h_didSaveTextDocument(json _)
+{
+    DidSaveTextDocumentParams param = _ ;
+    _read_document(std::filesystem::path("/" + uri(param.textDocument.uri).get_path()));
+    _compile();
 }
 
 void DiplomatLSP::_h_exit(json params)

@@ -9,6 +9,9 @@
 #include "slang/text/SourceLocation.h"
 #include "slang/syntax/SyntaxNode.h"
 
+#include "types/structs/Position.hpp"
+#include "types/structs/Range.hpp"
+
 #include "visitor_module_bb.hpp"
 
 struct SVDocument
@@ -21,7 +24,11 @@ struct SVDocument
     SVDocument(std::string path);
     const std::string get_module_name();
     int buffer_position_from_location(int line, int column);
-    std::optional<const slang::syntax::SyntaxNode&>  get_syntax_node_from_location(const slang::SourceLocation& pos);
+    
+    slsp::types::Position position_from_slang(const slang::SourceLocation& pos);
+    slsp::types::Range range_from_slang(const slang::SourceRange& range);
+
+    // std::optional<const slang::syntax::SyntaxNode&>  get_syntax_node_from_location(const slang::SourceLocation& pos);
 
     std::optional<ModuleBlackBox> bb;
 
