@@ -3,7 +3,9 @@
 
 #include "types/structs/SetTraceParams.hpp"
 
+
 #include "slang/diagnostics/DiagnosticEngine.h"
+#include "slang/diagnostics/DeclarationsDiags.h"
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
@@ -18,7 +20,8 @@ using namespace slsp::types;
 
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os), 
 _this_shared(this),
-_sm(new slang::SourceManager())
+_sm(new slang::SourceManager()),
+_diagnostic_client(new slsp::LSPDiagnosticClient(_documents))
 {
     
     TextDocumentSyncOptions sync;
@@ -47,62 +50,6 @@ slang::ast::Compilation* DiplomatLSP::get_compilation()
     return _compilation.get();
 }
 
-void DiplomatLSP::report(const slang::ReportedDiagnostic& to_report)
-{
-    PublishDiagnosticsParams* pub;
-
-    const slang::SourceManager* sm = _compilation->getSourceManager();
-    SVDocument* doc = _documents.at(sm->getFullPath(to_report.location.buffer())).get();
-
-    Diagnostic diag;
-    diag.code = to_report.originalDiagnostic.code.getCode();
-    diag.source = "diplomat-slang";
-    diag.message = to_report.formattedMessage;
-    diag.range = doc->range_from_slang(to_report.location, to_report.location);
-
-    spdlog::info("Report diagnostic {} with code {}",diag.message, to_report.originalDiagnostic.code.getCode());
-
-    switch (to_report.severity)
-    {
-    case slang::DiagnosticSeverity::Ignored :
-        // Ignore the diagnostic
-        return;
-        break;
-    case slang::DiagnosticSeverity::Note:
-        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Information;
-        break ;
-    case slang::DiagnosticSeverity::Warning :
-        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Warning;
-        break;
-    case slang::DiagnosticSeverity::Error :
-    case slang::DiagnosticSeverity::Fatal :
-        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Error;
-        break;
-    default:
-        diag.severity = DiagnosticSeverity::DiagnosticSeverity_Hint;
-        break;
-    }
-
-    std::filesystem::path fp = sm->getFullPath(to_report.location.buffer());
-    std::string the_uri = "file://" + std::filesystem::absolute(fp).generic_string();
-    if(!_diagnostics.contains(the_uri))
-    {
-        pub = new PublishDiagnosticsParams();
-        pub->uri = the_uri;
-        _diagnostics[the_uri] = pub;
-    }
-    else
-    {
-        pub = _diagnostics[the_uri];
-    }  
-
-    // for (slang::SourceRange range : to_report.ranges)
-    // {
-    //     diag.range = doc->range_from_slang(range);
-        
-    // }
-    pub->diagnostics.push_back(diag);
-}
 
 void DiplomatLSP::_bind_methods()
 {
@@ -123,6 +70,16 @@ void DiplomatLSP::_bind_methods()
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
+}
+
+
+
+void DiplomatLSP::_emit_diagnostics()
+{
+    _diagnostic_client->_cleanup_diagnostics();
+    for(auto [key,value] : _diagnostic_client->get_publish_requests())
+        send_notification("textDocument/publishDiagnostics", *value);
+
 }
 
 void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_add)
@@ -162,7 +119,7 @@ void DiplomatLSP::_read_workspace_modules()
                 
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
-                spdlog::debug("Read SV file {}", p.generic_string());
+                spdlog::info("Read SV file {}", p.generic_string());
                 doc = _read_document(p);
                 _module_to_file[doc->get_module_name()] = p.generic_string();
             }
@@ -173,15 +130,20 @@ void DiplomatLSP::_read_workspace_modules()
 void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
-    for(auto [key,value] : _diagnostics)
-        value->diagnostics.clear();
         
     _read_workspace_modules();
+    // As per slang limitation, it is needed to recreate the diagnostic engine
+    // because the source manager has been deleted by _read_workspace_modules.
+    // Therefore, the client shall also be rebuild.
+    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents));
+    slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
+    de.setErrorLimit(500);
+    de.setSeverity(slang::diag::MismatchedTimeScales,slang::DiagnosticSeverity::Ignored);
+    de.addClient(_diagnostic_client);
+
+    _diagnostic_client->_clear_diagnostics();
     
     _compilation.reset(new slang::ast::Compilation());
-    
-    slang::DiagnosticEngine de(*_sm);
-    de.addClient(_this_shared);
 
     spdlog::info("Add syntax trees");
     for (const auto& [key, value] : _documents)
@@ -196,8 +158,7 @@ void DiplomatLSP::_compile()
         de.issue(diag);
 
     spdlog::info("Send diagnostics");
-    for(auto [key,value] : _diagnostics)
-        send_notification("textDocument/publishDiagnostics", *value);
+    _emit_diagnostics();
     spdlog::info("Diagnostic run done.");
 }
 
@@ -277,6 +238,7 @@ json DiplomatLSP::_h_initialize(json params)
 void DiplomatLSP::_h_initialized(json params)
 {
     spdlog::info("Client initialization complete.");
+    _compile();
 }
 
 void DiplomatLSP::_h_setTrace(json params)

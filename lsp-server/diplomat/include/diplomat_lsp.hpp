@@ -3,6 +3,8 @@
 #include "lsp.hpp"
 #include "lsp_errors.hpp"
 #include "sv_document.hpp"
+#include "diagnostic_client.hpp"
+
 #include "nlohmann/json.hpp"
 
 #include "types/structs/ServerCapabilities.hpp"
@@ -26,7 +28,7 @@ using json = nlohmann::json;
 
 
 
-class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
+class DiplomatLSP : public slsp::BaseLSP
 {
     protected:
 
@@ -47,6 +49,11 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
 
         void _bind_methods();
 
+        void _clear_diagnostics();
+        void _cleanup_diagnostics();
+
+        void _emit_diagnostics();
+
         SVDocument* _read_document(std::filesystem::path path);
 
         std::unique_ptr<slang::SourceManager> _sm;
@@ -56,7 +63,8 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
 
         std::vector< std::filesystem::path> _root_dirs;
         std::unordered_set< std::filesystem::path> _excluded_paths;
-        std::unordered_map<std::string, slsp::types::PublishDiagnosticsParams*> _diagnostics;
+
+        std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
 
         std::string _top_level;
 
@@ -75,7 +83,8 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
 
         slang::ast::Compilation* get_compilation();
-        virtual void report(const slang::ReportedDiagnostic& diagnostic);
+        inline const std::unordered_map<std::string, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
+        
 
         void hello(json params);
 

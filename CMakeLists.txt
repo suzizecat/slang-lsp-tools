@@ -43,6 +43,7 @@ lsp-server/include/types/src/structs_json_bindings.cpp
 lsp-server/diplomat/src/diplomat_lsp.cpp
 lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
+lsp-server/diplomat/src/diagnostic_client.cpp
 
 )
 
