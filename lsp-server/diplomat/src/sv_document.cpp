@@ -4,9 +4,17 @@
 
 using namespace slang;
 
-SVDocument::SVDocument(std::string path) : sm()
+SVDocument::SVDocument(std::string path, slang::SourceManager* sm) : sm(sm)
 {
-    st = slang::syntax::SyntaxTree::fromFile(path,sm).value();
+    st = slang::syntax::SyntaxTree::fromFile(path,*sm).value();
+    for (BufferID id : sm->getAllBuffers())
+    {
+        if (sm->getFullPath(id) == std::filesystem::path(path))
+        {
+            _buff_id = id;
+            break;
+        }
+    }
 }
 
 const std::string SVDocument::get_module_name()
@@ -35,10 +43,15 @@ slsp::types::Position SVDocument::position_from_slang(const slang::SourceLocatio
         sel_line++;
     }
 
-    ret.line = sel_line - 1;
+    ret.line = sel_line;
     ret.character = pos.offset() - _line_size_cache.value().at(sel_line - 1);
 
     return ret;
+}
+
+slsp::types::Range SVDocument::range_from_slang(const slang::SourceLocation& start, const slang::SourceLocation& end)
+{
+    return slsp::types::Range{position_from_slang(start),position_from_slang(end)};
 }
 
 slsp::types::Range SVDocument::range_from_slang(const slang::SourceRange& range)
@@ -61,7 +74,7 @@ void SVDocument::_update_line_cache()
     _line_size_cache.reset();
     _line_size_cache = std::vector<unsigned int>();
     unsigned int pos = 0;
-    std::string fcontent = std::string(sm.getSourceText(sm.getAllBuffers().at(0)).data());
+    std::string fcontent = std::string(sm->getSourceText(_buff_id));
 
     std::istringstream iss(fcontent);
     for (std::string line; std::getline(iss,line); )

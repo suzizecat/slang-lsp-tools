@@ -7,6 +7,7 @@
 
 #include "types/structs/ServerCapabilities.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
+#include "types/structs/PublishDiagnosticsParams.hpp"
 
 #include "slang/ast/Compilation.h"
 #include "slang/diagnostics/DiagnosticClient.h"
@@ -27,6 +28,9 @@ using json = nlohmann::json;
 class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
 {
     protected:
+
+        std::shared_ptr<DiplomatLSP> _this_shared;
+
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
         void _h_exit(json params);
@@ -43,10 +47,13 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
 
         SVDocument* _read_document(std::filesystem::path path);
 
+        std::unique_ptr<slang::SourceManager> _sm;
+
         std::unordered_map<std::string, std::unique_ptr<SVDocument>> _documents;
         std::unordered_map<std::string, std::string > _module_to_file;
 
         std::vector< std::filesystem::path> _root_dirs;
+        std::unordered_map<std::string, slsp::types::PublishDiagnosticsParams*> _diagnostics;
 
         std::string _top_level;
 

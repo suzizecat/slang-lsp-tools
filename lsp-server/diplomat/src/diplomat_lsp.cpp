@@ -10,13 +10,15 @@
 #include "types/structs/DidChangeWorkspaceFoldersParams.hpp" 
 #include "types/structs/DidSaveTextDocumentParams.hpp" 
 
-#include "types/structs/PublishDiagnosticsParams.hpp"
+
 
 #include "uri.hh"
 
 using namespace slsp::types;
 
-DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os)
+DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os), 
+_this_shared(this),
+_sm(new slang::SourceManager())
 {
     
     TextDocumentSyncOptions sync;
@@ -47,7 +49,8 @@ slang::ast::Compilation* DiplomatLSP::get_compilation()
 
 void DiplomatLSP::report(const slang::ReportedDiagnostic& to_report)
 {
-    PublishDiagnosticsParams pub;
+    PublishDiagnosticsParams* pub;
+
     const slang::SourceManager* sm = _compilation->getSourceManager();
     SVDocument* doc = _documents.at(sm->getFullPath(to_report.location.buffer())).get();
 
@@ -55,6 +58,9 @@ void DiplomatLSP::report(const slang::ReportedDiagnostic& to_report)
     diag.code = to_report.originalDiagnostic.code.getCode();
     diag.source = "diplomat-slang";
     diag.message = to_report.formattedMessage;
+    diag.range = doc->range_from_slang(to_report.location, to_report.location);
+
+    spdlog::info("Report diagnostic {} with code {}",diag.message, to_report.originalDiagnostic.code.getCode());
 
     switch (to_report.severity)
     {
@@ -78,17 +84,24 @@ void DiplomatLSP::report(const slang::ReportedDiagnostic& to_report)
     }
 
     std::filesystem::path fp = sm->getFullPath(to_report.location.buffer());
-    pub.uri = "file://" + std::filesystem::absolute(fp).generic_string();
-    
-
-    for (slang::SourceRange range : to_report.ranges)
+    std::string the_uri = "file://" + std::filesystem::absolute(fp).generic_string();
+    if(!_diagnostics.contains(the_uri))
     {
-        diag.range = doc->range_from_slang(range);
-        pub.diagnostics.push_back(diag);
+        pub = new PublishDiagnosticsParams();
+        pub->uri = the_uri;
+        _diagnostics[the_uri] = pub;
     }
+    else
+    {
+        pub = _diagnostics[the_uri];
+    }  
 
-    spdlog::info("Send diagnostics");
-    send_notification("textDocument/publishDiagnostics", pub);
+    // for (slang::SourceRange range : to_report.ranges)
+    // {
+    //     diag.range = doc->range_from_slang(range);
+        
+    // }
+    pub->diagnostics.push_back(diag);
 }
 
 void DiplomatLSP::_bind_methods()
@@ -135,6 +148,8 @@ void DiplomatLSP::_read_workspace_modules()
 {
     namespace fs = std::filesystem;
     _documents.clear();
+    _sm.reset(new slang::SourceManager());
+
     fs::path p;
     SVDocument* doc;
     for (const fs::path& root : _root_dirs)
@@ -154,13 +169,15 @@ void DiplomatLSP::_read_workspace_modules()
 void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
+    for(auto [key,value] : _diagnostics)
+        value->diagnostics.clear();
+        
     _read_workspace_modules();
     
     _compilation.reset(new slang::ast::Compilation());
-
     
-    slang::DiagnosticEngine de(*(_compilation->getSourceManager()));
-    de.addClient(std::shared_ptr<DiplomatLSP>(this));
+    slang::DiagnosticEngine de(*_sm);
+    de.addClient(_this_shared);
 
     spdlog::info("Add syntax trees");
     for (const auto& [key, value] : _documents)
@@ -173,6 +190,11 @@ void DiplomatLSP::_compile()
     spdlog::info("Issuing diagnostics");
     for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
         de.issue(diag);
+
+    spdlog::info("Send diagnostics");
+    for(auto [key,value] : _diagnostics)
+        send_notification("textDocument/publishDiagnostics", *value);
+    spdlog::info("Diagnostic run done.");
 }
 
 SVDocument* DiplomatLSP::_read_document(std::filesystem::path path)
@@ -181,12 +203,12 @@ SVDocument* DiplomatLSP::_read_document(std::filesystem::path path)
     if (_documents.contains(canon_path))
     {
         // Delete previous SVDocument and build it anew.
-        _documents.at(canon_path).reset(new SVDocument(canon_path));
+        _documents.at(canon_path).reset(new SVDocument(canon_path,_sm.get()));
     }
     else 
     {
         // Create a brand new object.
-        _documents.emplace(canon_path,std::make_unique<SVDocument>(canon_path));
+        _documents[canon_path] = std::make_unique<SVDocument>(canon_path,_sm.get());
     }
 
     return _documents.at(canon_path).get();
