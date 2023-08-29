@@ -110,6 +110,7 @@ void DiplomatLSP::_bind_methods()
     bind_request("diplomat-server.get-modules", LSP_MEMBER_BIND(DiplomatLSP,_h_get_modules));
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
+    bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
     
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
@@ -156,6 +157,9 @@ void DiplomatLSP::_read_workspace_modules()
     {
         for (const fs::directory_entry& file : fs::recursive_directory_iterator(root))
         {
+            if (_excluded_paths.contains(std::filesystem::canonical(file.path())))
+                continue;
+                
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
                 spdlog::debug("Read SV file {}", p.generic_string());
@@ -317,6 +321,15 @@ json DiplomatLSP::_h_get_module_bbox(json _)
     
     spdlog::info("Got {} IOs on the module {}.", doc->bb.value().ports.size(), doc->bb.value().module_name);
     return doc->bb.value();
+}
+
+void DiplomatLSP::_h_ignore(json params)
+{
+    for (const json& record : params.at(1))
+    {
+        std::filesystem::path p = std::filesystem::canonical(record["path"].template get<std::string>());
+        _excluded_paths.insert(p);
+    }
 }
 
 void DiplomatLSP::hello(json _)

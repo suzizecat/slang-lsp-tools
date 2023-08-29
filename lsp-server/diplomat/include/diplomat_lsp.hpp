@@ -14,6 +14,7 @@
 #include "slang/diagnostics/DiagnosticEngine.h"
 
 #include <iostream>
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <filesystem>
@@ -42,6 +43,7 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
         void _h_set_top_module(json params);
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
+        void _h_ignore(json params);
 
         void _bind_methods();
 
@@ -53,6 +55,7 @@ class DiplomatLSP : public slsp::BaseLSP, public slang::DiagnosticClient
         std::unordered_map<std::string, std::string > _module_to_file;
 
         std::vector< std::filesystem::path> _root_dirs;
+        std::unordered_set< std::filesystem::path> _excluded_paths;
         std::unordered_map<std::string, slsp::types::PublishDiagnosticsParams*> _diagnostics;
 
         std::string _top_level;

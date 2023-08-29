@@ -44,7 +44,7 @@ slsp::types::Position SVDocument::position_from_slang(const slang::SourceLocatio
     }
 
     ret.line = sel_line;
-    ret.character = pos.offset() - _line_size_cache.value().at(sel_line - 1);
+    ret.character = pos.offset() - (sel_line > 0 ? _line_size_cache.value().at(sel_line - 1) : 0);
 
     return ret;
 }
