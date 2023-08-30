@@ -53,6 +53,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _cleanup_diagnostics();
 
         void _emit_diagnostics();
+        void _erase_diagnostics();
 
         SVDocument* _read_document(std::filesystem::path path);
 

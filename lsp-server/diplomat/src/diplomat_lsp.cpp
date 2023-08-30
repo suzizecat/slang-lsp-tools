@@ -5,7 +5,7 @@
 
 
 #include "slang/diagnostics/DiagnosticEngine.h"
-#include "slang/diagnostics/DeclarationsDiags.h"
+#include "slang/diagnostics/AllDiags.h"
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
@@ -76,9 +76,22 @@ void DiplomatLSP::_bind_methods()
 
 void DiplomatLSP::_emit_diagnostics()
 {
-    _diagnostic_client->_cleanup_diagnostics();
-    for(auto [key,value] : _diagnostic_client->get_publish_requests())
-        send_notification("textDocument/publishDiagnostics", *value);
+    if (_diagnostic_client.get() != nullptr)
+    {
+        _diagnostic_client->_cleanup_diagnostics();
+        for(auto [key,value] : _diagnostic_client->get_publish_requests())
+            send_notification("textDocument/publishDiagnostics", *value);
+    }
+}
+
+void DiplomatLSP::_erase_diagnostics()
+{
+    if (_diagnostic_client.get() != nullptr)
+    {
+        _diagnostic_client->_clear_diagnostics();
+        for (auto [key, value] : _diagnostic_client->get_publish_requests())
+            send_notification("textDocument/publishDiagnostics", *value);
+    }
 
 }
 
@@ -112,10 +125,16 @@ void DiplomatLSP::_read_workspace_modules()
     SVDocument* doc;
     for (const fs::path& root : _root_dirs)
     {
-        for (const fs::directory_entry& file : fs::recursive_directory_iterator(root))
+        fs::recursive_directory_iterator it(root);
+        for (const fs::directory_entry& file : it)
         {
             if (_excluded_paths.contains(std::filesystem::canonical(file.path())))
+            {
+                if(file.is_directory())
+                    it.disable_recursion_pending();
                 continue;
+            }
+                
                 
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
@@ -135,13 +154,16 @@ void DiplomatLSP::_compile()
     // As per slang limitation, it is needed to recreate the diagnostic engine
     // because the source manager has been deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuild.
+
+    _erase_diagnostics();
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents));
+
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
     de.setErrorLimit(500);
     de.setSeverity(slang::diag::MismatchedTimeScales,slang::DiagnosticSeverity::Ignored);
+    de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
     de.addClient(_diagnostic_client);
 
-    _diagnostic_client->_clear_diagnostics();
     
     _compilation.reset(new slang::ast::Compilation());
 
@@ -290,6 +312,7 @@ void DiplomatLSP::_h_ignore(json params)
     for (const json& record : params.at(1))
     {
         std::filesystem::path p = std::filesystem::canonical(record["path"].template get<std::string>());
+        spdlog::info("Ignore path {}", p.generic_string());
         _excluded_paths.insert(p);
     }
 }

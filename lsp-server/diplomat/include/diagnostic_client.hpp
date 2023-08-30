@@ -18,13 +18,17 @@ namespace slsp
         
         const sv_doclist_t&  _documents;
         std::unordered_map<std::string, slsp::types::PublishDiagnosticsParams*> _diagnostics;
+        slsp::types::PublishDiagnosticsParams* _last_publication;
 
 
         public:
         LSPDiagnosticClient(const sv_doclist_t& doc_list);
         void _clear_diagnostics();
         void _cleanup_diagnostics();
-        virtual void report(const slang::ReportedDiagnostic& diagnostic);
+        virtual void report(const slang::ReportedDiagnostic& to_report);
+
+        void report_new_diagnostic(const slang::ReportedDiagnostic& to_report);
+        void report_related_diagnostic(const slang::ReportedDiagnostic& to_report);
 
         inline const std::unordered_map<std::string, slsp::types::PublishDiagnosticsParams*>& get_publish_requests() const {return _diagnostics; };
     };
