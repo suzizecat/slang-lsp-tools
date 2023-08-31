@@ -95,6 +95,7 @@ namespace slsp{
         void log(const types::MessageType level, const std::string& message);
         void show_message(const types::MessageType level, const std::string& message);
         void send_notification(const std::string& fct, nlohmann::json && params = json());
+        nlohmann::json send_request(const std::string& fct, nlohmann::json && params = json());
         void run();
 
         types::ServerCapabilities capabilities;

@@ -4,6 +4,7 @@
 #include "lsp_errors.hpp"
 #include "sv_document.hpp"
 #include "diagnostic_client.hpp"
+#include "diplomat_lsp_ws_settings.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -63,7 +64,10 @@ class DiplomatLSP : public slsp::BaseLSP
         std::unordered_map<std::string, std::string > _module_to_file;
 
         std::vector< std::filesystem::path> _root_dirs;
+
+
         std::unordered_set< std::filesystem::path> _excluded_paths;
+        slsp::DiplomatLSPWorkspaceSettings _settings;
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
 

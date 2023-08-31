@@ -1,6 +1,7 @@
 #include "diplomat_lsp.hpp"
 #include "spdlog/spdlog.h"
 
+
 #include "types/structs/SetTraceParams.hpp"
 
 
@@ -128,7 +129,7 @@ void DiplomatLSP::_read_workspace_modules()
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
-            if (_excluded_paths.contains(std::filesystem::canonical(file.path())))
+            if (_settings.excluded_paths.contains(std::filesystem::canonical(file.path())))
             {
                 if(file.is_directory())
                     it.disable_recursion_pending();
@@ -138,7 +139,7 @@ void DiplomatLSP::_read_workspace_modules()
                 
             if (file.is_regular_file() && (p = file.path()).extension() == ".sv")
             {
-                spdlog::info("Read SV file {}", p.generic_string());
+                spdlog::debug("Read SV file {}", p.generic_string());
                 doc = _read_document(p);
                 _module_to_file[doc->get_module_name()] = p.generic_string();
             }
@@ -260,6 +261,7 @@ json DiplomatLSP::_h_initialize(json params)
 void DiplomatLSP::_h_initialized(json params)
 {
     spdlog::info("Client initialization complete.");
+    
     _compile();
 }
 
@@ -302,8 +304,6 @@ json DiplomatLSP::_h_get_module_bbox(json _)
     const std::string target_file = params.at("file").template get<std::string>();
     spdlog::info("Return information for file {}",target_file );
     SVDocument* doc = _documents.at(target_file).get();
-    
-    spdlog::info("Got {} IOs on the module {}.", doc->bb.value().ports.size(), doc->bb.value().module_name);
     return doc->bb.value();
 }
 
@@ -313,7 +313,7 @@ void DiplomatLSP::_h_ignore(json params)
     {
         std::filesystem::path p = std::filesystem::canonical(record["path"].template get<std::string>());
         spdlog::info("Ignore path {}", p.generic_string());
-        _excluded_paths.insert(p);
+        _settings.excluded_paths.insert(p);
     }
 }
 

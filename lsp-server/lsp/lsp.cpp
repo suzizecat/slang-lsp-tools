@@ -184,7 +184,11 @@ namespace slsp{
         
         _rpc.send(to_send);
     }
-    
+
+    nlohmann::json BaseLSP::send_request(const std::string &fct, nlohmann::json &&params)
+    {
+        return nlohmann::json();
+    }
 
     void BaseLSP::run()
     {
