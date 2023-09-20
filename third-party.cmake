@@ -19,13 +19,18 @@ GIT_TAG v1.12.0
 GIT_SHALLOW ON)
 
 FetchContent_Declare(json 
-GIT_REPOSITORY git@github.com:nlohmann/json.git
+GIT_REPOSITORY https://github.com/nlohmann/json.git
 GIT_TAG v3.11.2
 GIT_SHALLOW ON)
 
 FetchContent_Declare(uri 
 GIT_REPOSITORY https://github.com/ben-zen/uri-library.git
 GIT_TAG 23690f8
+GIT_SHALLOW ON)
+
+FetchContent_Declare(uuid 
+GIT_REPOSITORY https://github.com/mariusbancila/stduuid.git
+GIT_TAG v1.2.3
 GIT_SHALLOW ON)
 
 
@@ -43,7 +48,7 @@ FetchContent_Declare(argparse
 
 FetchContent_Populate(uri)
 
-FetchContent_MakeAvailable(fmt network)  
+FetchContent_MakeAvailable(fmt network uuid)  
 FetchContent_MakeAvailable(json spdlog)
 FetchContent_MakeAvailable(argparse slang)
 

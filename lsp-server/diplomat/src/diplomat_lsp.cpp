@@ -4,16 +4,18 @@
 
 #include "types/structs/SetTraceParams.hpp"
 
-
-#include "slang/diagnostics/DiagnosticEngine.h"
 #include "slang/diagnostics/AllDiags.h"
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
+#include "types/structs/ConfigurationParams.hpp"
+#include "types/structs/ConfigurationItem.hpp"
 #include "types/structs/DidChangeWorkspaceFoldersParams.hpp" 
 #include "types/structs/DidSaveTextDocumentParams.hpp" 
+#include "types/structs/RegistrationParams.hpp" 
+#include "types/structs/Registration.hpp" 
 
-
+#include <fstream>
 
 #include "uri.hh"
 
@@ -59,11 +61,13 @@ void DiplomatLSP::_bind_methods()
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
+    bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
     
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
 
     bind_notification("initialized", LSP_MEMBER_BIND(DiplomatLSP,_h_initialized));
+    bind_notification("workspace/didChangeConfiguration", LSP_MEMBER_BIND(DiplomatLSP,_h_update_configuration));
     bind_notification("exit", LSP_MEMBER_BIND(DiplomatLSP,_h_exit));
         
     bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP, _h_shutdown));
@@ -225,7 +229,7 @@ json DiplomatLSP::_h_initialize(json params)
 {
     InitializeParams p = params.template get<InitializeParams>();
     bool got_workspace = false;
-
+    _client_capabilities = p.capabilities;
     if(p.capabilities.workspace && p.capabilities.workspace.value().workspaceFolders.value_or(false))
     {
         if (p.workspaceFolders)
@@ -261,8 +265,29 @@ json DiplomatLSP::_h_initialize(json params)
 void DiplomatLSP::_h_initialized(json params)
 {
     spdlog::info("Client initialization complete.");
+    slsp::types::RegistrationParams p;
+    if (_client_capabilities.workspace 
+    &&  _client_capabilities.workspace.value().didChangeConfiguration
+    && _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration
+    && _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration.value())
+    {
+        slsp::types::Registration didChangeRegistration;
+        didChangeRegistration.id = uuids::to_string(_uuid());
+        didChangeRegistration.method = "workspace/didChangeConfiguration";
+        p.registrations.push_back(didChangeRegistration);
+    }
+
+    send_notification("client/registerCapability",p);
     
-    _compile();
+
+    slsp::types::ConfigurationItem conf_path;
+    conf_path.section = "diplomatServer.server.configurationPath";
+
+    slsp::types::ConfigurationParams conf_request;
+    conf_request.items.push_back(conf_path);
+    
+
+    send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration_on_init),conf_request);
 }
 
 void DiplomatLSP::_h_setTrace(json params)
@@ -277,6 +302,15 @@ json DiplomatLSP::_h_shutdown(json params)
 {
     shutdown();
     return json();
+}
+
+void DiplomatLSP::_h_save_config(json params)
+{
+    spdlog::info("Write configuration to {}",std::filesystem::absolute(_settings_path).generic_string());
+    log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
+    std::ofstream out(_settings_path);
+    json j = _settings;
+    out << j.dump(4);
 }
 
 void DiplomatLSP::_h_set_top_module(json _)
@@ -315,6 +349,36 @@ void DiplomatLSP::_h_ignore(json params)
         spdlog::info("Ignore path {}", p.generic_string());
         _settings.excluded_paths.insert(p);
     }
+}
+
+void DiplomatLSP::_h_get_configuration(json &clientinfo)
+{
+    _settings_path = std::filesystem::path(clientinfo[0]);
+    
+    if(std::filesystem::exists(_settings_path))
+    {
+        spdlog::info("Read configuration file {}",_settings_path.generic_string());
+        std::ifstream conf_file(_settings_path);
+        json conf = json::parse(conf_file) ;
+        _settings = conf.template get<slsp::DiplomatLSPWorkspaceSettings>();
+    }
+}
+
+void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)
+{
+    _h_get_configuration(clientinfo);
+    _compile();
+}
+
+void DiplomatLSP::_h_update_configuration(json &params)
+{
+    spdlog::info("Update configuration received {}",params.dump(1));
+    slsp::types::ConfigurationItem conf_path;
+    conf_path.section = "diplomatServer.server.configurationPath";
+
+    slsp::types::ConfigurationParams conf_request;
+    conf_request.items.push_back(conf_path);
+    send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
 }
 
 void DiplomatLSP::hello(json _)

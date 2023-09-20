@@ -54,6 +54,8 @@ PRIVATE lsp-server/diplomat/include)
 
 target_link_libraries(slang-lsp 
 PRIVATE argparse::argparse
+PRIVATE stduuid
+PRIVATE fmt::fmt
 PRIVATE sockpp-static
 PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
@@ -84,3 +86,17 @@ PRIVATE slang::slang)
 
 target_include_directories(sv-explorer 
 PRIVATE explorer/)
+
+add_executable(sv-formatter
+formatter/sv_formatter.cpp
+formatter/main_formatter.cpp)
+
+target_link_libraries(sv-formatter
+PRIVATE argparse::argparse
+PRIVATE fmt::fmt
+PRIVATE spdlog::spdlog
+PRIVATE slang::slang
+)
+
+target_include_directories(sv-formatter 
+PRIVATE formatter/)

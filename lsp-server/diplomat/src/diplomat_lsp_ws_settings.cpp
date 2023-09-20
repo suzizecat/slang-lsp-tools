@@ -33,6 +33,6 @@ namespace slsp
     void from_json(const nlohmann::json &j, DiplomatLSPWorkspaceSettings &s)
     {
         j.at("excludedPaths").get_to(s.excluded_paths);
-        j.at("excludeDiags").get_to(s.ignored_diagnostics);
+        j.at("excludedDiags").get_to(s.ignored_diagnostics);
     }
 }

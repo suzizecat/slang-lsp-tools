@@ -9,6 +9,9 @@
 #include "types/structs/ShowMessageParams.hpp"
 #include "types/structs/ExecuteCommandParams.hpp"
 #include "types/methods/lsp_reserved_methods.hpp"
+#include <random>
+
+
 using json = nlohmann::json;
 
 namespace slsp{
@@ -20,8 +23,15 @@ namespace slsp{
     _rpc(is,os),
     _bound_requests(),
     _bound_notifs(),
+    _uuid(&_rand_engine),
     capabilities()
-    {}
+    {
+        std::random_device rd;
+        auto seed_data = std::array<int, std::mt19937::state_size> {};
+        std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
+        std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
+        _rand_engine = std::mt19937(seq);
+    }
                         
     void BaseLSP::_filter_invocation(const std::string& fct_name) const
     {
@@ -67,6 +77,22 @@ namespace slsp{
             _register_custom_command(fct_name);
         _bound_notifs[fct_name] = cb;
     }
+
+    void BaseLSP::bind_callback(const std::string& id, notification_handle_t cb, bool allow_override)
+    {
+        _bound_callbacks[id] = cb;
+    }
+
+    void BaseLSP::_run_callback(const std::string& id, json& params)
+    {
+        if(! _bound_callbacks.contains(id))
+            return;
+
+        spdlog::info("Got callback for id {}",id);
+        auto cb = _bound_callbacks.extract(id);
+        cb.mapped()(params);
+    }
+
 
     json BaseLSP::_invoke_request(const std::string& fct, json& params)
     {
@@ -185,9 +211,20 @@ namespace slsp{
         _rpc.send(to_send);
     }
 
-    nlohmann::json BaseLSP::send_request(const std::string &fct, nlohmann::json &&params)
+
+    // Send a request to the client and bind a callback to the ID.
+    void BaseLSP::send_request(const std::string &fct,std::function<void(json&)> cb, nlohmann::json &&params)
     {
-        return nlohmann::json();
+        json to_send;
+        std::string req_id = uuids::to_string(_uuid());
+        to_send["jsonrpc"] = "2.0";
+        to_send["method"] = fct;
+        to_send["id"] = req_id;
+        if(! params.is_null())
+            to_send["params"] = params;
+        
+        bind_callback(req_id,cb);
+        _rpc.send(to_send);
     }
 
     void BaseLSP::run()
@@ -199,6 +236,7 @@ namespace slsp{
             json ret = json();
             json params = json();
             bool has_id = false;
+            bool is_method_call = false;
             id.reset();
             std::string method = "";
             
@@ -211,23 +249,16 @@ namespace slsp{
             {
                 json raw_input = _rpc.get();
                 has_id = raw_input.contains("id");
+                is_method_call = raw_input.contains("method");
 
-                if(! raw_input.contains("method"))
+                if(! is_method_call && ! has_id)
                 {
                     spdlog::error("Missing method attribute in recieved request. Discarding.");
                     throw rpc_invalid_request_error("Missing method attribute in recieved request.");
                 }
 
-                method = raw_input["method"].template get<std::string>();
-
-                if (is_request(method))
+                if(has_id)
                 {
-                    if (!raw_input.contains("id"))
-                    {
-                        spdlog::error("Missing id attribute in recieved request. Discarding.");
-                        throw rpc_invalid_request_error("Missing id attribute in recieved request.");
-                    }
-
                     if (raw_input["id"].is_string())
                     {
                         ret["id"] = raw_input["id"];
@@ -244,12 +275,38 @@ namespace slsp{
                     }
                 }
 
-                if (raw_input.contains("params"))
+                if(is_method_call)
                 {
-                    params = raw_input["params"];
+                    method = raw_input["method"].template get<std::string>();
+
+                    if (is_request(method))
+                    {
+                        if (!has_id)
+                        {
+                            spdlog::error("Missing id attribute in recieved request. Discarding.");
+                            throw rpc_invalid_request_error("Missing id attribute in recieved request.");
+                        }
+                    }
+
+                    if (raw_input.contains("params"))
+                    {
+                        params = raw_input["params"];
+                    }
+                    
+                    fct_ret = invoke(method,params);
                 }
-                
-                fct_ret = invoke(method,params);
+                else if(has_id)
+                {
+                    // Might be the return from a server initiated request.
+                    if(_bound_callbacks.contains(id.value()))
+                    {
+                        _run_callback(id.value(),raw_input["result"]);
+                    }
+                    else
+                    {
+                        throw rpc_invalid_request_error("Got a callback with an id number that is not expected.");
+                    }
+                }
                 
                 if (fct_ret.has_value())
                 {

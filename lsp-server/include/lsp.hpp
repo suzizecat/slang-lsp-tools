@@ -13,6 +13,7 @@
 #include "nlohmann/json.hpp"
 #include "rpc_transport.hpp"
 
+
 #include <unordered_map>
 #include <functional>
 #include <optional>
@@ -22,10 +23,12 @@
 #include "types/enums/MessageType.hpp"
 #include "types/structs/ServerCapabilities.hpp"
 #include "lsp_errors.hpp"
+#include "uuid.h"
 
 #include <istream>
 #include <ostream>
 #include <iostream>
+#include <random>
 
 #define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1)
 
@@ -56,8 +59,12 @@ namespace slsp{
 
         rpc::RPCPipeTransport _rpc; 
 
+        std::mt19937 _rand_engine;
+        uuids::uuid_random_generator _uuid;
+
         std::unordered_map<std::string, std::function<json(json&)>> _bound_requests;
         std::unordered_map<std::string, std::function<void(json&)>> _bound_notifs;
+        std::unordered_map<std::string, std::function<void(json&)>> _bound_callbacks;
 
         void _filter_invocation(const std::string& fct_name) const;
         void _register_custom_command(const std::string& fct_name);
@@ -66,6 +73,8 @@ namespace slsp{
 
         virtual json _invoke_request(const std::string& fct_name, json& args);
         virtual void _invoke_notif(const std::string& fct_name, json& args);
+        virtual void _run_callback(const std::string& id, json& args);
+        
     public:
         /**
          * @brief Construct a new BaseLSP object
@@ -77,6 +86,7 @@ namespace slsp{
 
         void bind_request(const std::string& fct_name, std::function<json(json&)> cb, bool allow_override = false);
         void bind_notification(const std::string& fct_name, std::function<void(json&)> cb, bool allow_override = false);
+        void bind_callback(const std::string& id, std::function<void(json&)> cb, bool allow_override = false);
 
         std::optional<json> invoke(const std::string& fct, json& params);
         
@@ -95,7 +105,7 @@ namespace slsp{
         void log(const types::MessageType level, const std::string& message);
         void show_message(const types::MessageType level, const std::string& message);
         void send_notification(const std::string& fct, nlohmann::json && params = json());
-        nlohmann::json send_request(const std::string& fct, nlohmann::json && params = json());
+        void send_request(const std::string& fct, std::function<void(json&)> cb, nlohmann::json && params = json());
         void run();
 
         types::ServerCapabilities capabilities;

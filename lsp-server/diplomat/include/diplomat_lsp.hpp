@@ -11,6 +11,8 @@
 #include "types/structs/ServerCapabilities.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
 #include "types/structs/PublishDiagnosticsParams.hpp"
+#include "types/structs/ClientCapabilities.hpp" 
+
 
 #include "slang/ast/Compilation.h"
 #include "slang/diagnostics/DiagnosticClient.h"
@@ -43,7 +45,11 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_setTrace(json params);
         json _h_shutdown(json params);
 
+        void _h_save_config(json params);
         void _h_set_top_module(json params);
+        void _h_get_configuration(json& params);
+        void _h_get_configuration_on_init(json& params);
+        void _h_update_configuration(json& params);
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
         void _h_ignore(json params);
@@ -67,6 +73,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
 
         std::unordered_set< std::filesystem::path> _excluded_paths;
+        std::filesystem::path _settings_path;
         slsp::DiplomatLSPWorkspaceSettings _settings;
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
@@ -82,6 +89,7 @@ class DiplomatLSP : public slsp::BaseLSP
         
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
+        slsp::types::ClientCapabilities _client_capabilities;
 
 
     public:
@@ -90,7 +98,7 @@ class DiplomatLSP : public slsp::BaseLSP
         slang::ast::Compilation* get_compilation();
         inline const std::unordered_map<std::string, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
         
-
+        //void read_config(std::filesystem::path& filepath);
         void hello(json params);
 
 
