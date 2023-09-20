@@ -1,7 +1,7 @@
 #include "diplomat_lsp.hpp"
 #include "spdlog/spdlog.h"
 
-
+#include <chrono>
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -15,6 +15,8 @@
 #include "types/structs/RegistrationParams.hpp" 
 #include "types/structs/Registration.hpp" 
 
+// UNIX only header
+#include <wait.h>
 #include <fstream>
 
 #include "uri.hh"
@@ -227,6 +229,7 @@ void DiplomatLSP::_h_exit(json params)
 
 json DiplomatLSP::_h_initialize(json params)
 {
+    using namespace std::chrono_literals;
     InitializeParams p = params.template get<InitializeParams>();
     bool got_workspace = false;
     _client_capabilities = p.capabilities;
@@ -252,6 +255,23 @@ json DiplomatLSP::_h_initialize(json params)
             _root_dirs.push_back(std::filesystem::path(p.rootPath.value()));
         }
         
+    }
+
+    if (p.processId)
+    {
+    
+        spdlog::info("Watching client PID {}", p.processId.value());
+        _pid_watcher = std::thread(
+            [this](int pid) {
+                while(kill(pid,0) == 0)
+                {
+                    std::this_thread::sleep_for(1ms);
+                }
+                spdlog::warn("Client process {} exited, stopping the server.", pid);
+                this->_rpc.abort();
+            },
+            p.processId.value()
+        );
     }
 
     InitializeResult reply;
@@ -286,8 +306,10 @@ void DiplomatLSP::_h_initialized(json params)
     slsp::types::ConfigurationParams conf_request;
     conf_request.items.push_back(conf_path);
     
-
-    send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration_on_init),conf_request);
+    if (_client_capabilities.workspace
+        && _client_capabilities.workspace.value_or(slsp::types::WorkspaceClientCapabilities{}).configuration.value_or(false)
+        && _client_capabilities.workspace.value().configuration.value())
+        send_request("workspace/configuration", LSP_MEMBER_BIND(DiplomatLSP, _h_get_configuration_on_init), conf_request);
 }
 
 void DiplomatLSP::_h_setTrace(json params)
@@ -353,6 +375,7 @@ void DiplomatLSP::_h_ignore(json params)
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)
 {
+    // spdlog::info("Got configuration JSON {}", clientinfo.dump(1));
     _settings_path = std::filesystem::path(clientinfo[0]);
     
     if(std::filesystem::exists(_settings_path))

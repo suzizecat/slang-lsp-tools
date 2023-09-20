@@ -89,6 +89,7 @@ namespace slsp{
             return;
 
         spdlog::info("Got callback for id {}",id);
+
         auto cb = _bound_callbacks.extract(id);
         cb.mapped()(params);
     }
@@ -222,8 +223,9 @@ namespace slsp{
         to_send["id"] = req_id;
         if(! params.is_null())
             to_send["params"] = params;
-        
-        bind_callback(req_id,cb);
+
+        spdlog::info("Sending request {} with id {}", fct, req_id);
+        bind_callback(req_id, cb);
         _rpc.send(to_send);
     }
 
@@ -300,7 +302,8 @@ namespace slsp{
                     // Might be the return from a server initiated request.
                     if(_bound_callbacks.contains(id.value()))
                     {
-                        _run_callback(id.value(),raw_input["result"]);
+                        spdlog::info("Processing callback {}",raw_input.dump(1));
+                        _run_callback(id.value(), raw_input["result"]);
                     }
                     else
                     {

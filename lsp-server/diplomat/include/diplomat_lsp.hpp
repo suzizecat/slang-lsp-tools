@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <memory>
 #include <filesystem>
+#include <thread>
 
 
 
@@ -86,7 +87,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _read_workspace_modules();
         void _compile();
         
-        
+        std::thread _pid_watcher;
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
         slsp::types::ClientCapabilities _client_capabilities;

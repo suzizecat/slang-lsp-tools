@@ -58,7 +58,7 @@ namespace slsp {
     {
         sockpp::inet_address peer;
         _sock = _acc.accept(&peer);
-        spdlog::info("Incomming connection from {}", peer.to_string());
+        spdlog::info("Incoming connection from {}", peer.to_string());
         if(!_sock)
         {
             spdlog::error("Issue in accepting client {}", _acc.last_error_str());

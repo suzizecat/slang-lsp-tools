@@ -32,6 +32,7 @@ namespace rpc
         std::stop_source _ss;
 
         bool _closed;
+        bool _aborted;
 
         void _poll_inbox(std::stop_token stok);
         void _push_outbox(std::stop_token stok);
@@ -43,8 +44,9 @@ namespace rpc
         RPCPipeTransport(std::istream &input, std::ostream &output);
         ~RPCPipeTransport();
 
-        void send(const nlohmann::json &data);
-        inline bool is_closed() const { return _closed; };
+        void send(const nlohmann::json& data);
+        void abort();
+        inline bool is_closed() const { return _closed || _aborted; };
         nlohmann::json get();
     };
 };

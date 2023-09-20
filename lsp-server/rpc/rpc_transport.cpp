@@ -19,6 +19,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
     _out(output),
     _data_available(),
     _ss(),
+    _aborted(false),
     _closed(false)
     {
         _inbox_manager = std::jthread(&RPCPipeTransport::_poll_inbox, this, _ss.get_token());
@@ -172,6 +173,13 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         spdlog::info("Stop polling outbox.");
     }
 
+    void RPCPipeTransport::abort()
+    {
+        spdlog::info("Closing the RPC medium through 'abort' call.");
+        _aborted = true;
+        _data_available.notify_all();
+    }
+
     void RPCPipeTransport::send(const json& data)
     {
          
@@ -187,6 +195,11 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
 
     json RPCPipeTransport::get()
     {
+        if (is_closed())
+        {
+            throw slsp::server_connection_exception("The server tried to get data from a closed RPC medium.");
+        }
+
         {
             std::lock_guard<std::mutex> lock(_rx_access);
             if(!_inbox.empty())
@@ -205,11 +218,16 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         {
             throw slsp::client_closed_exception("The client disconnected");
         }
-        
+        else if (_aborted)
+        {
+            throw slsp::server_connection_exception("The server closed the connection");
+        }
+
         json ret = _inbox.front();
         _inbox.pop();
         spdlog::debug("Got valid data {}", ret.dump());
         lk.unlock();
-        return ret;
+         return ret;   
+        
     }
 }

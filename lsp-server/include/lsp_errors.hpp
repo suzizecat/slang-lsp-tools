@@ -61,6 +61,8 @@ namespace slsp {
 
     MAKE_BASIC_SRV_EXCEPTION(client_closed_exception);
 
+    MAKE_BASIC_SRV_EXCEPTION(server_connection_exception);
+
     /**
      * @brief Invalid JSON recieved error
      */
