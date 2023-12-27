@@ -79,9 +79,11 @@ PRIVATE lsp-server/include)
 
 add_executable(sv-explorer
 explorer/main.cpp
+explorer/hier_visitor.cpp
 explorer/explorer_visitor.cpp)
 
 target_link_libraries(sv-explorer
+PRIVATE nlohmann_json::nlohmann_json
 PRIVATE slang::slang)
 
 target_include_directories(sv-explorer 

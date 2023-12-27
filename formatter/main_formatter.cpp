@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     slang::SourceManager sm;
     auto st = slang::syntax::SyntaxTree::fromFile(prog.get<std::string>("file"),sm).value();
     SVFormatter fmter;
-    // print_tokens(&(st->root()));
+    print_tokens(&(st->root()));
     st->root().visit(fmter);
     std::cout << fmter._content << std::endl;
     return 0;

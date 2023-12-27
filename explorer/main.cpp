@@ -14,6 +14,9 @@
 #include <iostream>
 #include <stack>
 #include "explorer_visitor.h"
+#include "hier_visitor.h"
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 using namespace slang;
 using namespace slang::driver;
@@ -90,7 +93,7 @@ const ast::Symbol* recurse_lookup_name(const ast::Scope& root, const std::string
     return nullptr;
 
 }
-
+/*
 const ast::Symbol* get_definition_from_position(const ast::Scope& scope, const SourceLocation& pos)
 {
     const ast::Symbol* ret = nullptr;
@@ -135,10 +138,10 @@ const ast::Symbol* get_definition_from_position(const ast::Scope& scope, const S
     
     return nullptr;
 }
-
+*/
 void print_symbols(const ast::Scope& scope, int level = 0)
 {
-    const ast::Symbol* result = scope.lookupName("i_stop");
+    const ast::Symbol* result = scope.lookupName("i_step_trigger");
     if (result != nullptr)
     {
         for(int i = 0; i < level ; i++)
@@ -235,7 +238,6 @@ int main(int argc, char** argv) {
     ok &= driver.reportCompilation(*compilation, /* quiet */ false);
     const ast::RootSymbol&  root_symb = compilation->getRoot();
     const ast::Symbol* net = root_symb.lookupName("lock");
-    SVvisitor visitor;
     
     if(compilation->isFinalized())
     {
@@ -244,9 +246,18 @@ int main(int argc, char** argv) {
 
     print_symbols(root_symb);
 
+    ExplorerVisitor visitor;
+    HierVisitor h_visitor;
+
+    root_symb.visit(h_visitor);
+    std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;
+
+    root_symb.visit(visitor);
+    std::cout << "Refs visitor results :" << std::endl << visitor.get_refs().dump(4) << std::endl;
+
 
     std::cout << "Testing global lookup..." << std::endl;
-    const ast::Symbol* results = root_symb.lookupName("i_stop");
+    const ast::Symbol* results = root_symb.lookupName("i_spd_trigger");
     if(results != nullptr)
         std::cout << "    Found the requested symbol somewhere !" << std::endl;
     else
@@ -255,7 +266,6 @@ int main(int argc, char** argv) {
     {
         std::cout << "Found a syntax tree" << std::endl;
         const syntax::SyntaxNode& root = stree->root();
-        root.visit(visitor);
         const syntax::SyntaxNode* lu_node = getNodeFromPosition(&root,slang::SourceLocation(stree->root().sourceRange().start().buffer(),1928));
         if(lu_node != nullptr)
             std::cout << "Found: " << lu_node->toString() << std::endl;
@@ -276,19 +286,19 @@ int main(int argc, char** argv) {
 
     slang::SourceLocation sl(target_id, 884);
 
-    std::cout << "Test lookup..." << std::endl;
-    const slang::ast::Symbol* match = get_definition_from_position(root_symb, sl);
+    // std::cout << "Test lookup..." << std::endl;
+    // const slang::ast::Symbol* match = get_definition_from_position(root_symb, sl);
 
-    if (match == nullptr)
-    {
-        std::cout << "    Lookup failed" << std::endl;
-    }
-    else
-    {
-        std::cout << "    Lookup at ";
-        print_symbol_origin(root_symb, *match);
-        std::cout << std::endl;
-    }
+    // if (match == nullptr)
+    // {
+    //     std::cout << "    Lookup failed" << std::endl;
+    // }
+    // else
+    // {
+    //     std::cout << "    Lookup at ";
+    //     print_symbol_origin(root_symb, *match);
+    //     std::cout << std::endl;
+    // }
     
     
     return ok ? 0 : 3;
