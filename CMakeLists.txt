@@ -6,7 +6,7 @@ project(sv_explorer)
 # for slang, but a real project would very likely pin
 # this to a specific tag and only update when ready
 # to accept a new version.
-
+add_link_options(-fuse-ld=mold)
 # Use sockpp as a static lib
 option(SOCKPP_BUILD_SHARED "" OFF)
 option(SOCKPP_BUILD_STATIC "" ON)
@@ -20,6 +20,8 @@ include(third-party.cmake)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# add_subdirectory(lib-diplomat-index)
 
 add_executable(sv-blackbox main_blackbox.cpp
 documenter_visitor.h
@@ -45,6 +47,7 @@ lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
 lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
 lsp-server/diplomat/src/diagnostic_client.cpp
+lsp-server/diplomat/src/diplomat_index.cpp
 
 )
 
@@ -84,7 +87,8 @@ explorer/explorer_visitor.cpp)
 
 target_link_libraries(sv-explorer
 PRIVATE nlohmann_json::nlohmann_json
-PRIVATE slang::slang)
+PRIVATE slang::slang
+PRIVATE libdiplomatindex)
 
 target_include_directories(sv-explorer 
 PRIVATE explorer/)

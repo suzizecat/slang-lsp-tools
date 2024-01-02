@@ -34,6 +34,12 @@ GIT_TAG v1.2.3
 GIT_SHALLOW ON)
 
 
+FetchContent_Declare(pgm-index 
+GIT_REPOSITORY https://github.com/gvinciguerra/PGM-index.git
+GIT_TAG master
+GIT_SHALLOW ON)
+
+
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
@@ -47,6 +53,8 @@ FetchContent_Declare(argparse
   GIT_SHALLOW ON)
 
 FetchContent_Populate(uri)
+
+# FetchContent_MakeAvailable(pgm-index)
 
 FetchContent_MakeAvailable(fmt network uuid)  
 FetchContent_MakeAvailable(json spdlog)

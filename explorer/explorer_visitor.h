@@ -11,7 +11,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <unordered_set>
 
 typedef std::unordered_map<const slang::ast::Symbol*, std::vector<std::string>> ref_table_t;
 
@@ -34,7 +33,7 @@ class RefVisitor : public slang::syntax::SyntaxVisitor<RefVisitor>
 
 class ExplorerVisitor : public slang::ast::ASTVisitor<ExplorerVisitor,true,true>
 {
-    nlohmann::json_pointer<std::string> _pointer;
+    nlohmann::json_pointer<std::string> _pointer; // Pointer toward the position in the JSON file 
     nlohmann::json _refs;
 
     ref_table_t _ref_storage;
@@ -44,8 +43,8 @@ class ExplorerVisitor : public slang::ast::ASTVisitor<ExplorerVisitor,true,true>
     
     void handle(const slang::ast::InstanceSymbol& node);
     void handle(const slang::ast::ValueSymbol& node);
-    // template<typename T>
-    // void handle(const T& node); // Base function, specialized in C++
+
+
     
     inline const nlohmann::json& get_refs() const {return _refs;}; 
 

@@ -79,14 +79,21 @@ void RefVisitor::handle(const syntax::IdentifierNameSyntax &node)
 }
 
 
+/**
+ * @brief Visitor handle for instances in the CST.
+ * Actually call the Reference visitor to populate the internal database.
+ * 
+ * @param node Node that is visited.
+ */
 void ExplorerVisitor::handle(const slang::ast::InstanceSymbol &node)
 {
     _pointer.push_back(std::string(node.name));
     visitDefault(node);
-    RefVisitor ref(&_ref_storage,node.body,node.body.getCompilation().getSourceManager());
-    
 
-    const auto* stx_node = node.body.getSyntax();
+    // Reinstanciate as we need to switch to current scope (node.body) anyway.
+    RefVisitor ref(&_ref_storage, node.body, node.body.getCompilation().getSourceManager());
+    
+    const syntax::SyntaxNode* stx_node = node.body.getSyntax();
 
     if(stx_node != nullptr)
     {
