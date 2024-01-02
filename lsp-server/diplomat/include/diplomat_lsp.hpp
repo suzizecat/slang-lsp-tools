@@ -90,11 +90,8 @@ class DiplomatLSP : public slsp::BaseLSP
         void _read_workspace_modules();
         void _compile();
         
-<<<<<<< Updated upstream
         std::thread _pid_watcher;
-=======
         void _save_client_uri(const std::string& client_uri);
->>>>>>> Stashed changes
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
         slsp::types::ClientCapabilities _client_capabilities;

@@ -422,12 +422,7 @@ void DiplomatLSP::_h_ignore(json params)
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)
 {
-<<<<<<< Updated upstream
-    // spdlog::info("Got configuration JSON {}", clientinfo.dump(1));
-    _settings_path = std::filesystem::path(clientinfo[0]);
-=======
     _settings_path = fs::path(clientinfo[0]);
->>>>>>> Stashed changes
     
     if(fs::exists(_settings_path))
     {

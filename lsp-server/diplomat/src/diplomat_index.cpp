@@ -89,7 +89,7 @@ namespace slsp
 
     }
 
-    bool DiplomatIndex::is_registered(const slang::syntax::SyntaxNode& elt, std::optional<fs::path> file)
+    bool DiplomatIndex::is_registered(const slang::ast::Symbol& elt, std::optional<fs::path> file)
     {
         if(! file)
         {
@@ -104,6 +104,7 @@ namespace slsp
         {
             if( _reference_table[file.value()].contains(&elt))
                 return true;
+            return false;
         }
     }
 
