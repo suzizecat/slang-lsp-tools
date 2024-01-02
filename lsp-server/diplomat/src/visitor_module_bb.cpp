@@ -1,6 +1,10 @@
 #include "visitor_module_bb.hpp"
 #include "slang/text/SourceManager.h"
+#include "slang/parsing/Token.h"
+#include "slang/parsing/TokenKind.h"
 #include <iostream>
+#include "spdlog/spdlog.h"
+
 
 using namespace slang::syntax;
 
@@ -21,7 +25,8 @@ void to_json(json& j, const ModulePort& p)
 		{"type",p.type},
 		{"direction",p.direction},
 		{"is_interface",p.is_interface},
-		{"modport",p.modport}
+		{"modport",p.modport},
+		{"comment",p.comment}
 	};
 }
 void to_json(json& j, const ModuleBlackBox& p)
@@ -47,6 +52,7 @@ void from_json(const json& j, ModulePort& p)
 	j.at("direction").get_to(p.direction);
 	j.at("is_interface").get_to(p.is_interface);
 	j.at("modport").get_to(p.modport);
+	j.at("comment").get_to(p.comment);
 }
 void from_json(const json& j, ModuleBlackBox& p)
 {
@@ -62,35 +68,30 @@ void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_s
 	_sm = new_sm;
 }
 
-void VisitorModuleBlackBox::handle(slang::syntax::ModuleHeaderSyntax& node)
+void VisitorModuleBlackBox::handle(const slang::syntax::ModuleHeaderSyntax& node)
 {
-    // std::cout << "Entering module " << node.name.valueText() << std::endl;
-	// module["name"] = node.name.valueText();
-	//module_name = node.name.valueText();
 	bb.module_name = node.name.valueText();
 
-	//module["file"] = _sm == nullptr ? "" : _sm->getFileName(node.sourceRange().start());
-
-	// if(! _only_modules)
-	// {
-	// 	data["module"] = node.name.valueText();
-	// 	data["ports"] = json::array();
-	// 	data["parameters"] = json::array();
 	visitDefault(node);
-	// }
 }
 
-void VisitorModuleBlackBox::handle(NonAnsiPortSyntax& port)
+void VisitorModuleBlackBox::handle(const AnsiPortListSyntax& node)
 {
-    // std::cout << "Found NAP  " << port.toString() << std::endl;
+	visitDefault(node);
+
+	if(bb.ports.size() > 0)
+	{
+		for(const slang::parsing::Trivia t : node.getLastToken().trivia())
+		{
+			if(t.getRawText().starts_with("//"))
+			{
+				bb.ports.back().comment = t.getRawText();
+			}
+		}
+	}
 }
 
-void VisitorModuleBlackBox::handle(NonAnsiPortListSyntax& port)
-{
-    // std::cout << "Found NAPL " << port.toString() << std::endl;
-}
-
-void VisitorModuleBlackBox::handle(ImplicitAnsiPortSyntax& port)
+void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 {
 
 	json json_def = json::object();
@@ -100,6 +101,20 @@ void VisitorModuleBlackBox::handle(ImplicitAnsiPortSyntax& port)
 
 	// std::cout << "    Name      : " << declarator->name.valueText() << std::endl;
 	mport.name = declarator->name.valueText();
+	// bb.ports hold the list of ports of the module I'm analyzing
+	if(bb.ports.size() > 0)
+	{
+		for(const slang::parsing::Trivia t : port.header->getFirstToken().trivia())
+		{
+			// Assuming that I will only have one comment, could be refined.
+			// in particular by checking the line number with the port declaration.
+			if(t.getRawText().starts_with("//"))
+			{
+				bb.ports.back().comment = t.getRawText();
+				break;
+			}
+		}
+	}
 
 	switch (port.header->kind)
 	{
@@ -158,13 +173,10 @@ void VisitorModuleBlackBox::handle(ImplicitAnsiPortSyntax& port)
 	case SyntaxKind::InterfacePortHeader:
 		{
 			InterfacePortHeaderSyntax &header = port.header->as<InterfacePortHeaderSyntax>();
-			// std::cout << "    Interface : " << header.nameOrKeyword.valueText() << std::endl;
-			// std::cout << "    Modport   : " << header.modport->member.valueText() << std::endl;
+			
 			mport.is_interface = true;
 			mport.type = header.nameOrKeyword.valueText();
 			mport.modport = header.modport->member.valueText();
-			// json_def["interface"] = header.nameOrKeyword.valueText();
-			// json_def["modport"] = header.modport->member.valueText();
 
 		}
 		break;
@@ -178,7 +190,7 @@ void VisitorModuleBlackBox::handle(ImplicitAnsiPortSyntax& port)
 
 }
 
-void VisitorModuleBlackBox::handle(ParameterDeclarationSyntax& node)
+void VisitorModuleBlackBox::handle(const ParameterDeclarationSyntax& node)
 {
 	ModuleParam mparam;
 	

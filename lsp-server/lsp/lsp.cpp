@@ -140,6 +140,7 @@ namespace slsp{
         {
             // If any unhandled exception raises during a call to an execute command, 
             // Just rethrow as an unknown error.
+            spdlog::error("Got unknown error : {}",e.what());
             throw lsp_unknown_error(e.what());
         }        
     }

@@ -29,6 +29,10 @@ class LSPEnum(LSPTypedBase):
 
 		self.enum_values : _T.List[LSPEnumValue] = list()
 
+	@property
+	def require_json_bindings(self):
+		return self.value_type.type_name not in self.AUTO_TYPES
+
 	def finalize(self):
 		if self.value_type.type_name not in self.AUTO_TYPES :
 			invalid_handler = LSPEnumValue(f"_{self.type.type_name}_Invalid",-1,"Automatically added by generator as invalid handler")
@@ -61,12 +65,19 @@ class LSPEnum(LSPTypedBase):
 		ret += f"{idt}}} {self.type.type_name};\n"
 
 		return ret
+	
+	def json_bind_prototypes(self,idt : IndentHandler = None):
+		if idt is None:
+			idt = IndentHandler()
+		ret = (f"{idt}void to_json(nlohmann::json& j, const {self.type.type_name}& s);\n"
+				f"{idt}void from_json(const nlohmann::json& j, {self.type.type_name}& s);\n")
+		return ret
 
 	def as_cpp_to_json(self,idt : IndentHandler):
 		if idt is None:
 			idt = IndentHandler()
 
-		if self.value_type.type_name in self.AUTO_TYPES :
+		if not self.require_json_bindings :
 			return ""
 
 		ret = f"\n{idt}NLOHMANN_JSON_SERIALIZE_ENUM({self.type.type_name},{{\n"
@@ -88,14 +99,19 @@ class LSPEnum(LSPTypedBase):
 
 		ret = f"{idt}#pragma once\n\n"
 		# for inc in self.get_include_list() :
-		# 	ret += f"{idt}#include {inc}\n"
+		if self.require_json_bindings :
+			ret += f'{idt}#include "nlohmann/json.hpp"\n\n'
 
 		for ns in namespace :
 			ret += f"{idt}namespace {ns} {{\n"
 			idt.add_indent_level()
 
 		ret += self.as_cpp(idt)
-		ret += self.as_cpp_to_json(idt)
+		ret += "\n"
+
+		if self.require_json_bindings :
+			# ret += self.json_bind_prototypes(idt)
+			ret += self.as_cpp_to_json(idt)
 		ret += "\n"
 
 		for ns in namespace :

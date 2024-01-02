@@ -14,7 +14,7 @@ namespace slsp
 
     void LSPDiagnosticClient::_clear_diagnostics()
     {
-        for (auto [key, value] : _diagnostics)
+        for (auto& [key, value] : _diagnostics)
             value->diagnostics.clear();
     }
 
@@ -40,13 +40,13 @@ namespace slsp
 
     void LSPDiagnosticClient::report_new_diagnostic(const slang::ReportedDiagnostic &to_report)
     {
-        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage);
         if (to_report.location.bufferName.empty())
         {
             spdlog::warn("Diagnostic without buffer : [{:3d}-{}] : {}", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage);
             _last_publication = nullptr;
             return;
         }
+        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  to_report.location.bufferName);
         std::filesystem::path buffer_path = std::filesystem::canonical(to_report.location.bufferName);
         SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
 
@@ -82,17 +82,19 @@ namespace slsp
         }
 
         PublishDiagnosticsParams *pub;
-        std::string the_uri = "file://" + buffer_path.generic_string();
-
+        // Absolute will not cleanup once it reach a symlink, so it is required to use canonical
+        // Simple concatenation does not work as of C++23 ...
+        std::string the_uri = doc->doc_uri.value_or(fmt::format("file://{}",buffer_path.generic_string()));
+        
         if (!_diagnostics.contains(the_uri))
         {
             pub = new PublishDiagnosticsParams();
             pub->uri = the_uri;
-            _diagnostics[the_uri] = pub;
+            _diagnostics[the_uri] = std::unique_ptr<PublishDiagnosticsParams>(pub);
         }
         else
         {
-            pub = _diagnostics[the_uri];
+            pub = _diagnostics[the_uri].get();
         }
 
         pub->diagnostics.push_back(diag);
@@ -111,7 +113,8 @@ namespace slsp
 
             std::filesystem::path buffer_path = std::filesystem::canonical(to_report.location.bufferName);
             SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
-            std::string the_uri = "file://" + buffer_path.generic_string();
+
+            std::string the_uri = doc->doc_uri.value_or(fmt::format("file://{}",buffer_path.generic_string()));
 
             // In some case, slang report "first defined here" kind of diagnostics.
             // In this situation, we add it as related information.
@@ -131,6 +134,74 @@ namespace slsp
             {
                 orig_diag.relatedInformation.value().push_back(rel_info);
             }
+        }
+    }
+
+    /**
+     * @brief Rebinds all diagnostic references of a given URI to another URI.
+     * 
+     * @details
+     *  - The rebinding is done without reallocation.
+     *  - The deleted URI reference is then re-inserted as an empty diagnostic set 
+     * to be cleaned up afterwards.
+     *  - It is especially useful when dealing with symlink that can throw off the client.
+     * 
+     * @param orig_uri URI to look up
+     * @param new_uri URI to set as a replacement
+     * 
+     * @return true if at least one replacement has been done
+     */
+    bool LSPDiagnosticClient::remap_diagnostic_uri(const std::string& orig_uri, const std::string& new_uri)
+    {
+        if(_diagnostics.contains(orig_uri))
+        {
+            auto record = _diagnostics.extract(orig_uri);
+            record.key() = new_uri;
+            _diagnostics.insert(std::move(record));           
+
+            for(auto& diag : _diagnostics)
+            {
+                _remap_internal_diagnostic_uri(diag.second.get(),orig_uri,new_uri);
+            }
+
+            // Used to trigger diagnostic deletion on client side
+            std::unique_ptr<PublishDiagnosticsParams> placeholder = std::make_unique<PublishDiagnosticsParams>();
+            placeholder->uri = orig_uri;
+            _diagnostics[orig_uri] = std::move(placeholder);
+
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * @brief Update the URI values matching a given URI within a diagnostic set.
+     * 
+     * @see LSPDiagnosticClient::remap_diagnostic_uri
+     * 
+     * @param diag Diagnostic set to update
+     * @param old_uri URI to look up
+     * @param new_uri New URI value
+     */
+    void  LSPDiagnosticClient::_remap_internal_diagnostic_uri(PublishDiagnosticsParams* diag, const std::string& old_uri, const std::string& new_uri)
+    {
+        if(diag->uri == old_uri)
+            diag->uri = new_uri;
+
+        for(auto& d : diag->diagnostics)
+        {
+            if(d.relatedInformation)
+            {
+                for(auto& related : d.relatedInformation.value())
+                {
+                    if(related.location.uri == old_uri)
+                    {
+                        related.location.uri = new_uri;
+                    }
+                }
+            }
+
         }
     }
 

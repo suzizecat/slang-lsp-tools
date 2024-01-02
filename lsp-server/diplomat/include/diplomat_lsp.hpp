@@ -40,6 +40,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
+        void _h_didOpenTextDocument(json params);
         void _h_exit(json params);
         json _h_initialize(json params);
         void _h_initialized(json params);
@@ -68,7 +69,9 @@ class DiplomatLSP : public slsp::BaseLSP
         std::unique_ptr<slang::SourceManager> _sm;
 
         std::unordered_map<std::string, std::unique_ptr<SVDocument>> _documents;
+        std::unordered_map<std::string, std::string> _doc_path_to_client_uri;
         std::unordered_map<std::string, std::string > _module_to_file;
+
 
         std::vector< std::filesystem::path> _root_dirs;
 
@@ -87,7 +90,11 @@ class DiplomatLSP : public slsp::BaseLSP
         void _read_workspace_modules();
         void _compile();
         
+<<<<<<< Updated upstream
         std::thread _pid_watcher;
+=======
+        void _save_client_uri(const std::string& client_uri);
+>>>>>>> Stashed changes
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
         slsp::types::ClientCapabilities _client_capabilities;

@@ -172,8 +172,10 @@ class LSPMetareader:
 		os.makedirs(sources_path, exist_ok=force_write)
 
 		include_list = []
+		generated_list = []
 		for d in self.structures.values() :
 			with open(f"{struct_path}/{d.type.type_name}.hpp","w") as f :
+				generated_list.append(f.name)
 				include_list.append(f"../structs/{d.type.type_name}.hpp")
 				f.write(d.as_cpp_file(None,["slsp","types"]))
 		print(f"Processed {len(self.structures)} structures")
@@ -189,14 +191,41 @@ class LSPMetareader:
 			idt.sub_indent_level()
 			f.write("}")
 
+		enum_list : _T.List[LSPEnum]= list()
 		for e in self.enumerations :
 			with open(f"{enum_path}/{e.type.type_name}.hpp","w") as f :
+				generated_list.append(f.name)
+				if e.require_json_bindings :
+					enum_list.append(e)
 				f.write(e.as_cpp_file(None,["slsp","types"]))
+		
+		
+		with open(f"{sources_path}/enums_json_bindings.cpp","w") as f :
+			include_list = [f"../enums/{e.type.type_name}.hpp" for e in enum_list]
+			includes = "\n".join([f'#include "{x}"' for x in include_list])
+			idt = IndentHandler()
+			f.write(includes)
+			f.write(f"\n\n{idt}namespace slsp::types {{\n")
+			idt.add_indent_level()
+			for e in enum_list:
+				f.write(e.as_cpp_to_json(idt))
+			idt.sub_indent_level()
+			f.write("}")
+
+
 		print(f"Processed {len(self.enumerations)} enums")
 
+
+
 		with open(f"{methods_path}/lsp_reserved_methods.hpp","w") as f :
+			generated_list.append(f.name)
 			f.write(self.methods.as_cpp_file(None,["slsp","types"]))
 		print(f"Processed {len(self.methods.content)} methods")
+
+		with open(f"{root}/generated_headers.cmake","w") as f:
+			generated_list = sorted([x.removeprefix(root + "/") for x in generated_list])
+			content = f"set(SVLS_GEN_HEADERS " + '\n'.join(generated_list) + ")"
+			f.write(content)
 
 
 

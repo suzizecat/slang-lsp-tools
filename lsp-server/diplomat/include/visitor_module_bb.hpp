@@ -5,6 +5,7 @@
 #include "nlohmann/json.hpp"
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 using json = nlohmann::json; 
@@ -25,6 +26,7 @@ struct ModulePort
 	std::string direction;
 	bool is_interface;
 	std::string modport;
+    std::string_view comment;
 };
 
 struct ModuleBlackBox
@@ -51,11 +53,10 @@ protected:
 
 public:
         explicit VisitorModuleBlackBox(bool only_modules = false, const slang::SourceManager* sm = nullptr);
-        void handle(slang::syntax::ModuleHeaderSyntax &node);
-        void handle(slang::syntax::NonAnsiPortSyntax &port);
-        void handle(slang::syntax::NonAnsiPortListSyntax &port);
-        void handle(slang::syntax::ImplicitAnsiPortSyntax &port);
-        void handle(slang::syntax::ParameterDeclarationSyntax &node);
+        void handle(const slang::syntax::ModuleHeaderSyntax &node);
+        void handle(const slang::syntax::AnsiPortListSyntax &port);
+        void handle(const slang::syntax::ImplicitAnsiPortSyntax &port);
+        void handle(const slang::syntax::ParameterDeclarationSyntax &node);
 
         void set_source_manager(const slang::SourceManager *new_sm);
 

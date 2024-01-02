@@ -75,7 +75,10 @@ int main(int argc, char** argv) {
         .help("Use a TCP connection")
         .default_value(false)
         .implicit_value(true);
-
+    prog.add_argument("--verbose")
+        .help("Increase verbosity")
+        .default_value(false)
+        .implicit_value(true);
     prog.add_argument("--port","-p")
         .help("Port to use")
         .default_value<in_port_t>(8080)
@@ -92,6 +95,11 @@ int main(int argc, char** argv) {
 
     if(prog.get<bool>("--tcp"))
     {
+        if(prog.get<bool>("--verbose"))
+        {
+            spdlog::set_level(spdlog::level::debug);
+        }
+        
         in_port_t port = prog.get<in_port_t>("--port");
         sockpp::initialize();
         slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);

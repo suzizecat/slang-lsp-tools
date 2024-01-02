@@ -32,6 +32,7 @@ struct SVDocument
     // std::optional<const slang::syntax::SyntaxNode&>  get_syntax_node_from_location(const slang::SourceLocation& pos);
 
     std::optional<ModuleBlackBox> bb;
+    std::optional<std::string> doc_uri;
 
     protected:
     slang::BufferID _buff_id;

@@ -11,6 +11,7 @@
 #include "types/structs/ConfigurationParams.hpp"
 #include "types/structs/ConfigurationItem.hpp"
 #include "types/structs/DidChangeWorkspaceFoldersParams.hpp" 
+#include "types/structs/DidOpenTextDocumentParams.hpp" 
 #include "types/structs/DidSaveTextDocumentParams.hpp" 
 #include "types/structs/RegistrationParams.hpp" 
 #include "types/structs/Registration.hpp" 
@@ -22,6 +23,8 @@
 #include "uri.hh"
 
 using namespace slsp::types;
+
+namespace fs = std::filesystem;
 
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os), 
 _this_shared(this),
@@ -74,30 +77,41 @@ void DiplomatLSP::_bind_methods()
         
     bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP, _h_shutdown));
 
+    bind_notification("textDocument/didOpen", LSP_MEMBER_BIND(DiplomatLSP, _h_didOpenTextDocument));
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
 }
 
 
-
+/**
+ * @brief Send diagnostics for display to the client
+ * 
+ */
 void DiplomatLSP::_emit_diagnostics()
 {
     if (_diagnostic_client.get() != nullptr)
     {
-        _diagnostic_client->_cleanup_diagnostics();
-        for(auto [key,value] : _diagnostic_client->get_publish_requests())
+        for(auto& [key,value] : _diagnostic_client->get_publish_requests())
             send_notification("textDocument/publishDiagnostics", *value);
+
+        // It is required to send "empty" diagnostics to clear up stale diagnostics
+        // on the client side.
+        // Therefore, cleanup after sending.
+        _diagnostic_client->_cleanup_diagnostics();
     }
 }
 
+/**
+ * @brief Delete all diagnostics and immediately send the erase to the client.
+ * 
+ */
 void DiplomatLSP::_erase_diagnostics()
 {
     if (_diagnostic_client.get() != nullptr)
     {
         _diagnostic_client->_clear_diagnostics();
-        for (auto [key, value] : _diagnostic_client->get_publish_requests())
-            send_notification("textDocument/publishDiagnostics", *value);
+        _emit_diagnostics();
     }
 
 }
@@ -108,7 +122,7 @@ void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_
     {
         uri path = uri(wf.uri);
         spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
-        _root_dirs.push_back(std::filesystem::path("/" + path.get_path()));
+        _root_dirs.push_back(fs::path("/" + path.get_path()));
     }
 }
 
@@ -124,7 +138,7 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
 
 void DiplomatLSP::_read_workspace_modules()
 {
-    namespace fs = std::filesystem;
+    namespace fs = fs;
     _documents.clear();
     _sm.reset(new slang::SourceManager());
 
@@ -135,7 +149,7 @@ void DiplomatLSP::_read_workspace_modules()
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
-            if (_settings.excluded_paths.contains(std::filesystem::canonical(file.path())))
+            if (_settings.excluded_paths.contains(fs::canonical(file.path())))
             {
                 if(file.is_directory())
                     it.disable_recursion_pending();
@@ -157,13 +171,14 @@ void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
         
-    _read_workspace_modules();
+    
     // As per slang limitation, it is needed to recreate the diagnostic engine
-    // because the source manager has been deleted by _read_workspace_modules.
+    // because the source manager will be deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuild.
-
     _erase_diagnostics();
+    _read_workspace_modules();
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents));
+
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
     de.setErrorLimit(500);
@@ -191,9 +206,28 @@ void DiplomatLSP::_compile()
     spdlog::info("Diagnostic run done.");
 }
 
-SVDocument* DiplomatLSP::_read_document(std::filesystem::path path)
+void DiplomatLSP::_save_client_uri(const std::string& client_uri)
 {
-    std::string canon_path = std::filesystem::canonical(path).generic_string();
+    spdlog::debug("Register raw URI {}.",client_uri);
+    std::string abspath = fs::canonical("/" + uri(client_uri).get_path()).generic_string();
+    _doc_path_to_client_uri[abspath] = client_uri;
+    if(_documents.contains(abspath))
+    {
+        _documents.at(abspath)->doc_uri = client_uri;
+
+        if(_diagnostic_client != nullptr)
+        {
+            if(_diagnostic_client->remap_diagnostic_uri(fmt::format("file://{}",abspath),client_uri))
+            {
+                _emit_diagnostics();
+            }
+        }
+    }
+}
+
+SVDocument* DiplomatLSP::_read_document(fs::path path)
+{
+    std::string canon_path = fs::canonical(path).generic_string();
     if (_documents.contains(canon_path))
     {
         // Delete previous SVDocument and build it anew.
@@ -205,7 +239,11 @@ SVDocument* DiplomatLSP::_read_document(std::filesystem::path path)
         _documents[canon_path] = std::make_unique<SVDocument>(canon_path,_sm.get());
     }
 
-    return _documents.at(canon_path).get();
+    SVDocument* ret = _documents.at(canon_path).get();
+    if(_doc_path_to_client_uri.contains(canon_path))
+        ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
+
+    return ret;
 }
 
 void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
@@ -218,9 +256,15 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
 void DiplomatLSP::_h_didSaveTextDocument(json _)
 {
     DidSaveTextDocumentParams param = _ ;
-    _read_document(std::filesystem::path("/" + uri(param.textDocument.uri).get_path()));
+    _read_document(fs::path("/" + uri(param.textDocument.uri).get_path()));
     _compile();
 }
+
+void DiplomatLSP::_h_didOpenTextDocument(json _)
+{
+    DidOpenTextDocumentParams params =  _;
+    _save_client_uri(params.textDocument.uri);
+}   
 
 void DiplomatLSP::_h_exit(json params)
 {
@@ -247,12 +291,12 @@ json DiplomatLSP::_h_initialize(json params)
         if (p.rootUri)
         {
             spdlog::info("Add root directory from URI: {}", p.rootUri.value());
-            _root_dirs.push_back(std::filesystem::path(uri(p.rootUri.value()).get_path()));
+            _root_dirs.push_back(fs::path(uri(p.rootUri.value()).get_path()));
         }
         else if(p.rootPath)
         {
             spdlog::info("Add root directory from path: {}", p.rootPath.value());
-            _root_dirs.push_back(std::filesystem::path(p.rootPath.value()));
+            _root_dirs.push_back(fs::path(p.rootPath.value()));
         }
         
     }
@@ -328,7 +372,7 @@ json DiplomatLSP::_h_shutdown(json params)
 
 void DiplomatLSP::_h_save_config(json params)
 {
-    spdlog::info("Write configuration to {}",std::filesystem::absolute(_settings_path).generic_string());
+    spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
     log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
     std::ofstream out(_settings_path);
     json j = _settings;
@@ -356,10 +400,13 @@ json DiplomatLSP::_h_get_modules(json params)
 json DiplomatLSP::_h_get_module_bbox(json _)
 {
 
+
     json params = _[0];
     const std::string target_file = params.at("file").template get<std::string>();
     spdlog::info("Return information for file {}",target_file );
-    SVDocument* doc = _documents.at(target_file).get();
+    std::string lookup_path = fs::canonical(target_file).generic_string();
+    
+    SVDocument* doc = _documents.at(lookup_path).get();
     return doc->bb.value();
 }
 
@@ -367,7 +414,7 @@ void DiplomatLSP::_h_ignore(json params)
 {
     for (const json& record : params.at(1))
     {
-        std::filesystem::path p = std::filesystem::canonical(record["path"].template get<std::string>());
+        fs::path p = fs::canonical(record["path"].template get<std::string>());
         spdlog::info("Ignore path {}", p.generic_string());
         _settings.excluded_paths.insert(p);
     }
@@ -375,10 +422,14 @@ void DiplomatLSP::_h_ignore(json params)
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)
 {
+<<<<<<< Updated upstream
     // spdlog::info("Got configuration JSON {}", clientinfo.dump(1));
     _settings_path = std::filesystem::path(clientinfo[0]);
+=======
+    _settings_path = fs::path(clientinfo[0]);
+>>>>>>> Stashed changes
     
-    if(std::filesystem::exists(_settings_path))
+    if(fs::exists(_settings_path))
     {
         spdlog::info("Read configuration file {}",_settings_path.generic_string());
         std::ifstream conf_file(_settings_path);

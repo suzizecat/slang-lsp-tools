@@ -68,6 +68,13 @@ const ModuleBlackBox& SVDocument::_compute_module_bb()
     return bb.value();
 }
 
+/**
+ * @brief Refresh the line position caching
+ * 
+ * To improve performances, the end of line position is saved in a map.
+ * This allows a very simple binding to get the offset of the first char of line "pos"
+ * 
+ */
 void SVDocument::_update_line_cache()
 {
     // There is only one buffer.

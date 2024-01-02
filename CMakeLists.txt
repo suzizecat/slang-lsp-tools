@@ -16,6 +16,8 @@ option(SLANG_USE_MIMALLOC ""  ON)
 
 # Add all third parties 
 include(third-party.cmake)
+include(lsp-server/include/types/generated_headers.cmake)
+list(TRANSFORM SVLS_GEN_HEADERS PREPEND lsp-server/include/types/)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -41,6 +43,7 @@ lsp-server/lsp/lsp.cpp
 lsp-server/lsp/lsp_errors.cpp
 lsp-server/lsp/lsp_default_binds.cpp
 lsp-server/include/types/src/structs_json_bindings.cpp
+# lsp-server/include/types/src/enums_json_bindings.cpp
 
 lsp-server/diplomat/src/diplomat_lsp.cpp
 lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
@@ -50,6 +53,8 @@ lsp-server/diplomat/src/diagnostic_client.cpp
 lsp-server/diplomat/src/diplomat_index.cpp
 
 )
+
+target_precompile_headers(slang-lsp PRIVATE ${SVLS_GEN_HEADERS})
 
 target_include_directories(slang-lsp 
 PRIVATE lsp-server/include
