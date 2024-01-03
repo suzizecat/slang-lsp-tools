@@ -38,14 +38,14 @@ namespace slsp
      * 
      * @param idx Index key to lookup.
      */
-    void DiplomatIndex::_ensure_index(const Index_FileID_t &idx)
+    Index_FileID_t DiplomatIndex::_ensure_index(const Index_FileID_t &idx)
     {
         if(!_index.contains(idx))
         {
             _index[idx] = {};
-            _definition_table[idx] = {};
-            _reference_table[idx] = {};
         }
+
+        return idx;
     }
 
     /**
@@ -53,10 +53,11 @@ namespace slsp
      * Add the file if it does not exists, do nothing otherwise.
      * 
      * @param fileref Filepath to reference.
+     * @return The index created or looked up.
      */
-    void DiplomatIndex::ensure_file(const fs::path& fileref)
+    Index_FileID_t DiplomatIndex::ensure_file(const fs::path& fileref)
     {
-        _ensure_index(_index_from_filepath(fileref));
+        return _ensure_index(_index_from_filepath(fileref));
     }
 
     /**
@@ -80,33 +81,59 @@ namespace slsp
         else
             _index.at(sid).at(symbol_line).insert(syntax);
 
-        if(!_reference_table.at(sid).contains(&symbol))
-            _reference_table.at(sid)[&symbol] = {};
+        if(!_reference_table.contains(&symbol))
+            _reference_table[&symbol] = {};
     }
 
+    /**
+     * @brief Add a reference to a symbol.
+     * 
+     * @param symbol Symbol to refer to.
+     * @param ref Reference of to record.
+     * @param reffile File where the reference is located.
+     */
     void DiplomatIndex::add_reference_to(const slang::ast::Symbol& symbol, const slang::syntax::SyntaxNode& ref,const std::filesystem::path& reffile )
     {
+        if(! is_registered(symbol))
+            add_symbol(symbol);
+
+        const slang::SourceManager* sm = symbol.getParentScope()->getCompilation().getSourceManager();
+        
+        _reference_table[&symbol].insert(&ref);
+        _definition_table[&ref] = &symbol;
+
+        Index_FileID_t rid = ensure_file(reffile);
+        unsigned int ln = sm->getLineNumber(ref.sourceRange().start());
+        if(! _index.at(rid).contains(ln))
+            _index.at(rid)[ln] = {};
+        _index.at(rid).at(ln).insert(&ref);
+
 
     }
 
-    bool DiplomatIndex::is_registered(const slang::ast::Symbol& elt, std::optional<fs::path> file)
+    /**
+     * @brief Check if a symbol has already been registered in the index
+     * 
+     * @param symbol Symbol to lookup 
+     * @return true  if found
+     */
+    bool DiplomatIndex::is_registered(const slang::ast::Symbol& symbol) const
     {
-        if(! file)
-        {
-            for(const auto& [file, _ ] : _index)
-            {
-                if(is_registered(elt,file))
-                    return true;
-            }
-            return false;
-        }
-        else
-        {
-            if( _reference_table[file.value()].contains(&elt))
-                return true;
-            return false;
-        }
+        return _reference_table.contains(&symbol);
     }
+
+
+    /**
+     * @brief Check if  syntax node has been registered in the index. 
+     * 
+     * @param node Syntax node to lookup 
+     * @return true if found.
+     */
+    bool DiplomatIndex::is_registered(const slang::syntax::SyntaxNode& node) const
+    {
+        return _definition_table.contains(&node);
+    }
+
 
     /**
      * @brief Delete all empty references in the index.

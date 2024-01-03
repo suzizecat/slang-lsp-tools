@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <filesystem>
@@ -33,19 +34,20 @@ namespace slsp
         
 
             SyntaxNodeIndex_t _index;
-            std::unordered_map<Index_FileID_t, std::unordered_map<const slang::syntax::SyntaxNode*, const slang::ast::Symbol*> > _definition_table;
-            std::unordered_map<Index_FileID_t, std::unordered_map<const slang::ast::Symbol*, std::vector<const slang::syntax::SyntaxNode*> > >  _reference_table;
+            std::unordered_map<const slang::syntax::SyntaxNode*, const slang::ast::Symbol*> _definition_table;
+            std::unordered_map<const slang::ast::Symbol*, std::unordered_set<const slang::syntax::SyntaxNode*> > _reference_table;
 
             Index_FileID_t _index_from_filepath(const std::filesystem::path& filepath) const;   
             Index_FileID_t _index_from_symbol(const slang::ast::Symbol& symbol) const;   
-            void _ensure_index(const Index_FileID_t& idx);
+            Index_FileID_t _ensure_index(const Index_FileID_t& idx);
 
         public:
-            void ensure_file(const std::filesystem::path& fileref);
+            Index_FileID_t ensure_file(const std::filesystem::path& fileref);
             void add_symbol(const slang::ast::Symbol& symbol);
             void add_reference_to(const slang::ast::Symbol& symbol, const slang::syntax::SyntaxNode& ref,const std::filesystem::path& reffile);
             
-            bool is_registered(const slang::ast::Symbol& symbol, std::optional<std::filesystem::path> file = std::nullopt);
+            bool is_registered(const slang::ast::Symbol& symbol) const;
+            bool is_registered(const slang::syntax::SyntaxNode& node) const;
             void cleanup();
         
     };
