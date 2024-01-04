@@ -68,9 +68,9 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slang::SourceManager> _sm;
 
-        std::unordered_map<std::string, std::unique_ptr<SVDocument>> _documents;
-        std::unordered_map<std::string, std::string> _doc_path_to_client_uri;
-        std::unordered_map<std::string, std::string > _module_to_file;
+        std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>> _documents;
+        std::unordered_map<std::filesystem::path, std::string> _doc_path_to_client_uri;
+        std::unordered_map<std::string, std::filesystem::path > _module_to_file;
 
 
         std::vector< std::filesystem::path> _root_dirs;
@@ -101,7 +101,7 @@ class DiplomatLSP : public slsp::BaseLSP
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
 
         slang::ast::Compilation* get_compilation();
-        inline const std::unordered_map<std::string, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
+        inline const std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
         
         //void read_config(std::filesystem::path& filepath);
         void hello(json params);

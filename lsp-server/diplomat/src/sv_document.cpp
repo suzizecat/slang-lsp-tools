@@ -1,6 +1,6 @@
 #include "sv_document.hpp"
 #include <istream>
-#include <stack>
+
 
 using namespace slang;
 

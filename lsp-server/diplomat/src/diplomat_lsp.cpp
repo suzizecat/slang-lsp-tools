@@ -174,7 +174,7 @@ void DiplomatLSP::_compile()
     
     // As per slang limitation, it is needed to recreate the diagnostic engine
     // because the source manager will be deleted by _read_workspace_modules.
-    // Therefore, the client shall also be rebuild.
+    // Therefore, the client shall also be rebuilt.
     _erase_diagnostics();
     _read_workspace_modules();
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents));
@@ -209,11 +209,13 @@ void DiplomatLSP::_compile()
 void DiplomatLSP::_save_client_uri(const std::string& client_uri)
 {
     spdlog::debug("Register raw URI {}.",client_uri);
-    std::string abspath = fs::canonical("/" + uri(client_uri).get_path()).generic_string();
-    _doc_path_to_client_uri[abspath] = client_uri;
-    if(_documents.contains(abspath))
+    fs::path canon_path = fs::canonical("/" + uri(client_uri).get_path());
+    std::string abspath = canon_path.generic_string();
+
+    _doc_path_to_client_uri[canon_path] = client_uri;
+    if(_documents.contains(canon_path))
     {
-        _documents.at(abspath)->doc_uri = client_uri;
+        _documents.at(canon_path)->doc_uri = client_uri;
 
         if(_diagnostic_client != nullptr)
         {
@@ -227,7 +229,7 @@ void DiplomatLSP::_save_client_uri(const std::string& client_uri)
 
 SVDocument* DiplomatLSP::_read_document(fs::path path)
 {
-    std::string canon_path = fs::canonical(path).generic_string();
+    std::string canon_path = fs::canonical(path);
     if (_documents.contains(canon_path))
     {
         // Delete previous SVDocument and build it anew.
@@ -246,209 +248,6 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
     return ret;
 }
 
-void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
-{
-    DidChangeWorkspaceFoldersParams params = _.template get<DidChangeWorkspaceFoldersParams>();
-    _remove_workspace_folders(params.event.removed);
-    _add_workspace_folders(params.event.added);
-}
-
-void DiplomatLSP::_h_didSaveTextDocument(json _)
-{
-    DidSaveTextDocumentParams param = _ ;
-    _read_document(fs::path("/" + uri(param.textDocument.uri).get_path()));
-    _compile();
-}
-
-void DiplomatLSP::_h_didOpenTextDocument(json _)
-{
-    DidOpenTextDocumentParams params =  _;
-    _save_client_uri(params.textDocument.uri);
-}   
-
-void DiplomatLSP::_h_exit(json params)
-{
-    exit();
-}
-
-json DiplomatLSP::_h_initialize(json params)
-{
-    using namespace std::chrono_literals;
-    InitializeParams p = params.template get<InitializeParams>();
-    bool got_workspace = false;
-    _client_capabilities = p.capabilities;
-    if(p.capabilities.workspace && p.capabilities.workspace.value().workspaceFolders.value_or(false))
-    {
-        if (p.workspaceFolders)
-        {
-            _add_workspace_folders(p.workspaceFolders.value());
-            got_workspace = true;
-        }
-    }
-
-    if (!got_workspace)
-    {
-        if (p.rootUri)
-        {
-            spdlog::info("Add root directory from URI: {}", p.rootUri.value());
-            _root_dirs.push_back(fs::path(uri(p.rootUri.value()).get_path()));
-        }
-        else if(p.rootPath)
-        {
-            spdlog::info("Add root directory from path: {}", p.rootPath.value());
-            _root_dirs.push_back(fs::path(p.rootPath.value()));
-        }
-        
-    }
-
-    if (p.processId)
-    {
-    
-        spdlog::info("Watching client PID {}", p.processId.value());
-        _pid_watcher = std::thread(
-            [this](int pid) {
-                while(kill(pid,0) == 0)
-                {
-                    std::this_thread::sleep_for(1ms);
-                }
-                spdlog::warn("Client process {} exited, stopping the server.", pid);
-                this->_rpc.abort();
-            },
-            p.processId.value()
-        );
-    }
-
-    InitializeResult reply;
-    reply.capabilities = capabilities;
-    reply.serverInfo = InitializeResult_serverInfo{"Diplomat-LSP","0.0.1"};
-
-    set_initialized(true) ;
-    return reply;
-}
-
-void DiplomatLSP::_h_initialized(json params)
-{
-    spdlog::info("Client initialization complete.");
-    slsp::types::RegistrationParams p;
-    if (_client_capabilities.workspace 
-    &&  _client_capabilities.workspace.value().didChangeConfiguration
-    && _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration
-    && _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration.value())
-    {
-        slsp::types::Registration didChangeRegistration;
-        didChangeRegistration.id = uuids::to_string(_uuid());
-        didChangeRegistration.method = "workspace/didChangeConfiguration";
-        p.registrations.push_back(didChangeRegistration);
-    }
-
-    send_notification("client/registerCapability",p);
-    
-
-    slsp::types::ConfigurationItem conf_path;
-    conf_path.section = "diplomatServer.server.configurationPath";
-
-    slsp::types::ConfigurationParams conf_request;
-    conf_request.items.push_back(conf_path);
-    
-    if (_client_capabilities.workspace
-        && _client_capabilities.workspace.value_or(slsp::types::WorkspaceClientCapabilities{}).configuration.value_or(false)
-        && _client_capabilities.workspace.value().configuration.value())
-        send_request("workspace/configuration", LSP_MEMBER_BIND(DiplomatLSP, _h_get_configuration_on_init), conf_request);
-}
-
-void DiplomatLSP::_h_setTrace(json params)
-{
-    SetTraceParams p = params;
-    spdlog::info("Set trace through params {}",params.dump());
-    log(MessageType::MessageType_Log,"Setting trace level to " + params.at("value").template get<std::string>());
-    set_trace_level(p.value);
-}
-
-json DiplomatLSP::_h_shutdown(json params)
-{
-    shutdown();
-    return json();
-}
-
-void DiplomatLSP::_h_save_config(json params)
-{
-    spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
-    log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
-    std::ofstream out(_settings_path);
-    json j = _settings;
-    out << j.dump(4);
-}
-
-void DiplomatLSP::_h_set_top_module(json _)
-{
-    _top_level = _[0].at("top").template get<std::string>();
-}
-
-json DiplomatLSP::_h_get_modules(json params)
-{
-    _read_workspace_modules();
-    json ret = json::array();
-
-    for (auto item : _module_to_file)
-    {
-        ret.push_back({ {"name", item.first},{"file", item.second} });
-    }
-    return ret;
-}
-
-
-json DiplomatLSP::_h_get_module_bbox(json _)
-{
-
-
-    json params = _[0];
-    const std::string target_file = params.at("file").template get<std::string>();
-    spdlog::info("Return information for file {}",target_file );
-    std::string lookup_path = fs::canonical(target_file).generic_string();
-    
-    SVDocument* doc = _documents.at(lookup_path).get();
-    return doc->bb.value();
-}
-
-void DiplomatLSP::_h_ignore(json params)
-{
-    for (const json& record : params.at(1))
-    {
-        fs::path p = fs::canonical(record["path"].template get<std::string>());
-        spdlog::info("Ignore path {}", p.generic_string());
-        _settings.excluded_paths.insert(p);
-    }
-}
-
-void DiplomatLSP::_h_get_configuration(json &clientinfo)
-{
-    _settings_path = fs::path(clientinfo[0]);
-    
-    if(fs::exists(_settings_path))
-    {
-        spdlog::info("Read configuration file {}",_settings_path.generic_string());
-        std::ifstream conf_file(_settings_path);
-        json conf = json::parse(conf_file) ;
-        _settings = conf.template get<slsp::DiplomatLSPWorkspaceSettings>();
-    }
-}
-
-void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)
-{
-    _h_get_configuration(clientinfo);
-    _compile();
-}
-
-void DiplomatLSP::_h_update_configuration(json &params)
-{
-    spdlog::info("Update configuration received {}",params.dump(1));
-    slsp::types::ConfigurationItem conf_path;
-    conf_path.section = "diplomatServer.server.configurationPath";
-
-    slsp::types::ConfigurationParams conf_request;
-    conf_request.items.push_back(conf_path);
-    send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
-}
 
 void DiplomatLSP::hello(json _)
 {
