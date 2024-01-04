@@ -71,6 +71,7 @@ class LSPMetareader:
 	@staticmethod
 	def make_or_resolution_key(or_values):
 		return "".join(sorted(or_values))
+	
 	def add_or_resolution(self,or_values,resolution : str):
 		key = self.make_or_resolution_key(or_values)
 		self.or_resolution[key] = resolution
