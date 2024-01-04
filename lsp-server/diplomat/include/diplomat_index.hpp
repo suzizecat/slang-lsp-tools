@@ -66,6 +66,18 @@ struct std::hash<slang::syntax::ConstTokenOrSyntax>
 #include <filesystem>
 #include <optional>
 
+#include "nlohmann/json.hpp"
+
+/**
+ * @brief Syntaxic sugar to get the source range of a ConstTokenOrSyntax
+ * 
+ * @param toknode The ConstTokenOrSyntax to handle. Does *not* support pointers.
+ * Use `*toknode` in ordeer to handle them.
+ */
+#define CONST_TOKNODE_SR(toknode) ((toknode).isNode() ? (toknode).node()->sourceRange() : (toknode).token().range())
+
+
+using json = nlohmann::json;
 
 namespace slsp
 {
@@ -107,12 +119,15 @@ namespace slsp
             bool is_registered(const slang::syntax::ConstTokenOrSyntax& node) const;
             bool is_registered(const std::filesystem::path& fileref) const;
 
+            std::optional<slang::syntax::ConstTokenOrSyntax> get_syntax_from_position(const std::filesystem::path& file, unsigned int line, unsigned int character) const;
             std::optional<slang::syntax::ConstTokenOrSyntax> get_syntax_from_range(const slang::SourceRange& range) const;
 
             slang::SourceRange get_definition(const slang::SourceRange& range) const;
             std::vector<slang::SourceRange> get_references(const slang::SourceRange& range) const;
 
             void cleanup();
-        
+
+            json dump();
+
     };
 }

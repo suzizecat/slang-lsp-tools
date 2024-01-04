@@ -5,6 +5,7 @@
 #include "sv_document.hpp"
 #include "diagnostic_client.hpp"
 #include "diplomat_lsp_ws_settings.hpp"
+#include "diplomat_index.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -41,6 +42,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
         void _h_didOpenTextDocument(json params);
+        json _h_gotoDefinition(json params);
         void _h_exit(json params);
         json _h_initialize(json params);
         void _h_initialized(json params);
@@ -81,6 +83,8 @@ class DiplomatLSP : public slsp::BaseLSP
         slsp::DiplomatLSPWorkspaceSettings _settings;
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
+
+        std::unique_ptr<slsp::DiplomatIndex> _index;
 
         std::string _top_level;
 

@@ -15,6 +15,8 @@
 #include "types/structs/DidSaveTextDocumentParams.hpp" 
 #include "types/structs/RegistrationParams.hpp" 
 #include "types/structs/Registration.hpp" 
+#include "types/structs/DefinitionParams.hpp" 
+#include "types/structs/Location.hpp" 
 
 // UNIX only header
 #include <wait.h>
@@ -149,6 +151,34 @@ json DiplomatLSP::_h_shutdown(json params)
 {
     shutdown();
     return json();
+}
+
+
+json DiplomatLSP::_h_gotoDefinition(json _)
+{
+    slsp::types::DefinitionParams params = _;
+    slsp::types::Location result;
+
+    fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+
+    auto syntax = _index->get_syntax_from_position(source_path, params.position.line, params.position.character);
+    if (syntax)
+    {
+        slang::SourceRange return_range = _index->get_definition(CONST_TOKNODE_SR(*syntax));
+        result.range.start.line = _sm->getLineNumber(return_range.start());
+        result.range.end.line = result.range.start.line;
+        result.range.start.character = _sm->getColumnNumber(return_range.start());
+        result.range.end.character = _sm->getColumnNumber(return_range.end());
+        result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(return_range.start().buffer())).generic_string());
+        json test = result;
+        spdlog::info("Found definition.");
+        return result;
+    }
+    else
+    {
+        spdlog::info("Definition not found.");
+        return {};
+    }
 }
 
 void DiplomatLSP::_h_save_config(json params)

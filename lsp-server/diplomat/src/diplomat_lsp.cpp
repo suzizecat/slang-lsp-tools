@@ -16,6 +16,8 @@
 #include "types/structs/RegistrationParams.hpp" 
 #include "types/structs/Registration.hpp" 
 
+#include "visitor_index.hpp"
+
 // UNIX only header
 #include <wait.h>
 #include <fstream>
@@ -46,6 +48,7 @@ _diagnostic_client(new slsp::LSPDiagnosticClient(_documents))
 
     capabilities.textDocumentSync = sync;
     capabilities.workspace = sc_ws;
+    capabilities.definitionProvider = true;
 
     _bind_methods();    
 }
@@ -79,6 +82,7 @@ void DiplomatLSP::_bind_methods()
 
     bind_notification("textDocument/didOpen", LSP_MEMBER_BIND(DiplomatLSP, _h_didOpenTextDocument));
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
+    bind_request("textDocument/definition", LSP_MEMBER_BIND(DiplomatLSP, _h_gotoDefinition));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
 }
@@ -196,6 +200,11 @@ void DiplomatLSP::_compile()
     }
 
     _compilation->getRoot();
+    spdlog::info("Run indexer");
+    slsp::IndexVisitor idx_visit(_compilation->getSourceManager());
+    
+    _compilation->getRoot().visit(idx_visit);
+    _index = std::move(idx_visit.extract_index());
 
     spdlog::info("Issuing diagnostics");
     for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())

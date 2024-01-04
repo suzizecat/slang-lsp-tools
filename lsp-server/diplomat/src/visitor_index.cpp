@@ -5,6 +5,7 @@
 #include "slang/text/SourceManager.h"
 #include "fmt/format.h"
 #include <iostream>
+#include "spdlog/spdlog.h"
 namespace ast = slang::ast;
 namespace syntax = slang::syntax;
 
@@ -76,6 +77,7 @@ IndexVisitor::IndexVisitor(const slang::SourceManager* sm) :
     _sm(sm),
     _index(new DiplomatIndex(sm))
 {
+    spdlog::info("Index visitor built");
 }
 
 

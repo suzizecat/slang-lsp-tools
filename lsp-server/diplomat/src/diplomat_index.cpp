@@ -6,22 +6,16 @@
 #include "slang/ast/Scope.h"
 #include "slang/ast/Compilation.h"
 #include "slang/text/SourceLocation.h"
-
+#include "fmt/format.h"
 #include <functional>
+
+
 
 namespace fs = std::filesystem;
 namespace syntax = slang::syntax;
 namespace ast = slang::ast;
 
-
-/**
- * @brief Syntaxic sugar to get the source range of a ConstTokenOrSyntax
- * 
- * @param toknode The ConstTokenOrSyntax to handle. Does *not* support pointers.
- * Use `*toknode` in ordeer to handle them.
- */
-#define CONST_TOKNODE_SR(toknode) ((toknode).isNode() ? (toknode).node()->sourceRange() : (toknode).token().range())
-
+using json = nlohmann::json;
 
 namespace slsp
 {
@@ -54,7 +48,7 @@ namespace slsp
     Index_FileID_t DiplomatIndex::_index_from_symbol(const slang::ast::Symbol &symbol) const
     {
         const slang::SourceManager* sm = symbol.getParentScope()->getCompilation().getSourceManager();
-        return _index_from_filepath(sm->getFullPath(symbol.getSyntax()->getFirstToken().location().buffer()));
+        return _index_from_filepath(sm->getFullPath(symbol.location.buffer()));
     }
 
     /**
@@ -94,11 +88,12 @@ namespace slsp
     void DiplomatIndex::add_symbol(const slang::ast::Symbol& symbol)
     {
         Index_FileID_t sid = _index_from_symbol(symbol);
-
-        _ensure_index(sid);
-
         const slang::syntax::ConstTokenOrSyntax syntax(symbol.getSyntax());
-        const unsigned int symbol_line = _sm->getLineNumber(CONST_TOKNODE_SR(syntax).start());
+        if (syntax.isNode() && syntax.node() == nullptr)
+            return;
+        
+        _ensure_index(sid);
+            const unsigned int symbol_line = _sm->getLineNumber(CONST_TOKNODE_SR(syntax).start());
         if(! _index[sid].contains(symbol_line))
             _index.at(sid)[symbol_line] = {syntax};
         else
@@ -180,6 +175,9 @@ namespace slsp
         return _index.contains(_index_from_filepath(fileref));
     }
 
+
+
+    
     /**
      * @brief Fetch a syntax node or token based upon a source range.
      * 
@@ -197,6 +195,9 @@ namespace slsp
         Index_FileID_t fid = _index_from_filepath(source_path);
         unsigned int line = _sm->getLineNumber(range.start());
 
+        if (!_index.at(fid).contains(line))
+            return std::nullopt;
+        
         // Lookup matches only if looked up range is within the node.
         for(const syntax::ConstTokenOrSyntax& elt : _index.at(fid).at(line))
         {
@@ -207,6 +208,26 @@ namespace slsp
         return std::nullopt;
     }
 
+    std::optional<syntax::ConstTokenOrSyntax> DiplomatIndex::get_syntax_from_position(const std::filesystem::path& file, unsigned int line, unsigned int character) const
+    {
+        if(! is_registered(file))
+            return std::nullopt;
+
+        Index_FileID_t fid = _index_from_filepath(file);
+
+        // Lookup matches only if looked up range is within the node.
+        if (!_index.at(fid).contains(line))
+            return std::nullopt;
+        
+        for (const syntax::ConstTokenOrSyntax& elt : _index.at(fid).at(line))
+        {
+            if (character >= _sm->getColumnNumber(CONST_TOKNODE_SR(elt).start()) && character <= _sm->getColumnNumber(CONST_TOKNODE_SR(elt).end()))
+                return elt;
+        }
+
+        return std::nullopt;
+    }
+    
     /**
      * @brief Get the source location of the definition of the syntax matching the provided range.
      * 
@@ -268,7 +289,37 @@ namespace slsp
         });
     }
 
+    json DiplomatIndex::dump()
+    {
+        json index;
+        nlohmann::json_pointer<std::string> ptr;
+        for (const auto& [file, fcontent] : _index)
+        {
+            ptr.push_back(std::string(file.generic_string()));
 
+            for (const auto& [lineno, lcontent] : fcontent)
+            {
+                ptr.push_back(fmt::format("{}:{:d}",file.generic_string(),lineno));
+                for (const slang::syntax::ConstTokenOrSyntax& elt : lcontent)
+                {
+                    ptr.push_back(elt.isNode() ? elt.node()->toString() : std::string(elt.token().rawText()));
+                    index[ptr] = fmt::format("{}:{}:{}:{}:{}",
+                        file.generic_string(),
+                        _sm->getLineNumber(CONST_TOKNODE_SR(elt).start()),
+                        _sm->getColumnNumber(CONST_TOKNODE_SR(elt).start()),
+                        _sm->getLineNumber(CONST_TOKNODE_SR(elt).end()),
+                        _sm->getColumnNumber(CONST_TOKNODE_SR(elt).end())
+                    );
+                    ptr.pop_back();
+                }
+                ptr.pop_back();
+            }
+            ptr.pop_back();
+        }
+
+        return index;
+
+    }
 
 
 }

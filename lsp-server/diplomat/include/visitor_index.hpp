@@ -52,8 +52,8 @@ namespace slsp
     class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,true,false>
     {
         protected:
-            std::unique_ptr<DiplomatIndex> _index;
             const slang::SourceManager* _sm ;
+            std::unique_ptr<DiplomatIndex> _index;
         public : 
             //void handle(const slang::syntax::ModuleDeclarationSyntax& node);
             explicit IndexVisitor(const slang::SourceManager* sm);
@@ -62,6 +62,7 @@ namespace slsp
             void handle(const slang::ast::ValueSymbol& node);
 
             inline DiplomatIndex* get_index() {return _index.get(); };
+            inline std::unique_ptr<DiplomatIndex> extract_index() {return std::move(_index); };
     };
 
 } // namespace slsp
