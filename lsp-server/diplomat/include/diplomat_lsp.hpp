@@ -19,6 +19,8 @@
 #include "slang/diagnostics/DiagnosticClient.h"
 #include "slang/diagnostics/DiagnosticEngine.h"
 
+#include "uri.hh"
+
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
@@ -117,6 +119,6 @@ class DiplomatLSP : public slsp::BaseLSP
         void hello(json params);
         void dump_index(json params);
 
-
+        uri get_file_uri(const std::filesystem::path& path) const;
 
 };

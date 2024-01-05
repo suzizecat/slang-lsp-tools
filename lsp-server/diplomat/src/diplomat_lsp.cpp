@@ -69,7 +69,8 @@ slsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRan
     
     result.range.end.line      = _sm->getLineNumber(sr.end()) -1;
     result.range.end.character = _sm->getColumnNumber(sr.end()) -1;
-    result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(sr.start().buffer())).generic_string());
+    //result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(sr.start().buffer())).generic_string());
+    result.uri = get_file_uri(_sm->getFullPath(sr.start().buffer())).to_string();
     return result;
 }
 
@@ -308,7 +309,17 @@ void DiplomatLSP::dump_index(json _)
         log(MessageType_Info, fmt::format("Index successfully dumped to {}.", opath.generic_string()));
         spdlog::info("Dumped internal index to {}",opath.generic_string());
     }
+}
 
-
-    
+uri DiplomatLSP::get_file_uri(const std::filesystem::path& path) const
+{
+    fs::path lu_path = fs::weakly_canonical(path);
+    if(_doc_path_to_client_uri.contains(lu_path))
+    {
+        return uri(_doc_path_to_client_uri.at(lu_path));
+    }
+    else
+    {
+        return uri(fmt::format("file://{}",lu_path.generic_string()));
+    }
 }
