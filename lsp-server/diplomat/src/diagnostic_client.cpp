@@ -40,14 +40,15 @@ namespace slsp
 
     void LSPDiagnosticClient::report_new_diagnostic(const slang::ReportedDiagnostic &to_report)
     {
-        if (to_report.location.bufferName.empty())
+        //sourceManager
+        if (to_report.location == slang::SourceLocation::NoLocation)
         {
-            spdlog::warn("Diagnostic without buffer : [{:3d}-{}] : {}", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage);
+            spdlog::warn("Diagnostic without location : [{:3d}-{}] : {}", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage);
             _last_publication = nullptr;
             return;
         }
-        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  to_report.location.bufferName);
-        std::filesystem::path buffer_path = std::filesystem::canonical(to_report.location.bufferName);
+        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  sourceManager->getFileName(to_report.location));
+        std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
         SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
 
         Diagnostic diag;
@@ -111,7 +112,7 @@ namespace slsp
         else
         {
 
-            std::filesystem::path buffer_path = std::filesystem::canonical(to_report.location.bufferName);
+            std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
             SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
 
             std::string the_uri = doc->doc_uri.value_or(fmt::format("file://{}",buffer_path.generic_string()));
