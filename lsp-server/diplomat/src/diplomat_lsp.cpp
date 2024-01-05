@@ -178,7 +178,7 @@ void DiplomatLSP::_read_workspace_modules()
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
-            if (_settings.excluded_paths.contains(fs::canonical(file.path())))
+            if (!file.exists() ||  _settings.excluded_paths.contains(fs::canonical(file.path())))
             {
                 if(file.is_directory())
                     it.disable_recursion_pending();
