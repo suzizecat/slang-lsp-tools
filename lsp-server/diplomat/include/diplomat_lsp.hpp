@@ -43,6 +43,8 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_didSaveTextDocument(json params);
         void _h_didOpenTextDocument(json params);
         json _h_gotoDefinition(json params);
+        json _h_references(json params);
+        json _h_rename(json params);
         void _h_exit(json params);
         json _h_initialize(json params);
         void _h_initialized(json params);
@@ -100,6 +102,10 @@ class DiplomatLSP : public slsp::BaseLSP
         std::unique_ptr<slang::ast::Compilation> _compilation;
         slsp::types::ClientCapabilities _client_capabilities;
 
+        slsp::types::Location _slang_to_lsp_location(const slang::SourceRange& sr) const;
+        // Needs line-col -> offset which is a bit tricky to do
+        // Needs filepath -> BufferID() which is tricky.
+        // slang::SourceRange _lsp_to_slang_location(const slsp::types::Location& loc) const;
 
     public:
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
@@ -109,6 +115,7 @@ class DiplomatLSP : public slsp::BaseLSP
         
         //void read_config(std::filesystem::path& filepath);
         void hello(json params);
+        void dump_index(json params);
 
 
 

@@ -40,11 +40,70 @@ bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const st
     return false;
 }
 
+/**
+ * @brief Register modules name as symbols
+ * 
+ * @param node 
+ */
+void RefVisitor::handle(const syntax::ModuleHeaderSyntax &node)
+{
+    // As we use the scope as a symbol, we can multiple "scope" and buffers for the same module.
+    // Therefore, it is mandatory to lookup the module definition without using source range or token reference.
+    // As file names are canonized, it can be used as reference for this lookup operation.
+    if(!_in_instanciation)
+    {
+        // Try to lookup the syntax for the same location as the module name we are working on.
+        std::optional<slang::syntax::ConstTokenOrSyntax> reference_node = _index->get_syntax_from_position(
+            _sm->getFullPath(node.name.location().buffer()),
+            _sm->getLineNumber(node.name.location()),
+            _sm->getColumnNumber(node.name.location())
+        );
+
+        // If this file location, does not bring up any result, we can assume that the symbol is not registered.
+        if(!reference_node)
+        {
+            // The _instance_type_x variable are used to help the reference lookup later on.
+            _instance_type_symbol = &(_scope.asSymbol());
+            _instance_type_name = node.name.rawText();
+            _index->add_symbol(_scope.asSymbol(),node.name);
+        }
+        else
+        {
+            // The _instance_type_x variable are used to help the reference lookup later on.
+            // Therefore it is required to set them up even if the symbol already exists.
+            _instance_type_symbol = _index->get_symbol_from_exact_range(CONST_TOKNODE_SR(*reference_node));
+            if(_instance_type_symbol.value() == nullptr)
+                _instance_type_symbol.reset();
+            _instance_type_name = node.name.rawText();
+        }
+    }
+    visitDefault(node);
+}
+
+/**
+ * @brief Handle the symbol of the type of an instance.
+ * 
+ * @param node 
+ */
+void RefVisitor::handle(const syntax::HierarchyInstantiationSyntax &node)
+{
+    if(_in_instanciation)
+    {
+        if(_instance_type_symbol && node.type.rawText() == _instance_type_name)
+        {
+            const slang::ast::Symbol* symb = _instance_type_symbol.value(); 
+            _index->add_reference_to(*symb,node.type);
+        }
+    }
+    visitDefault(node);
+}
+
+
 void RefVisitor::handle(const syntax::NamedPortConnectionSyntax &node)
 {
     if(_in_instanciation)
     {
-        _add_reference(syntax::ConstTokenOrSyntax(&node),std::string(node.name.rawText()));
+        _add_reference(syntax::ConstTokenOrSyntax(node.name),std::string(node.name.rawText()));
     }
     else
     {
@@ -56,7 +115,7 @@ void RefVisitor::handle(const syntax::NamedParamAssignmentSyntax &node)
 {
     if(_in_instanciation)
     {
-        _add_reference(syntax::ConstTokenOrSyntax(&node),std::string(node.name.rawText()));
+        _add_reference(syntax::ConstTokenOrSyntax(node.name),std::string(node.name.rawText()));
     }
     else
     {

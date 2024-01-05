@@ -49,9 +49,31 @@ _diagnostic_client(new slsp::LSPDiagnosticClient(_documents))
     capabilities.textDocumentSync = sync;
     capabilities.workspace = sc_ws;
     capabilities.definitionProvider = true;
+    capabilities.referencesProvider = true;
+    capabilities.renameProvider = true;
 
     _bind_methods();    
 }
+
+/**
+ * @brief Convert a slang `SourceRange` to a LSP `Location` object.
+ * 
+ * @param sr Source range to convert
+ * @return slsp::types::Location that matches.
+ */
+slsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRange& sr) const
+{
+    slsp::types::Location result;
+    result.range.start.line      = _sm->getLineNumber(sr.start()) -1;
+    result.range.start.character = _sm->getColumnNumber(sr.start()) -1;
+    
+    result.range.end.line      = _sm->getLineNumber(sr.end()) -1;
+    result.range.end.character = _sm->getColumnNumber(sr.end()) -1;
+    result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(sr.start().buffer())).generic_string());
+    return result;
+}
+
+
 
 slang::ast::Compilation* DiplomatLSP::get_compilation()
 {
@@ -65,6 +87,7 @@ slang::ast::Compilation* DiplomatLSP::get_compilation()
 void DiplomatLSP::_bind_methods()
 {
     bind_request("initialize",LSP_MEMBER_BIND(DiplomatLSP,_h_initialize));
+    bind_notification("diplomat-server.index-dump", LSP_MEMBER_BIND(DiplomatLSP,dump_index));
     bind_request("diplomat-server.get-modules", LSP_MEMBER_BIND(DiplomatLSP,_h_get_modules));
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
@@ -83,6 +106,8 @@ void DiplomatLSP::_bind_methods()
     bind_notification("textDocument/didOpen", LSP_MEMBER_BIND(DiplomatLSP, _h_didOpenTextDocument));
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
     bind_request("textDocument/definition", LSP_MEMBER_BIND(DiplomatLSP, _h_gotoDefinition));
+    bind_request("textDocument/references", LSP_MEMBER_BIND(DiplomatLSP, _h_references));
+    bind_request("textDocument/rename", LSP_MEMBER_BIND(DiplomatLSP, _h_rename));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
     bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
 }
@@ -220,6 +245,9 @@ void DiplomatLSP::_save_client_uri(const std::string& client_uri)
     spdlog::debug("Register raw URI {}.",client_uri);
     fs::path canon_path = fs::canonical("/" + uri(client_uri).get_path());
     std::string abspath = canon_path.generic_string();
+    
+    // if(_doc_path_to_client_uri.contains(canon_path) && _doc_path_to_client_uri.at(canon_path) == client_uri)
+    //     return;
 
     _doc_path_to_client_uri[canon_path] = client_uri;
     if(_documents.contains(canon_path))
@@ -262,4 +290,25 @@ void DiplomatLSP::hello(json _)
 {
     show_message(MessageType_Info,"Hello there !");
     log(MessageType_Info,"I said hello !");
+}
+
+void DiplomatLSP::dump_index(json _)
+{
+    if(! _index)
+    {
+        show_message(MessageType_Error, "No index is managed, dump failed.");
+        log(MessageType_Error, "Index pointer does not manage anything. Dump aborted.");
+    }
+    else
+    {
+        fs::path opath = fs::absolute("./index_dump.json");
+        std::ofstream ofile(opath);
+        ofile << std::setw(4) << _index->dump() << std::endl;
+        show_message(MessageType_Info, "Index successfully dumped.");
+        log(MessageType_Info, fmt::format("Index successfully dumped to {}.", opath.generic_string()));
+        spdlog::info("Dumped internal index to {}",opath.generic_string());
+    }
+
+
+    
 }

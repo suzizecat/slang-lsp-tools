@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include "types/enums/ErrorCodes.hpp"
+#include "types/enums/LSPErrorCodes.hpp"
 #include "nlohmann/json.hpp"
 
 #define MAKE_BASIC_RPC_EXCEPTION(typename, code) \
@@ -92,6 +93,7 @@ namespace slsp {
     MAKE_BASIC_RPC_EXCEPTION_WITH_MSG(lsp_server_not_initialized_error,types::ErrorCodes_ServerNotInitialized,"Method call rejected due to uninitialized server.")
 
     MAKE_BASIC_RPC_EXCEPTION(lsp_unknown_error, types::ErrorCodes_UnknownErrorCode);
+    MAKE_BASIC_RPC_EXCEPTION(lsp_request_failed_exception, types::LSPErrorCodes_RequestFailed);
 
     void to_json(nlohmann::json& j, const rpc_base_exception& e);
    

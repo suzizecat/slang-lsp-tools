@@ -6,7 +6,6 @@
 #include "slang/ast/Statements.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
 #include "slang/ast/symbols/BlockSymbols.h"
-#include "slang/ast/Definition.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
 #include "slang/util/Version.h"
 #include "slang/util/Enum.h"
@@ -172,6 +171,22 @@ void print_symbols(const ast::Scope& scope, int level = 0)
         }
         else if (symb.kind == ast::SymbolKind::Instance)
         {
+
+            std::cout << " of type " << symb.as<slang::ast::InstanceSymbol>().body.name << " "; 
+            auto* stx_node = symb.as<slang::ast::InstanceSymbol>().body.getSyntax();
+
+            const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
+            if (stx_node != nullptr)
+            {
+                slang::SourceRange pos = stx_node->sourceRange();
+                std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
+                std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
+            }
+            else
+            {
+                std::cout << " without syntax node.";
+            }
+            
             std::cout << std::endl;
             print_symbols(symb.as<ast::InstanceSymbol>().body, level +1);
         }
@@ -185,7 +200,13 @@ void print_symbols(const ast::Scope& scope, int level = 0)
                 std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
                 std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
             }
+            else
+            {
+                std::cout << " without syntax node.";
+            }
+         
             std::cout << std::endl;
+           
             // const auto* definition = symb.;
             // if(definition != nullptr)
             // {

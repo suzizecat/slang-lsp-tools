@@ -112,8 +112,7 @@ explorer/explorer_visitor.cpp)
 
 target_link_libraries(sv-explorer
 PRIVATE nlohmann_json::nlohmann_json
-PRIVATE slang::slang
-PRIVATE libdiplomatindex)
+PRIVATE slang::slang)
 
 target_include_directories(sv-explorer 
 PRIVATE explorer/)

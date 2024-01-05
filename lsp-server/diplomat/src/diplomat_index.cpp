@@ -87,25 +87,29 @@ namespace slsp
      */
     void DiplomatIndex::add_symbol(const slang::ast::Symbol& symbol)
     {
-        Index_FileID_t sid = _index_from_symbol(symbol);
-        const slang::syntax::ConstTokenOrSyntax syntax(symbol.getSyntax());
-        if (syntax.isNode() && syntax.node() == nullptr)
+        const slang::syntax::ConstTokenOrSyntax anchor(symbol.getSyntax());
+        if (anchor.isNode() && anchor.node() == nullptr)
             return;
         
-        _ensure_index(sid);
-            const unsigned int symbol_line = _sm->getLineNumber(CONST_TOKNODE_SR(syntax).start());
-        if(! _index[sid].contains(symbol_line))
-            _index.at(sid)[symbol_line] = {syntax};
-        else
-            _index.at(sid).at(symbol_line).insert(syntax);
-
-        if(!_reference_table.contains(&symbol))
-            _reference_table[&symbol] = {syntax};
-
-        _definition_table[CONST_TOKNODE_SR(syntax)] = &symbol;
-
+        add_symbol(symbol,anchor);
     }
 
+
+    void DiplomatIndex::add_symbol(const slang::ast::Symbol& symbol,  const slang::syntax::ConstTokenOrSyntax& anchor)
+    {
+        Index_FileID_t sid = _index_from_symbol(symbol);
+        _ensure_index(sid);
+            const unsigned int symbol_line = _sm->getLineNumber(CONST_TOKNODE_SR(anchor).start());
+        if(! _index[sid].contains(symbol_line))
+            _index.at(sid)[symbol_line] = {anchor};
+        else
+            _index.at(sid).at(symbol_line).insert(anchor);
+
+        if(!_reference_table.contains(&symbol))
+            _reference_table[&symbol] = {anchor};
+
+        _definition_table[CONST_TOKNODE_SR(anchor)] = &symbol;
+    }
 
     /**
      * @brief Add a reference to a symbol. This form deduces the file by using the token/syntax node.
@@ -229,6 +233,25 @@ namespace slsp
     }
     
     /**
+     * @brief Get a registered symbol pointer from its exact range.
+     * 
+     * This is used to query the actual definition table,
+     * and might be used when registering references to 'virtual' symbols.
+     * See module name registration method for an example of use.
+     * 
+     *
+     * @param range range (key) to lookup.
+     * @return the symbol or nullptr.
+     */
+    const slang::ast::Symbol* DiplomatIndex::get_symbol_from_exact_range(const slang::SourceRange& range) const
+    {
+        if(_definition_table.contains(range))
+            return _definition_table.at(range);
+        else
+            return nullptr;
+    }
+
+    /**
      * @brief Get the source location of the definition of the syntax matching the provided range.
      * 
      * @param range Range to lookup
@@ -302,7 +325,18 @@ namespace slsp
                 ptr.push_back(fmt::format("{}:{:d}",file.generic_string(),lineno));
                 for (const slang::syntax::ConstTokenOrSyntax& elt : lcontent)
                 {
-                    ptr.push_back(elt.isNode() ? elt.node()->toString() : std::string(elt.token().rawText()));
+                    std::string node_id;
+                    if(elt.isNode())
+                    {
+                        node_id = "[S]-" + std::string(elt.node()->getFirstToken().rawText());
+                    }
+                    else
+                    {
+                        node_id = "[T]-" + std::string(elt.token().rawText());
+                    }
+
+                    ptr.push_back(node_id);
+
                     index[ptr] = fmt::format("{}:{}:{}:{}:{}",
                         file.generic_string(),
                         _sm->getLineNumber(CONST_TOKNODE_SR(elt).start()),

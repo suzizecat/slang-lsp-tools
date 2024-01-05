@@ -153,6 +153,9 @@ namespace slsp
      */
     bool LSPDiagnosticClient::remap_diagnostic_uri(const std::string& orig_uri, const std::string& new_uri)
     {
+        if(orig_uri == new_uri)
+            return false;
+            
         if(_diagnostics.contains(orig_uri))
         {
             auto record = _diagnostics.extract(orig_uri);

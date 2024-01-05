@@ -2,6 +2,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
+
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -161,25 +162,88 @@ json DiplomatLSP::_h_gotoDefinition(json _)
 
     fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
 
-    auto syntax = _index->get_syntax_from_position(source_path, params.position.line, params.position.character);
+    auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
     if (syntax)
     {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
         slang::SourceRange return_range = _index->get_definition(CONST_TOKNODE_SR(*syntax));
-        result.range.start.line = _sm->getLineNumber(return_range.start());
-        result.range.end.line = result.range.start.line;
-        result.range.start.character = _sm->getColumnNumber(return_range.start());
-        result.range.end.character = _sm->getColumnNumber(return_range.end());
-        result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(return_range.start().buffer())).generic_string());
-        json test = result;
         spdlog::info("Found definition.");
-        return result;
+
+        return _slang_to_lsp_location(return_range);
     }
     else
     {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
         spdlog::info("Definition not found.");
         return {};
     }
 }
+
+
+json DiplomatLSP::_h_references(json _)
+{
+    slsp::types::DefinitionParams params = _;
+    slsp::types::Location result;
+
+    fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+
+    auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
+    if (syntax)
+    {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+        std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
+        spdlog::info("Found references.");
+
+        std::vector<Location> result;
+        for(const auto& range : return_range)
+            result.push_back(_slang_to_lsp_location(range));
+        
+        return result;
+    }
+    else
+    {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+        spdlog::info("References not found.");
+        return {};
+    }
+}
+
+json DiplomatLSP::_h_rename(json _)
+{
+    slsp::types::RenameParams params = _;
+    slsp::types::WorkspaceEdit result;
+
+    fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+
+    auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
+    if (syntax)
+    {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+        std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
+        spdlog::info("Perform rename.");
+
+        std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
+
+        for(const auto& range : return_range)
+        {
+            slsp::types::Location edit_change = _slang_to_lsp_location(range);
+            if (! edits.contains(edit_change.uri))
+                edits[edit_change.uri] = {};
+            
+            edits.at(edit_change.uri).push_back(slsp::types::TextEdit{edit_change.range,params.newName});
+        }
+        result.changes = edits;
+        return result;
+    }
+    else
+    {
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+        spdlog::info("References not found.");
+        throw slsp::lsp_request_failed_exception("Selected area did not returned a significant syntax node.");
+    }
+}
+
+
 
 void DiplomatLSP::_h_save_config(json params)
 {

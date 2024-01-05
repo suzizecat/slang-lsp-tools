@@ -29,6 +29,9 @@ namespace slsp
             const slang::SourceManager* _sm ;
             const slang::ast::Scope& _scope;
 
+            std::optional<const slang::ast::Symbol*> _instance_type_symbol;
+            std::string_view _instance_type_name;
+
             std::filesystem::path _ref_filepath;
 
             //bool _add_reference(const slang::SourceRange& location, const std::string& lookup_name);
@@ -37,6 +40,8 @@ namespace slsp
             bool _in_instanciation;
         public:
             explicit RefVisitor(DiplomatIndex* index, const slang::ast::Scope& scope, const slang::SourceManager* sm);
+            void handle(const slang::syntax::ModuleHeaderSyntax& node);
+            void handle(const slang::syntax::HierarchyInstantiationSyntax& node);
             void handle(const slang::syntax::IdentifierNameSyntax& node);
             void handle(const slang::syntax::NamedPortConnectionSyntax& node);
             void handle(const slang::syntax::NamedParamAssignmentSyntax& node);

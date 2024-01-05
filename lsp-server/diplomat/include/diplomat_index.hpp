@@ -112,6 +112,7 @@ namespace slsp
 
             Index_FileID_t ensure_file(const std::filesystem::path& fileref);
             void add_symbol(const slang::ast::Symbol& symbol);
+            void add_symbol(const slang::ast::Symbol& symbol,  const slang::syntax::ConstTokenOrSyntax& anchor);
             void add_reference_to(const slang::ast::Symbol& symbol, const slang::syntax::ConstTokenOrSyntax& ref);
             void add_reference_to(const slang::ast::Symbol& symbol, const slang::syntax::ConstTokenOrSyntax& ref,const std::filesystem::path& reffile);
             
@@ -121,6 +122,7 @@ namespace slsp
 
             std::optional<slang::syntax::ConstTokenOrSyntax> get_syntax_from_position(const std::filesystem::path& file, unsigned int line, unsigned int character) const;
             std::optional<slang::syntax::ConstTokenOrSyntax> get_syntax_from_range(const slang::SourceRange& range) const;
+            const slang::ast::Symbol* get_symbol_from_exact_range(const slang::SourceRange& range) const;
 
             slang::SourceRange get_definition(const slang::SourceRange& range) const;
             std::vector<slang::SourceRange> get_references(const slang::SourceRange& range) const;
