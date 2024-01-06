@@ -8,7 +8,7 @@
 #include "slang/syntax/SyntaxVisitor.h"
 
 
-class SVFormatter : public slang::syntax::SyntaxVisitor<SVFormatter>
+class SVFormatter : public slang::syntax::SyntaxRewriter<SVFormatter>
 {
     protected:
         int _indentation_level;
@@ -27,6 +27,6 @@ class SVFormatter : public slang::syntax::SyntaxVisitor<SVFormatter>
         void handle(const slang::syntax::ModuleDeclarationSyntax& node);
         void handle(const slang::syntax::ModuleHeaderSyntax& node);
         void handle(const slang::syntax::ParameterPortListSyntax& node);
-        void handle(const slang::syntax::ParameterDeclarationSyntax& node);
+        void handle(slang::syntax::ParameterDeclarationSyntax& node);
         void handle(const slang::syntax::AnsiPortListSyntax& node);
 };

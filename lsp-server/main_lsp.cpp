@@ -1,6 +1,8 @@
 #include <iostream>
+#include <memory>
 #include "argparse/argparse.hpp"
 #include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
 #include "fmt/format.h"
 
 #include "nlohmann/json.hpp"
@@ -93,12 +95,15 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
+
+    if(prog.get<bool>("--verbose"))
+    {
+        spdlog::set_level(spdlog::level::debug);
+    }
+
     if(prog.get<bool>("--tcp"))
     {
-        if(prog.get<bool>("--verbose"))
-        {
-            spdlog::set_level(spdlog::level::debug);
-        }
+
         
         in_port_t port = prog.get<in_port_t>("--port");
         sockpp::initialize();
@@ -114,7 +119,14 @@ int main(int argc, char** argv) {
     }
     else
     {
+        auto logger =  spdlog::basic_logger_mt("main","./diplomat-lsp.log");
+        logger->set_level(spdlog::get_level());
+        logger->flush_on(logger->level());
+        logger->info("Start new log.");
+        spdlog::set_default_logger(logger);
+
         DiplomatLSP lsp = DiplomatLSP();
+        lsp.set_watch_client_pid(false);
         runner(lsp);
     }
     return 0;

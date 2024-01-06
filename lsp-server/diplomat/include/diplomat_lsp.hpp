@@ -109,8 +109,11 @@ class DiplomatLSP : public slsp::BaseLSP
         // Needs filepath -> BufferID() which is tricky.
         // slang::SourceRange _lsp_to_slang_location(const slsp::types::Location& loc) const;
 
+
+        bool _watch_client_pid;
+
     public:
-        explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
+        explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout, bool watch_client_pid = true);
 
         slang::ast::Compilation* get_compilation();
         inline const std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
@@ -120,5 +123,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void dump_index(json params);
 
         uri get_file_uri(const std::filesystem::path& path) const;
+
+        inline void set_watch_client_pid(bool new_value) {_watch_client_pid = new_value;};
 
 };

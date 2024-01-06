@@ -28,10 +28,11 @@ using namespace slsp::types;
 
 namespace fs = std::filesystem;
 
-DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os) : BaseLSP(is, os), 
+DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _this_shared(this),
 _sm(new slang::SourceManager()),
-_diagnostic_client(new slsp::LSPDiagnosticClient(_documents))
+_diagnostic_client(new slsp::LSPDiagnosticClient(_documents)),
+_watch_client_pid(watch_client_pid)
 {
     
     TextDocumentSyncOptions sync;

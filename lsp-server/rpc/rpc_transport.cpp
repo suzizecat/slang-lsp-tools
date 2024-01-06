@@ -155,13 +155,14 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                 if(! _outbox.empty())
                 {
                     std::string to_out = _outbox.front().dump();
-                   
-                    _out << fmt::format(
+                    to_out = fmt::format(
                         "Content-Length: {}\r\n"
                         "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n"
                         "\r\n"
                         "{}"
                         ,to_out.length(),to_out);
+                    
+                    _out << to_out << std::endl;
 
                     _outbox.pop();
                     remaining_data = _outbox.empty();

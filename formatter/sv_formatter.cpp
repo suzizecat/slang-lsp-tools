@@ -127,7 +127,7 @@ void SVFormatter::handle(const syntax::ParameterPortListSyntax& node)
 	}    
 }
 
-void SVFormatter::handle(const syntax::ParameterDeclarationSyntax& node)
+void SVFormatter::handle(syntax::ParameterDeclarationSyntax& node)
 {
 	std::string curr_sttm;
 

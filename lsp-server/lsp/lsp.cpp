@@ -303,7 +303,7 @@ namespace slsp{
                     // Might be the return from a server initiated request.
                     if(_bound_callbacks.contains(id.value()))
                     {
-                        spdlog::info("Processing callback {}",raw_input.dump(1));
+                        spdlog::debug("Processing callback {}",raw_input.dump(1));
                         _run_callback(id.value(), raw_input["result"]);
                     }
                     else
@@ -320,6 +320,7 @@ namespace slsp{
             }
             catch (rpc_base_exception e)
             {
+                spdlog::error("Catched rpc_base_exception");
                 ret["error"] = e;
                 require_send = true;
 
@@ -343,6 +344,7 @@ namespace slsp{
                 // Here, the ID is set much above directly.
                 // if(id)
                 //     ret["id"] = id.value();
+                spdlog::debug("Sending back {}",ret.dump(1));
                 ret["jsonrpc"] = "2.0";
                 _rpc.send(ret);
             }
