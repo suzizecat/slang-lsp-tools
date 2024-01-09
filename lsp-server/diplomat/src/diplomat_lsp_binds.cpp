@@ -160,6 +160,9 @@ json DiplomatLSP::_h_shutdown(json params)
 
 json DiplomatLSP::_h_gotoDefinition(json _)
 {
+    if (!_assert_index())
+        return {};
+    
     slsp::types::DefinitionParams params = _;
     slsp::types::Location result;
 
@@ -185,6 +188,8 @@ json DiplomatLSP::_h_gotoDefinition(json _)
 
 json DiplomatLSP::_h_references(json _)
 {
+    if (!_assert_index())
+        return {};
     slsp::types::DefinitionParams params = _;
     slsp::types::Location result;
 
@@ -213,6 +218,7 @@ json DiplomatLSP::_h_references(json _)
 
 json DiplomatLSP::_h_rename(json _)
 {
+    _assert_index(true);
     slsp::types::RenameParams params = _;
     slsp::types::WorkspaceEdit result;
 
@@ -221,8 +227,12 @@ json DiplomatLSP::_h_rename(json _)
     auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
     if (syntax)
     {
-        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-        std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+
+        slang::SourceRange origin_sr = CONST_TOKNODE_SR(*syntax);
+        int origin_len = origin_sr.end() - origin_sr.start();
+
+        std::vector<slang::SourceRange> return_range = _index->get_references(origin_sr);
         spdlog::info("Perform rename.");
 
         std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
@@ -232,8 +242,13 @@ json DiplomatLSP::_h_rename(json _)
             slsp::types::Location edit_change = _slang_to_lsp_location(range);
             if (! edits.contains(edit_change.uri))
                 edits[edit_change.uri] = {};
-            
-            edits.at(edit_change.uri).push_back(slsp::types::TextEdit{edit_change.range,params.newName});
+
+            edits.at(edit_change.uri).push_back(
+                slsp::types::TextEdit{
+                    edit_change.range,
+                    fmt::format("{:{}s}",params.newName,origin_len)
+                }
+            );
         }
         result.changes = edits;
         return result;

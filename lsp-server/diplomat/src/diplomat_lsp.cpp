@@ -2,6 +2,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
+#include <stdexcept>
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -27,6 +28,24 @@
 using namespace slsp::types;
 
 namespace fs = std::filesystem;
+
+bool DiplomatLSP::_assert_index(bool always_throw)
+{
+    if (_index == nullptr)
+    {
+        if (!_broken_index_emitted)
+        {
+            _broken_index_emitted = true;
+            throw slsp::lsp_request_failed_exception(
+                "Request failed due to broken index."
+                "Try fixing any diagnostic before re - running.");
+            
+        }
+        log(slsp::types::MessageType::MessageType_Error, "Request failed due to broken index.");
+        return false;
+    }
+    return true;
+}
 
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _this_shared(this),
@@ -227,11 +246,6 @@ void DiplomatLSP::_compile()
     }
 
     _compilation->getRoot();
-    spdlog::info("Run indexer");
-    slsp::IndexVisitor idx_visit(_compilation->getSourceManager());
-    
-    _compilation->getRoot().visit(idx_visit);
-    _index = std::move(idx_visit.extract_index());
 
     spdlog::info("Issuing diagnostics");
     for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
@@ -240,6 +254,27 @@ void DiplomatLSP::_compile()
     spdlog::info("Send diagnostics");
     _emit_diagnostics();
     spdlog::info("Diagnostic run done.");
+
+    spdlog::info("Run indexer");
+    slsp::IndexVisitor idx_visit(_compilation->getSourceManager());
+    try
+    {
+        _compilation->getRoot().visit(idx_visit);
+        _index = std::move(idx_visit.extract_index());
+        if(_broken_index_emitted)
+        {
+            log(MessageType_Info, "Index restored");
+            _broken_index_emitted = false;
+        }
+    }
+    catch(const std::runtime_error & e)
+    {
+        _index.reset();
+        spdlog::error("Indexing error {}", e.what());
+    }
+    
+    
+    
 }
 
 void DiplomatLSP::_save_client_uri(const std::string& client_uri)

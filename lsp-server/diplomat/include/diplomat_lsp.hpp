@@ -111,6 +111,9 @@ class DiplomatLSP : public slsp::BaseLSP
 
 
         bool _watch_client_pid;
+        bool _broken_index_emitted;
+
+        bool _assert_index(bool always_throw = false);
 
     public:
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout, bool watch_client_pid = true);
