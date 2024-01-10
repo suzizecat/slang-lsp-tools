@@ -43,6 +43,7 @@ namespace slsp
             void handle(const slang::syntax::ModuleHeaderSyntax& node);
             void handle(const slang::syntax::HierarchyInstantiationSyntax& node);
             void handle(const slang::syntax::IdentifierNameSyntax& node);
+            void handle(const slang::syntax::IdentifierSelectNameSyntax& node);
             void handle(const slang::syntax::NamedPortConnectionSyntax& node);
             void handle(const slang::syntax::NamedParamAssignmentSyntax& node);
 

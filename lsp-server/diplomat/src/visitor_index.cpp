@@ -131,6 +131,14 @@ void RefVisitor::handle(const syntax::IdentifierNameSyntax &node)
 }
 
 
+void RefVisitor::handle(const syntax::IdentifierSelectNameSyntax& node)
+{
+    if(! _add_reference(syntax::ConstTokenOrSyntax(node.identifier), node.identifier.rawText()))
+        visitDefault(node);
+}
+
+
+
 IndexVisitor::IndexVisitor(const slang::SourceManager* sm) :
     ast::ASTVisitor<IndexVisitor,true,false>(),
     _sm(sm),
