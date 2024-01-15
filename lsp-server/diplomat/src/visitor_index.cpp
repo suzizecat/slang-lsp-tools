@@ -133,8 +133,10 @@ void RefVisitor::handle(const syntax::IdentifierNameSyntax &node)
 
 void RefVisitor::handle(const syntax::IdentifierSelectNameSyntax& node)
 {
-    if(! _add_reference(syntax::ConstTokenOrSyntax(node.identifier), node.identifier.rawText()))
-        visitDefault(node);
+    _add_reference(syntax::ConstTokenOrSyntax(node.identifier), node.identifier.rawText());
+    // You may have IdentifierName within the SelectName syntax (within the bracket) so 
+    // you must visit the node anyway.
+    visitDefault(node);
 }
 
 
