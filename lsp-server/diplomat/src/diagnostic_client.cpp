@@ -47,8 +47,14 @@ namespace slsp
             _last_publication = nullptr;
             return;
         }
-        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  sourceManager->getFileName(to_report.location));
         std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
+        if(! _documents.contains(buffer_path.generic_string()))
+        {
+            spdlog::debug("File not handled, cancelling.");
+            _last_publication = nullptr;
+            return;
+        }
+        spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  sourceManager->getFileName(to_report.location));
         SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
 
         Diagnostic diag;

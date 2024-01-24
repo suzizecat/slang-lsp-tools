@@ -320,7 +320,7 @@ namespace slsp{
             }
             catch (rpc_base_exception e)
             {
-                spdlog::error("Catched rpc_base_exception");
+                spdlog::error("Catched rpc_base_exception: {}",e.what());
                 ret["error"] = e;
                 require_send = true;
 

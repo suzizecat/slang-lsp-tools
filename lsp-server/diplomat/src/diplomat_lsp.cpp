@@ -6,6 +6,7 @@
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
+#include "slang/util/Bag.h"
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
@@ -236,8 +237,12 @@ void DiplomatLSP::_compile()
     de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
     de.addClient(_diagnostic_client);
 
-    
-    _compilation.reset(new slang::ast::Compilation());
+
+    slang::ast::CompilationOptions coptions;
+    coptions.flags &= ~ (slang::ast::CompilationFlags::SuppressUnused);
+    //coptions.flags |= slang::ast::CompilationFlags::IgnoreUnknownModules;
+    slang::Bag bag(coptions);
+    _compilation.reset(new slang::ast::Compilation(bag));
 
     spdlog::info("Add syntax trees");
     for (const auto& [key, value] : _documents)
@@ -253,7 +258,6 @@ void DiplomatLSP::_compile()
 
     spdlog::info("Send diagnostics");
     _emit_diagnostics();
-    spdlog::info("Diagnostic run done.");
 
     spdlog::info("Run indexer");
     slsp::IndexVisitor idx_visit(_compilation->getSourceManager());
@@ -272,7 +276,7 @@ void DiplomatLSP::_compile()
         _index.reset();
         spdlog::error("Indexing error {}", e.what());
     }
-    
+    spdlog::info("Compilation done.");
     
     
 }
