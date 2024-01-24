@@ -131,7 +131,7 @@ namespace slsp{
             const types::ExecuteCommandParams params = p;
             json args = params.arguments.value_or(json());
             json ret = invoke(params.command, args).value_or(json());
-            spdlog::debug("Invocation return is {}",ret.dump(1));
+            spdlog::trace("Invocation return is {}",ret.dump(1));
             return ret;
         }
         catch(const rpc_base_exception& e) { throw e; }
@@ -344,7 +344,7 @@ namespace slsp{
                 // Here, the ID is set much above directly.
                 // if(id)
                 //     ret["id"] = id.value();
-                spdlog::debug("Sending back {}",ret.dump(1));
+                spdlog::trace("Sending back {}",ret.dump(1));
                 ret["jsonrpc"] = "2.0";
                 _rpc.send(ret);
             }

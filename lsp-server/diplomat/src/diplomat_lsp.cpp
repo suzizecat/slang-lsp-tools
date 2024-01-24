@@ -51,7 +51,7 @@ bool DiplomatLSP::_assert_index(bool always_throw)
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _this_shared(this),
 _sm(new slang::SourceManager()),
-_diagnostic_client(new slsp::LSPDiagnosticClient(_documents)),
+_diagnostic_client(new slsp::LSPDiagnosticClient(_documents,_sm.get())),
 _watch_client_pid(watch_client_pid)
 {
     
@@ -228,7 +228,7 @@ void DiplomatLSP::_compile()
     // Therefore, the client shall also be rebuilt.
     _erase_diagnostics();
     _read_workspace_modules();
-    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents));
+    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents,_sm.get()));
 
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);

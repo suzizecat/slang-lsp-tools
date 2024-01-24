@@ -121,7 +121,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
             {
                 json data = future_line.get();
                 t.join();
-                spdlog::debug("Captured data {}", data.dump());
+                spdlog::trace("Captured data {}", data.dump());
 
                 {
                     std::lock_guard<std::mutex> lock(_rx_access);
@@ -226,7 +226,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
 
         json ret = _inbox.front();
         _inbox.pop();
-        spdlog::debug("Got valid data {}", ret.dump());
+        spdlog::trace("Got valid data {}", ret.dump());
         lk.unlock();
          return ret;   
         

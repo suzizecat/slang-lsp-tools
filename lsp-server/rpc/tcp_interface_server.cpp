@@ -3,7 +3,7 @@
 namespace slsp {
     std::streamsize TCPInterfaceServer::xsputn(const TCPInterfaceServer::char_type *s, std::streamsize n)
     {
-        spdlog::debug("Trying to write {} bytes : {}",n,std::string(s,n));
+        spdlog::trace("Trying to write {} bytes : {}",n,std::string(s,n));
         return _sock.write_n(s,n);
     }
 
@@ -22,7 +22,7 @@ namespace slsp {
             setg(_rx.begin(),_rx.begin(),_rx.begin()+n);
         }
         spdlog::debug("Read data from TCP done, {} bytes read.",n);
-        spdlog::debug("{} bytes available in stream.",in_avail());
+        spdlog::trace("{} bytes available in stream.",in_avail());
         return n;
     }
 

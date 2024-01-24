@@ -20,10 +20,11 @@ namespace slsp
             const sv_doclist_t&  _documents;
             std::unordered_map<std::string, std::unique_ptr<slsp::types::PublishDiagnosticsParams> > _diagnostics;
             slsp::types::PublishDiagnosticsParams* _last_publication;
+            const slang::SourceManager* _sm;
 
             void _remap_internal_diagnostic_uri(slsp::types::PublishDiagnosticsParams* diag, const std::string& old_uri, const std::string& new_uri);
         public:
-            LSPDiagnosticClient(const sv_doclist_t& doc_list);
+        LSPDiagnosticClient(const sv_doclist_t& doc_list, const slang::SourceManager* sm);
             void _clear_diagnostics();
             void _cleanup_diagnostics();
             virtual void report(const slang::ReportedDiagnostic& to_report);

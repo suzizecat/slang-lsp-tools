@@ -8,7 +8,7 @@
 using namespace slsp::types;
 namespace slsp
 {
-    LSPDiagnosticClient::LSPDiagnosticClient(const sv_doclist_t &doc_list) : _documents(doc_list)
+    LSPDiagnosticClient::LSPDiagnosticClient(const sv_doclist_t &doc_list, const slang::SourceManager* sm) : _documents(doc_list), _sm{sm}
     {
     }
 
@@ -47,15 +47,21 @@ namespace slsp
             _last_publication = nullptr;
             return;
         }
+
         std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
-        if(! _documents.contains(buffer_path.generic_string()))
+        std::string path_string = buffer_path.generic_string();
+        SVDocument* doc = nullptr;
+        if (_documents.contains(path_string))
         {
-            spdlog::debug("File not handled, cancelling.");
-            _last_publication = nullptr;
-            return;
+            SVDocument* doc = _documents.at(buffer_path.generic_string()).get();
+        }
+        else
+        {
+            spdlog::debug("File not handled by diplomat {}.", path_string);
+            // _last_publication = nullptr;
+            // return;
         }
         spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  sourceManager->getFileName(to_report.location));
-        SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
 
         Diagnostic diag;
         diag.code = fmt::format("{}.{} {}",
@@ -65,7 +71,15 @@ namespace slsp
 
         diag.source = "diplomat-slang";
         diag.message = to_report.formattedMessage;
-        diag.range = doc->range_from_slang(to_report.location, to_report.location);
+
+        Position diag_pos;
+        diag_pos.line = _sm->getLineNumber(to_report.location);
+        diag_pos.character = _sm->getColumnNumber(to_report.location);
+
+        diag.range = Range();
+        diag.range.start = diag_pos;
+        diag.range.end = diag_pos;
+        //doc->range_from_slang(to_report.location, to_report.location);
 
         switch (to_report.severity)
         {
@@ -91,8 +105,12 @@ namespace slsp
         PublishDiagnosticsParams *pub;
         // Absolute will not cleanup once it reach a symlink, so it is required to use canonical
         // Simple concatenation does not work as of C++23 ...
-        std::string the_uri = doc->doc_uri.value_or(fmt::format("file://{}",buffer_path.generic_string()));
-        
+        std::string the_uri;
+        if (doc != nullptr)
+            the_uri = doc->doc_uri.value_or(fmt::format("file://{}", buffer_path.generic_string()));
+        else
+            the_uri = fmt::format("file://{}", buffer_path.generic_string());
+
         if (!_diagnostics.contains(the_uri))
         {
             pub = new PublishDiagnosticsParams();
@@ -119,14 +137,30 @@ namespace slsp
         {
 
             std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
-            SVDocument *doc = _documents.at(buffer_path.generic_string()).get();
+            
+            SVDocument* doc = nullptr;
+            if (_documents.contains(buffer_path.generic_string()))
+                doc = _documents.at(buffer_path.generic_string()).get();
 
-            std::string the_uri = doc->doc_uri.value_or(fmt::format("file://{}",buffer_path.generic_string()));
+            std::string the_uri;
+            if (doc != nullptr)
+                the_uri = doc->doc_uri.value_or(fmt::format("file://{}", buffer_path.generic_string()));
+            else
+            the_uri = fmt::format("file://{}", buffer_path.generic_string());
 
             // In some case, slang report "first defined here" kind of diagnostics.
             // In this situation, we add it as related information.
             DiagnosticRelatedInformation rel_info;
-            rel_info.location.range = doc->range_from_slang(to_report.location, to_report.location);
+
+            Position diag_pos;
+            diag_pos.line = _sm->getLineNumber(to_report.location);
+            diag_pos.character = _sm->getColumnNumber(to_report.location);
+
+            rel_info.location.range = Range();
+            rel_info.location.range.start = diag_pos;
+            rel_info.location.range.end = diag_pos;
+
+            //rel_info.location.range = doc->range_from_slang(to_report.location, to_report.location);
             rel_info.location.uri = the_uri;
             rel_info.message = to_report.formattedMessage;
 
