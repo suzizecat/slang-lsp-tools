@@ -83,6 +83,7 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 	// Copy the vector content to _mem. 
 	// Use the resulting pointer for the span. 
 
+	int next_alignement_size = _type_name_size;
 	//Temp token list for modifiers;
 	slang::SmallVector<slang::parsing::Token> tok_list;
 std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
@@ -92,11 +93,13 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 		if(first_element)
 		{
 			first_element = false;
-			tok_list.push_back(indent(_mem,tok,'\t',1,1));
+			tok_list.push_back(indent(_mem, tok, '\t', 1, 1));
+			next_alignement_size -= tok.rawText().length();
 		}
 		else
 		{
-			tok_list.push_back(replace_spacing(_mem,tok,1));
+			tok_list.push_back(replace_spacing(_mem, tok, 1));
+			next_alignement_size -= 1+ tok.rawText().length();
 		}
 	}
 
@@ -109,20 +112,71 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 	case SyntaxKind::LogicType :
 		{
 			// Compute the size of keyword + signing + appropriate spaces and align right next token.
-			temp += std::string(decl->type->as<IntegerTypeSyntax>().keyword.rawText()) + " ";
-			temp += std::string(decl->type->as<IntegerTypeSyntax>().signing.rawText());
-			//ret += temp;
-			ret += fmt::format("{:{}s} ",temp,_type_name_size);
-			
-			auto& dimensions = decl->type->as<IntegerTypeSyntax>().dimensions;
-			size_t max_len = (1+(1+ 3*_type_sizes.size())/2) + std::reduce(_type_sizes.cbegin(),_type_sizes.cend());
-			ret += fmt::format("{:{}s} ",raw_text_from_syntax(dimensions), max_len);
+		IntegerTypeSyntax& type = work->type->as<IntegerTypeSyntax>();
+		if (first_element)
+		{
+			type.keyword = indent(_mem, type.keyword, '\t', 1, 1);
+
+			first_element = false;
 		}
-		// if(dimensions.size() != 0)
-		// {
-		// 	// Todo : update trivia
-			
-		// }
+		else
+		{
+			type.keyword = replace_spacing(_mem, type.keyword, 1);
+		}
+
+		next_alignement_size -= type.keyword.rawText().length();
+
+		if (type.signing)
+		{
+			type.signing = replace_spacing(_mem, type.signing, 1);
+			next_alignement_size -= 1 + type.signing.rawText().length();
+		}
+
+		first_element = true; // Detect the first element to right-align
+
+		auto& dimensions = work->type->as<IntegerTypeSyntax>().dimensions;
+		unsigned int size_dim_index = 0;
+		if (dimensions.size() > 0)
+		{
+			for (auto* dim : dimensions)
+			{
+				if (first_element)
+					dim->openBracket = token_align_right(_mem, dim->openBracket, next_alignement_size + 1, false);
+				else
+					dim->openBracket = replace_spacing(_mem, dim->openBracket, 0);
+
+				switch (dim->specifier->kind)
+				{
+				case SyntaxKind::RangeDimensionSpecifier :
+				{
+					RangeDimensionSpecifierSyntax& spec = dim->specifier->as<RangeDimensionSpecifierSyntax>();
+					if (spec.selector->kind == SyntaxKind::SimpleRangeSelect)
+					{
+						RangeSelectSyntax& select = spec.selector->as<RangeSelectSyntax>();
+						unsigned int temp_size = select.left->toString().length();
+						select.range = token_align_right(_mem, select.range, _type_sizes.at(size_dim_index++) - temp_size);
+
+						temp_size = select.right->toString().length();
+						dim->closeBracket = token_align_right(_mem, dim->closeBracket, _type_sizes.at(size_dim_index++) - temp_size);
+						// TODO - Finish the job here
+					}
+				}
+					break;
+				
+				default:
+					break;
+				}
+
+				first_element = false;
+			}
+
+		}
+
+		size_t max_len = (1 + (1 + 3 * _type_sizes.size()) / 2) + std::reduce(_type_sizes.cbegin(), _type_sizes.cend());
+
+		ret += fmt::format("{:{}s} ", raw_text_from_syntax(dimensions), max_len);
+		
+	}
 		
 		break;
 	
@@ -135,7 +189,10 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 	ret += fmt::format("{:{}s} ",decl->declarators[0]->name.rawText(),_var_name_size);
 	ret += raw_text_from_syntax(decl->declarators[0]->dimensions);
 	ret += ";";
-	return ret;
+	ret += "\n";
+	std::cout << work->toString() << std::endl;
+
+		return ret;
 }
 
 
@@ -249,7 +306,7 @@ void dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::V
 	if (2*dimensions.size() > target_vector.size())
 		target_vector.resize(2*dimensions.size(),0);
 
-	for(const auto* dim : dimensions | std::views::reverse )
+	for(const auto* dim : dimensions )
 	{
 		const auto specifier = dim->specifier;
 		if(specifier == nullptr)
