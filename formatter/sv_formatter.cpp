@@ -103,6 +103,7 @@ void SVFormatter::handle(const syntax::ModuleHeaderSyntax& node)
 
 void SVFormatter::handle(const syntax::ParameterPortListSyntax& node)
 {
+	//deepClone(node);
 	// std::cout << _indent() << "Enter " << syntax::toString(node.kind) <<std::endl;
 	_param_declarations.clear();
 

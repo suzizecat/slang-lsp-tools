@@ -8,6 +8,8 @@
 #include "slang/syntax/SyntaxVisitor.h"
 
 
+
+
 class SVFormatter : public slang::syntax::SyntaxRewriter<SVFormatter>
 {
     protected:
@@ -20,7 +22,7 @@ class SVFormatter : public slang::syntax::SyntaxRewriter<SVFormatter>
 
         void _set_parameter_sttm_sizes(const slang::syntax::ParameterPortListSyntax& node);
         void _set_parameter_sttm_sizes(const slang::syntax::AnsiPortListSyntax& node);
-    public:
+    public: 
         std::string _content;
         
         explicit SVFormatter();

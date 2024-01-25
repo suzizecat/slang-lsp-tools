@@ -1,6 +1,7 @@
 #include "argparse/argparse.hpp"
 #include "spdlog/spdlog.h"
 #include "sv_formatter.hpp"
+#include "format_DataDeclaration.hpp"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxNode.h"
 #include "slang/text/SourceManager.h"
@@ -80,9 +81,12 @@ int main(int argc, char** argv) {
     }
     slang::SourceManager sm;
     auto st = slang::syntax::SyntaxTree::fromFile(prog.get<std::string>("file"),sm).value();
-    SVFormatter fmter;
+    //SVFormatter fmter;
     print_tokens(&(st->root()));
+    
+    DataDeclarationSyntaxVisitor fmter;
     st->root().visit(fmter);
-    std::cout << fmter._content << std::endl;
+    fmter.process_pending_formats();
+    std::cout << fmter.formatted << std::endl;
     return 0;
 }

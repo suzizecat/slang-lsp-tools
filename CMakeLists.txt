@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 3.15)
 
 project(sv_explorer)
 
-# Note: this example just pulls the head master branch
-# for slang, but a real project would very likely pin
-# this to a specific tag and only update when ready
-# to accept a new version.
-add_link_options(-fuse-ld=mold)
+option(DIPLOMAT_USE_MOLD "Use mold linker" OFF)
+if(${DIPLOMAT_USE_MOLD})
+    message(STATUS "Use mold as a linker")    
+    add_link_options(-fuse-ld=mold)
+endif()
+
 # Use sockpp as a static lib
 option(SOCKPP_BUILD_SHARED "" OFF)
 option(SOCKPP_BUILD_STATIC "" ON)
@@ -119,6 +120,7 @@ PRIVATE explorer/)
 
 add_executable(sv-formatter
 formatter/sv_formatter.cpp
+formatter/format_DataDeclaration.cpp
 formatter/main_formatter.cpp)
 
 target_link_libraries(sv-formatter
