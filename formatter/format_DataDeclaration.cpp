@@ -57,7 +57,6 @@ void DataDeclarationSyntaxVisitor::handle(const slang::syntax::DataDeclarationSy
 
 void DataDeclarationSyntaxVisitor::process_pending_formats()
 {
-	_debug_print();
 	for(const auto* decl : _to_format)
 	{
 		formatted += _format(decl);
@@ -86,7 +85,7 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 	int next_alignement_size = _type_name_size;
 	//Temp token list for modifiers;
 	slang::SmallVector<slang::parsing::Token> tok_list;
-std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
+	//std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 	bool first_element = true;
 	for(const auto& tok : work->modifiers)
 	{
@@ -105,8 +104,8 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 
 	// Update the modifiers token list, see https://github.com/MikePopoloski/slang/discussions/828#discussioncomment-8233513
 	work->modifiers = tok_list.copy(_mem);
-
-	std::cout << "Modifier post-update: " << work->modifiers.toString() << std::endl;
+	size_t remaining_len = 0;
+	//std::cout << "Modifier post-update: " << work->modifiers.toString() << std::endl;
 	switch (decl->type->kind)
 	{
 	case SyntaxKind::LogicType :
@@ -152,12 +151,12 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 					RangeDimensionSpecifierSyntax& spec = dim->specifier->as<RangeDimensionSpecifierSyntax>();
 					if (spec.selector->kind == SyntaxKind::SimpleRangeSelect)
 					{
-						RangeSelectSyntax& select = spec.selector->as<RangeSelectSyntax>();
+ 						RangeSelectSyntax& select = spec.selector->as<RangeSelectSyntax>();
 						unsigned int temp_size = select.left->toString().length();
-						select.range = token_align_right(_mem, select.range, _type_sizes.at(size_dim_index++) - temp_size);
+						select.range = token_align_right(_mem, select.range, 1+ _type_sizes.at(size_dim_index++) - temp_size);
 
 						temp_size = select.right->toString().length();
-						dim->closeBracket = token_align_right(_mem, dim->closeBracket, _type_sizes.at(size_dim_index++) - temp_size);
+						dim->closeBracket = token_align_right(_mem, dim->closeBracket,1+ _type_sizes.at(size_dim_index++) - temp_size);
 						// TODO - Finish the job here
 					}
 				}
@@ -172,12 +171,20 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 
 		}
 
-		size_t max_len = (1 + (1 + 3 * _type_sizes.size()) / 2) + std::reduce(_type_sizes.cbegin(), _type_sizes.cend());
+		
+		if(size_dim_index < _type_sizes.size())
+		{
+			auto start = _type_sizes.cbegin() + size_dim_index;
+			remaining_len = (1 + (1 + 3 * (_type_sizes.size() - size_dim_index)) / 2) + std::reduce(start, _type_sizes.cend());
+		}
+		else
+			remaining_len = 1;
 
-		ret += fmt::format("{:{}s} ", raw_text_from_syntax(dimensions), max_len);
+		if(_type_sizes.size() != 0 && dimensions.size() == 0)
+			remaining_len += 1;
+		//ret += fmt::format("{:{}s} ", raw_text_from_syntax(dimensions), max_len);
 		
 	}
-		
 		break;
 	
 	default:
@@ -186,13 +193,9 @@ std::cout << "Modifier pre-update: " << work->modifiers.toString() << std::endl;
 		break;
 	}
 
-	ret += fmt::format("{:{}s} ",decl->declarators[0]->name.rawText(),_var_name_size);
-	ret += raw_text_from_syntax(decl->declarators[0]->dimensions);
-	ret += ";";
-	ret += "\n";
-	std::cout << work->toString() << std::endl;
+	work->declarators[0]->name = replace_spacing(_mem,work->declarators[0]->name,remaining_len);
 
-		return ret;
+	return work->toString();
 }
 
 
@@ -331,9 +334,9 @@ void dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::V
 			case SyntaxKind::SimpleRangeSelect :
 				{
 					const auto& sel = specifier->as<RangeDimensionSpecifierSyntax>().selector->as<RangeSelectSyntax>();
-					target_vector[index] = std::max(target_vector[index], raw_text_from_syntax(*(sel.right.get())).length());
-					index++;
 					target_vector[index] = std::max(target_vector[index], raw_text_from_syntax(*(sel.left.get())).length());
+					index++;
+					target_vector[index] = std::max(target_vector[index], raw_text_from_syntax(*(sel.right.get())).length());
 					index++;
 				}
 				break;
@@ -396,7 +399,8 @@ std::string raw_text_from_syntax(const slang::syntax::SyntaxNode &node)
 Token token_align_right( slang::BumpAllocator& alloc ,const Token& tok, const unsigned int align_size, const bool allow_no_space )
 {
 	const unsigned int tok_len = tok.rawText().length();
-	const unsigned int target_spacing = std::max(allow_no_space ? 0U : 1U, align_size - tok_len);
+	const unsigned int target_spacing = align_size > tok_len ? (align_size - tok_len) : (allow_no_space ? 0U : 1U);
+
 	return replace_spacing(alloc,tok,target_spacing);
 }
 
