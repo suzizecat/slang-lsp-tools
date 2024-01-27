@@ -54,3 +54,5 @@ std::string raw_text_from_syntax(const slang::syntax::SyntaxNode& node);
 slang::parsing::Token token_align_right( slang::BumpAllocator& alloc ,const slang::parsing::Token& tok, unsigned int align_size, bool allow_no_space = true);
 slang::parsing::Token replace_spacing( slang::BumpAllocator& alloc ,const slang::parsing::Token& tok, unsigned int space_number);
 slang::parsing::Token indent( slang::BumpAllocator& alloc ,const slang::parsing::Token& tok, const char indent_char, unsigned int char_num, unsigned int indent_level);
+
+unsigned int align_dimension(slang::BumpAllocator& alloc,slang::syntax::SyntaxList<slang::syntax::VariableDimensionSyntax>& dimensions,const std::vector<size_t>& sizes_refs, const int first_alignment);
