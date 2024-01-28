@@ -12,6 +12,7 @@
 #include <vector>
 #include <set>
 
+#include "indent_manager.hpp"
 
 /**
  * @brief An integer type description will be shown as <type> {[<high>:<low>]} with high and low different sizes.
@@ -35,12 +36,14 @@ class DataDeclarationSyntaxVisitor : public slang::syntax::SyntaxRewriter<DataDe
 
         std::vector<const slang::syntax::DataDeclarationSyntax*> _to_format;
 
+        IndentManager* _idt;
+
         void _store_format(const slang::syntax::DataDeclarationSyntax& node);
         std::string _format(const slang::syntax::DataDeclarationSyntax* decl);
         void _read_type_array(const slang::syntax::SyntaxList<slang::syntax::VariableDimensionSyntax> dimensions);
         void _debug_print();
     public:
-        explicit DataDeclarationSyntaxVisitor();
+        explicit DataDeclarationSyntaxVisitor(IndentManager* idt);
         void process_pending_formats();
         void clear();
         void handle(const slang::syntax::DataDeclarationSyntax& node);

@@ -1,14 +1,17 @@
 #include "argparse/argparse.hpp"
 #include "spdlog/spdlog.h"
 #include "sv_formatter.hpp"
-#include "format_DataDeclaration.hpp"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxNode.h"
 #include "slang/text/SourceManager.h"
 #include "slang/parsing/Token.h"
 #include "slang/parsing/TokenKind.h"
+#include "slang/util/BumpAllocator.h"
 #include <iostream>
 #include "fmt/format.h"
+
+#include "indent_manager.hpp"
+#include "format_DataDeclaration.hpp"
 using namespace slang;
 
 void print_tree_elt(const std::string_view elt_title,const std::string_view elt_value, const int level, const std::string lead = " ")
@@ -84,7 +87,12 @@ int main(int argc, char** argv) {
     //SVFormatter fmter;
     print_tokens(&(st->root()));
     
-    DataDeclarationSyntaxVisitor fmter;
+    BumpAllocator mem;
+    IndentManager idt(mem,4,false);
+    
+    idt.add_level();
+
+    DataDeclarationSyntaxVisitor fmter(&idt);
     st->root().visit(fmter);
     fmter.process_pending_formats();
     std::cout << fmter.formatted << std::endl;

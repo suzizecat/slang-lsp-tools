@@ -13,7 +13,7 @@ using Trivia = slang::parsing::Trivia;
 using Token = slang::parsing::Token;
 using TriviaKind = slang::parsing::TriviaKind;
 
-DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor() : slang::syntax::SyntaxRewriter<DataDeclarationSyntaxVisitor>(),
+DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(IndentManager* indent) : slang::syntax::SyntaxRewriter<DataDeclarationSyntaxVisitor>(),
 	_type_sizes{},
 	_array_sizes{},
 	_type_name_size(0),
@@ -21,6 +21,7 @@ DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor() : slang::syntax::Sy
 	_bloc_type_kind(SyntaxKind::Unknown),
 	_to_format{},
 	_mem(),
+	_idt(indent),
 	formatted{}
 	{}
 
@@ -92,12 +93,12 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 		if(first_element)
 		{
 			first_element = false;
-			tok_list.push_back(indent(_mem, tok, '\t', 1, 1));
+			tok_list.push_back(_idt->indent(tok));
 			next_alignement_size -= tok.rawText().length();
 		}
 		else
 		{
-			tok_list.push_back(replace_spacing(_mem, tok, 1));
+			tok_list.push_back(_idt->replace_spacing(tok, 1));
 			next_alignement_size -= 1+ tok.rawText().length();
 		}
 	}
@@ -115,13 +116,12 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 		if (first_element)
 		{
 			// Indent will misalign if others have modifiers.
-			type.keyword = indent(_mem, type.keyword, '\t', 1, 1);
-
+			type.keyword = _idt->indent(type.keyword);
 			first_element = false;
 		}
 		else
 		{
-			type.keyword = replace_spacing(_mem, type.keyword, 1);
+			type.keyword = _idt->replace_spacing(type.keyword, 1);
 			next_alignement_size --; // Space
 		}
 
@@ -129,12 +129,12 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 
 		if (type.signing)
 		{
-			type.signing = replace_spacing(_mem, type.signing, 1);
+			type.signing = _idt->replace_spacing(type.signing, 1);
 			next_alignement_size -= 1 + type.signing.rawText().length();
 		}
 
 		first_element = true;
-		unsigned int remaining_len;
+	
 		auto& packed_dimensions = work->type->as<IntegerTypeSyntax>().dimensions;
 		remaining_len = align_dimension(_mem,packed_dimensions,_type_sizes,next_alignement_size);
 
@@ -151,17 +151,17 @@ std::string DataDeclarationSyntaxVisitor::_format(const slang::syntax::DataDecla
 		break;
 	}
 
-		// This spacing is only for the first one. 
-		work->declarators[0]->name = replace_spacing(_mem,work->declarators[0]->name,remaining_len);
-		remaining_len = 0;
-		for (auto* declarator : work->declarators)
-		{
-		}
-		auto* declarator = work->declarators[0];
-		auto& unpacked_dimension = declarator->dimensions;
-		remaining_len = align_dimension(_mem,unpacked_dimension,_array_sizes,_var_name_size - declarator->name.rawText().length() +1 );
 
-		work->semi = replace_spacing(_mem,work->semi,remaining_len );
+
+	// This spacing is only for the first one. 
+	work->declarators[0]->name = _idt->replace_spacing(work->declarators[0]->name,remaining_len);
+	remaining_len = 0;
+
+	auto* declarator = work->declarators[0];
+	auto& unpacked_dimension = declarator->dimensions;
+	remaining_len = align_dimension(_mem,unpacked_dimension,_array_sizes,_var_name_size - declarator->name.rawText().length() +1 );
+
+	work->semi = _idt->replace_spacing(work->semi,remaining_len );
 
 	return work->toString();
 }
@@ -359,6 +359,20 @@ std::string raw_text_from_syntax(const slang::syntax::SyntaxNode &node)
     return result;
 }
 
+Token replace_spacing(slang::BumpAllocator& alloc , const Token& tok, const unsigned int space_number)
+{
+	// Store the string in "persistent" memory (BumpAllocator)
+	if(space_number == 0)
+		return tok.withTrivia(alloc,{});
+	
+	slang::byte* spacing_base = alloc.allocate(space_number, alignof(char));
+	std::memset(spacing_base,' ',space_number);
+
+	// Declare and store the trivia, then create the token to add.
+	Trivia* t = alloc.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,space_number));
+	return tok.withTrivia(alloc,{t,1});
+}
+
 /**
  * @brief This function allows aligning a token to the right by padding left with spaces.
  * 
@@ -377,6 +391,7 @@ Token token_align_right( slang::BumpAllocator& alloc ,const Token& tok, const un
 	return replace_spacing(alloc,tok,target_spacing);
 }
 
+/*
 Token replace_spacing(slang::BumpAllocator& alloc , const Token& tok, const unsigned int space_number)
 {
 	// Store the string in "persistent" memory (BumpAllocator)
@@ -388,7 +403,6 @@ Token replace_spacing(slang::BumpAllocator& alloc , const Token& tok, const unsi
 
 	// Declare and store the trivia, then create the token to add.
 	Trivia* t = alloc.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,space_number));
-	t->getRawText();
 	return tok.withTrivia(alloc,{t,1});
 }
 
@@ -431,7 +445,7 @@ slang::parsing::Token indent( slang::BumpAllocator& alloc ,const slang::parsing:
 	// Declare and store the indentation trivia, then create the token to add.
 	return tok.withTrivia(alloc,kept_trivia.copy(alloc));
 }
-
+*/
 unsigned int align_dimension(slang::BumpAllocator& alloc,SyntaxList<VariableDimensionSyntax>& dimensions,const std::vector<size_t>& sizes_refs, const int first_alignment)
 {
 	bool first_element = true; // Detect the first element to right-align

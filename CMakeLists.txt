@@ -121,6 +121,7 @@ PRIVATE explorer/)
 add_executable(sv-formatter
 formatter/sv_formatter.cpp
 formatter/format_DataDeclaration.cpp
+formatter/indent_manager.cpp
 formatter/main_formatter.cpp)
 
 target_link_libraries(sv-formatter
