@@ -70,9 +70,16 @@ void print_tokens(const syntax::SyntaxNode* node, int level = 0)
 }
 
 int main(int argc, char** argv) {
-    argparse::ArgumentParser prog("slang Language server", "0.0.1");
+    argparse::ArgumentParser prog("systemverilog code formatter", "0.0.2");
     prog.add_argument("file")
         .help("File path");
+    prog.add_argument("--use-tabs","-t")
+        .help("Use tabs instead of spaces for indentation")
+        .flag();
+    prog.add_argument("--spacing","-s")
+        .help("Number of spaces for one level of indent")
+        .scan<'u',unsigned int>()
+        .default_value(4U);
 
     try {
         prog.parse_args(argc, argv);
@@ -88,7 +95,7 @@ int main(int argc, char** argv) {
     print_tokens(&(st->root()));
     
     BumpAllocator mem;
-    IndentManager idt(mem,4,false);
+    IndentManager idt(mem,prog.get<unsigned int>("--spacing"),prog.get<bool>("--use-tabs"));
     
     idt.add_level();
 
