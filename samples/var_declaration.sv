@@ -1,8 +1,22 @@
-module a ()
+module a (
+    input  logic  i_clk, //! Blep !
+      input logic       [3:0] i_data
+)
 
 localparam K_DIM=3;
 
 typedef logic [10:2] my_type_t;
+
+// This one is not aligned
+    // This is a silly comment
+static const logic  multi_unpacked [3:0][31:0];
+const static  logic  multi_unpacked [3:0][31:0];
+ const logic  multi_unpacked_const [3:0][31:0];
+ static logic  multi_unpacked_static [3:0][31:0];
+
+logic multi_unpacked_single [3][321]; 
+logic multi_unpacked_single [3][31]; 
+logic multi_unpacked_single [3][3112]; 
 
 logic single_unpacked [3:0];
 logic [1:0][K_DIM-1:0] multi_packed_param_and_more;
@@ -17,14 +31,9 @@ logic [THE_LONG_BAR:0] single_packed; //! A comment
 // Another signal
 logic [1:0][K_DIM-1:0] multi_packed_param; //! Commented !
 
-// This one is not aligned
-    // This is a silly comment
-static const logic  multi_unpacked [3:0][31:0];
 
-logic multi_unpacked_single [3][31]; 
 
 my_type_t custom_type;
 logic [31:0] an_array;
-
 
 endmodule

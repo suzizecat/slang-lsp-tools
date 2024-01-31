@@ -100,8 +100,9 @@ int main(int argc, char** argv) {
     idt.add_level();
 
     DataDeclarationSyntaxVisitor fmter(&idt);
-    st->root().visit(fmter);
-    fmter.process_pending_formats();
-    std::cout << fmter.formatted << std::endl;
+    std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(st);
+    
+    std::cout << formatted->root().toString() << std::endl << std::endl;
+    //std::cout << fmter.formatted << std::endl;
     return 0;
 }

@@ -10,8 +10,9 @@ IndentManager::IndentManager(slang::BumpAllocator& alloc, const unsigned int spa
     _mem(alloc)
 {}
 
-slang::parsing::Token IndentManager::replace_spacing(const slang::parsing::Token &tok, unsigned int spaces)
-{
+slang::parsing::Token IndentManager::replace_spacing(const slang::parsing::Token &tok, int spaces)
+{	
+	assert(spaces >= 0);
 	// Store the string in "persistent" memory (BumpAllocator)
 	if(spaces == 0)
 		return tok.withTrivia(_mem,{});
@@ -25,16 +26,19 @@ slang::parsing::Token IndentManager::replace_spacing(const slang::parsing::Token
 }
 
 
-slang::parsing::Token IndentManager::indent(const slang::parsing::Token& tok)
+slang::parsing::Token IndentManager::indent(const slang::parsing::Token& tok, int additional_spacing)
 {
 
+	assert(additional_spacing >= 0);
 	// Store the string in "persistent" memory (BumpAllocator)
-	unsigned int mem_space = _level * (_use_tabs ? 1 : _space_per_level);
-	slang::byte* spacing_base = _mem.allocate(mem_space, alignof(char));
+	unsigned int mem_indent = _level * (_use_tabs ? 1 : _space_per_level);
+	unsigned int mem_full = mem_indent + additional_spacing;
+	slang::byte* spacing_base = _mem.allocate(mem_full, alignof(char));
 	
-	std::memset(spacing_base,_use_tabs ? '\t' : ' ',mem_space);
+	std::memset(spacing_base,_use_tabs ? '\t' : ' ',mem_indent);
+	std::memset(spacing_base + mem_indent ,' ',additional_spacing);
 	
-	Trivia indent_trivia(TriviaKind::Whitespace,std::string_view((char*)spacing_base,mem_space));
+	Trivia indent_trivia(TriviaKind::Whitespace,std::string_view((char*)spacing_base,mem_full));
 	
 	// The goal is to skip all whitespaces at line start to replace them by the indent
 	slang::SmallVector<Trivia> kept_trivia;
