@@ -43,6 +43,38 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # add_subdirectory(lib-diplomat-index)
+###########################################################
+# SV-FORMATTER 
+###########################################################
+message(STATUS "Setup SV-Formatter library and executable ")
+add_library(sv-formatter-lib STATIC 
+    formatter/format_DataDeclaration.cpp
+    formatter/spacing_manager.cpp
+)
+
+target_link_libraries(sv-formatter-lib PRIVATE slang::slang)
+target_include_directories(sv-formatter-lib INTERFACE formatter/)
+
+add_executable(sv-formatter-exe
+formatter/main_formatter.cpp
+)
+
+target_link_libraries(sv-formatter-exe
+PRIVATE argparse::argparse
+PRIVATE fmt::fmt
+PRIVATE spdlog::spdlog
+
+PRIVATE slang::slang
+PRIVATE sv-formatter-lib
+)
+
+target_include_directories(sv-formatter-exe
+PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>)
+
+set_property(TARGET sv-formatter-exe PROPERTY OUTPUT_NAME sv-formatter)
+set_property(TARGET sv-formatter-lib PROPERTY OUTPUT_NAME sv-formatter)
+
+
 
 add_executable(sv-blackbox main_blackbox.cpp
 documenter_visitor.h
@@ -88,6 +120,7 @@ PRIVATE fmt::fmt
 PRIVATE sockpp-static
 PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
+PRIVATE sv-formatter-lib
 PUBLIC slang::slang
 )
 
@@ -118,18 +151,3 @@ PRIVATE slang::slang)
 target_include_directories(sv-explorer 
 PRIVATE explorer/)
 
-add_executable(sv-formatter
-formatter/sv_formatter.cpp
-formatter/format_DataDeclaration.cpp
-formatter/indent_manager.cpp
-formatter/main_formatter.cpp)
-
-target_link_libraries(sv-formatter
-PRIVATE argparse::argparse
-PRIVATE fmt::fmt
-PRIVATE spdlog::spdlog
-PRIVATE slang::slang
-)
-
-target_include_directories(sv-formatter 
-PRIVATE formatter/)

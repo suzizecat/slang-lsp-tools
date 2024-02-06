@@ -81,6 +81,10 @@ int main(int argc, char** argv) {
         .help("Increase verbosity")
         .default_value(false)
         .implicit_value(true);
+    prog.add_argument("--verbose-trace")
+        .help("Increase verbosity")
+        .default_value(false)
+        .implicit_value(true);
     prog.add_argument("--port","-p")
         .help("Port to use")
         .default_value<in_port_t>(8080)
@@ -99,6 +103,11 @@ int main(int argc, char** argv) {
     if(prog.get<bool>("--verbose"))
     {
         spdlog::set_level(spdlog::level::debug);
+    }
+
+    if(prog.get<bool>("--verbose-trace"))
+    {
+        spdlog::set_level(spdlog::level::trace);
     }
 
     if(prog.get<bool>("--tcp"))

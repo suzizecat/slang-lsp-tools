@@ -1,6 +1,6 @@
 #include "argparse/argparse.hpp"
 #include "spdlog/spdlog.h"
-#include "sv_formatter.hpp"
+//#include "sv_formatter.hpp"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/syntax/SyntaxNode.h"
 #include "slang/text/SourceManager.h"
@@ -10,7 +10,8 @@
 #include <iostream>
 #include "fmt/format.h"
 
-#include "indent_manager.hpp"
+#include "slang/syntax/SyntaxPrinter.h"
+#include "spacing_manager.hpp"
 #include "format_DataDeclaration.hpp"
 using namespace slang;
 
@@ -80,6 +81,9 @@ int main(int argc, char** argv) {
         .help("Number of spaces for one level of indent")
         .scan<'u',unsigned int>()
         .default_value(4U);
+    prog.add_argument("--debug","-d")
+        .help("Print the AST before and after the formatting")
+        .flag();
 
     try {
         prog.parse_args(argc, argv);
@@ -89,20 +93,30 @@ int main(int argc, char** argv) {
         std::cerr << prog << std::endl;
         std::exit(1);
     }
+    bool debug = prog.get<bool>("--debug");
     slang::SourceManager sm;
     auto st = slang::syntax::SyntaxTree::fromFile(prog.get<std::string>("file"),sm).value();
-    //SVFormatter fmter;
-    print_tokens(&(st->root()));
+
+    if(debug)
+    {
+        std::cout << slang::syntax::SyntaxPrinter::printFile(*st) << std::endl << std::endl;
+         print_tokens(&(st->root()));
+    }
     
     BumpAllocator mem;
-    IndentManager idt(mem,prog.get<unsigned int>("--spacing"),prog.get<bool>("--use-tabs"));
+    SpacingManager idt(mem,prog.get<unsigned int>("--spacing"),prog.get<bool>("--use-tabs"));
     
     idt.add_level();
-
+    
     DataDeclarationSyntaxVisitor fmter(&idt);
     std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(st);
-    
-    std::cout << formatted->root().toString() << std::endl << std::endl;
+    if(debug)
+    {
+        std::cout << "POST - FORMAT AST ################" << std::endl << std::endl;
+        print_tokens(&(formatted->root()));
+    }
+
+    std::cout << slang::syntax::SyntaxPrinter::printFile(*formatted) << std::endl << std::endl;
     //std::cout << fmter.formatted << std::endl;
     return 0;
 }

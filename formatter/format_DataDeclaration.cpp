@@ -13,7 +13,7 @@ using Trivia = slang::parsing::Trivia;
 using Token = slang::parsing::Token;
 using TriviaKind = slang::parsing::TriviaKind;
 
-DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(IndentManager* indent) : SyntaxRewriter<DataDeclarationSyntaxVisitor>(),
+DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(SpacingManager* indent) : SyntaxRewriter<DataDeclarationSyntaxVisitor>(),
 	_modifier_sizes{},
 	_type_sizes{},
 	_array_sizes{},
@@ -22,6 +22,7 @@ DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(IndentManager* indent
 	_bloc_type_kind(SyntaxKind::Unknown),
 	_to_format{},
 	_mem(),
+	_remaining_alignment{},
 	_idt(indent)
 	{}
 
@@ -31,6 +32,7 @@ DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(IndentManager* indent
 		_modifier_sizes.clear();
 		_type_sizes.clear();
 		_array_sizes.clear();
+		_remaining_alignment.clear();
 		_type_name_size = 0;
 		_var_name_size = 0;
     }
@@ -48,6 +50,34 @@ void DataDeclarationSyntaxVisitor::handle(const CompilationUnitSyntax& node)
 	process_pending_formats();
 }
 
+void DataDeclarationSyntaxVisitor::handle(const slang::syntax::AnsiPortListSyntax &node)
+{
+	process_pending_formats();
+	visitDefault(node);
+	
+	slang::syntax::AnsiPortListSyntax& work = *deepClone(node,_mem);
+	int alignment_index = 0;
+	int node_index = 0;
+
+	slang::SmallVector<TokenOrSyntax> vec;
+	for(const auto& elt : node.ports.elems())
+	{
+		if(elt.isNode())
+		{
+			vec.push_back(_format_any(_to_format.at(node_index++)));
+		}
+		else
+		{
+			vec.push_back(_idt->replace_spacing(elt.token(),_remaining_alignment[alignment_index++]));
+		}
+	}
+
+	work.ports = vec.copy(_mem);
+	replace(node,work);
+	clear();
+
+}
+
 void DataDeclarationSyntaxVisitor::handle(const DataDeclarationSyntax &node)
 {
 	_split_bloc(node);
@@ -61,6 +91,13 @@ void DataDeclarationSyntaxVisitor::handle(const ImplicitAnsiPortSyntax &node)
 	_store_format(node);
 }
 
+
+void DataDeclarationSyntaxVisitor::handle(const ContinuousAssignSyntax &node)
+{
+	_split_bloc(node);
+	_switch_bloc_type(node);
+	//_store_format(node);
+}
 
 void DataDeclarationSyntaxVisitor::_split_bloc(const SyntaxNode& node)
 {
@@ -167,7 +204,7 @@ DataDeclarationSyntax* DataDeclarationSyntaxVisitor::_format(const DataDeclarati
 
 	auto* declarator = work->declarators[0];
 	auto& unpacked_dimension = declarator->dimensions;
-	remaining_len = align_dimension(_mem,unpacked_dimension,_array_sizes,_var_name_size - declarator->name.rawText().length() +1 );
+	remaining_len = _idt->align_dimension(unpacked_dimension,_array_sizes,_var_name_size - declarator->name.rawText().length() +1 );
 
 	work->semi = _idt->replace_spacing(work->semi,remaining_len );
 
@@ -215,7 +252,7 @@ size_t DataDeclarationSyntaxVisitor::_format_data_type_syntax(slang::syntax::Dat
 		first_element = true;
 	
 		auto& packed_dimensions = type.dimensions;
-		remaining_len = align_dimension(_mem,packed_dimensions,_type_sizes,next_alignement_size);
+		remaining_len = _idt->align_dimension(packed_dimensions,_type_sizes,next_alignement_size);
 
 		if (remaining_len == 0)
 			remaining_len = 1;
@@ -223,7 +260,40 @@ size_t DataDeclarationSyntaxVisitor::_format_data_type_syntax(slang::syntax::Dat
 			remaining_len += 1;
 	}
 		break;
-	
+	case SyntaxKind::NamedType :
+	{
+		bool got_dimension = false;
+		switch (stx->as<NamedTypeSyntax>().name->kind)
+		{
+			case SyntaxKind::IdentifierName:
+			{
+				IdentifierNameSyntax& identifier = stx->as<NamedTypeSyntax>().name->as<IdentifierNameSyntax>();
+				identifier.identifier = _idt->indent(identifier.identifier,next_alignement_size);
+				SyntaxList<ElementSelectSyntax> empty_array(nullptr);
+				//remaining_len = _type_name_size - identifier.identifier.rawText().length();
+				remaining_len = 1+ _idt->align_dimension(empty_array,_type_sizes,next_alignement_size);
+			}
+			break;
+			case SyntaxKind::IdentifierSelectName:
+			{
+				IdentifierSelectNameSyntax& identifier = stx->as<NamedTypeSyntax>().name->as<IdentifierSelectNameSyntax>();
+				identifier.identifier = _idt->indent(identifier.identifier,next_alignement_size);
+				remaining_len = _idt->align_dimension(identifier.selectors,_type_sizes,next_alignement_size);
+				
+				got_dimension = true;
+				//remaining_len = _type_name_size - identifier.identifier.rawText().length();
+			}
+			break;
+		default:
+			break;
+		}
+				
+		if (remaining_len == 0)
+			remaining_len = 1;
+		if(_type_sizes.size() != 0 && ! got_dimension)
+		 	remaining_len += 1;
+	}
+	break;
 	default:
 		//current_type_size += node.type->toString().length();
 		// In case of doubt, do nothing !
@@ -282,103 +352,19 @@ ImplicitAnsiPortSyntax* DataDeclarationSyntaxVisitor::_format(const ImplicitAnsi
 	default:
 		break;
 	}
-	/*
-	//Temp token list for modifiers;
-	slang::SmallVector<slang::parsing::Token> tok_list;
-	bool first_element = true;
-	
-	// Process the modifiers
-	for(const auto& tok : work->modifiers)
-	{
-		
-		if(first_element)
-		{
-			first_element = false;
-			tok_list.push_back(_idt->indent(tok));
-		}
-		else
-		{
-			tok_list.push_back(_idt->replace_spacing(tok, next_alignement_size));
-		}
-
-		// +1 For spacing
-		next_alignement_size = _modifier_sizes[modifier_id] + 1 - tok.rawText().length();
-		modifier_id ++;
-	}
-
-	if(modifier_id < _modifier_sizes.size())
-		next_alignement_size += sum_dim_vector(_modifier_sizes,modifier_id) 
-								+ _modifier_sizes.size() - (modifier_id);
-
-	// Force at least a space if some modifiers are presents
-	if (modifier_id != 0 && next_alignement_size == 0)
-		next_alignement_size = 1;	
-	
-	// Update the modifiers token list, see https://github.com/MikePopoloski/slang/discussions/828#discussioncomment-8233513
-	work->modifiers = tok_list.copy(_mem);
-
-	// Type
-	// ------------------------------------------------
-
-	size_t remaining_len = 0;
-	
-	switch (decl->type->kind)
-	{
-	case SyntaxKind::LogicType :
-		{
-			// Compute the size of keyword + signing + appropriate spaces and align right next token.
-		IntegerTypeSyntax& type = work->type->as<IntegerTypeSyntax>();
-		if (first_element)
-		{
-			// Indent will misalign if others have modifiers.
-			type.keyword = _idt->indent(type.keyword,next_alignement_size);
-			first_element = false;
-		}
-		else
-		{
-			type.keyword = _idt->replace_spacing(type.keyword, next_alignement_size);
-		}
-
-		next_alignement_size = _type_name_size - type.keyword.rawText().length();
-
-		if (type.signing)
-		{
-			type.signing = _idt->replace_spacing(type.signing, 1);
-			next_alignement_size -= 1 + type.signing.rawText().length();
-		}
-
-		first_element = true;
-	
-		auto& packed_dimensions = work->type->as<IntegerTypeSyntax>().dimensions;
-		remaining_len = align_dimension(_mem,packed_dimensions,_type_sizes,next_alignement_size);
-
-		if (remaining_len == 0)
-			remaining_len = 1;
-		if(_type_sizes.size() != 0 && packed_dimensions.size() == 0 )
-			remaining_len += 1;
-	}
-		break;
-	
-	default:
-		//current_type_size += node.type->toString().length();
-		// In case of doubt, do nothing !
-		break;
-	}
 
 
 	// Values
 	// ------------------------------------------------
 	// This spacing is only for the first one. 
-	work->declarators[0]->name = _idt->replace_spacing(work->declarators[0]->name,remaining_len);
-	remaining_len = 0;
+	work->declarator->name = _idt->replace_spacing(work->declarator->name,next_alignement_size);
+	
+	auto& unpacked_dimension = work->declarator->dimensions;
+	next_alignement_size = _idt->align_dimension(unpacked_dimension,_array_sizes,_var_name_size - work->declarator->name.rawText().length() +1 );
 
-	auto* declarator = work->declarators[0];
-	auto& unpacked_dimension = declarator->dimensions;
-	remaining_len = align_dimension(_mem,unpacked_dimension,_array_sizes,_var_name_size - declarator->name.rawText().length() +1 );
+	// Store the remaining alignment for the coma later. 
+	_remaining_alignment.push_back(next_alignement_size );
 
-	work->semi = _idt->replace_spacing(work->semi,remaining_len );
-
-	*/
 	return work;
 }
 
@@ -476,6 +462,16 @@ void DataDeclarationSyntaxVisitor::_read_type_len(const slang::syntax::DataTypeS
 
 			dimension_syntax_to_vector(dimensions, _type_sizes);
 		}
+		break;
+		case SyntaxKind::NamedType:
+			current_type_size += type->getFirstToken().rawText().size() +1 ;
+
+			if(type->as<NamedTypeSyntax>().name->kind == SyntaxKind::IdentifierSelectName)
+			{
+				dimension_syntax_to_vector(type->as<NamedTypeSyntax>().name->as<IdentifierSelectNameSyntax>().selectors, _type_sizes);
+			}
+
+
 		break;
 
     default:
@@ -606,6 +602,61 @@ void dimension_syntax_to_vector(const SyntaxList<VariableDimensionSyntax> dimens
 	}
 }
 
+
+/**
+ * @brief Convert a syntax-list of variable dimensions to content size in a vector
+ * 
+ * @param dimensions Dimension to process
+ * @param target_vector vector to handle and fill
+ */
+void dimension_syntax_to_vector(const SyntaxList<ElementSelectSyntax> dimensions, std::vector<std::pair<size_t,size_t>>& target_vector)
+{
+	unsigned int index = 0;
+
+	if (dimensions.size() > target_vector.size())
+		target_vector.resize(dimensions.size(),{0,0});
+
+	for(const auto* dim : dimensions )
+	{
+		const auto specifier = dim->selector;
+		if(specifier == nullptr)
+			continue;
+
+		switch (specifier->kind)
+		{
+
+			case SyntaxKind::BitSelect :
+				{
+					// Only register one dimension because it would complexify the code
+					// and no one use this mixed with multi-specifier anyway :< 
+					const auto* expr = specifier->as<SelectorSyntax>().as<BitSelectSyntax>().expr.get();
+					
+					const size_t req_len = raw_text_from_syntax(*expr).length();
+					const std::pair<size_t,size_t> nval = {req_len/2,req_len/2};
+
+					target_vector[index].first = std::max(target_vector[index].first,nval.first);
+					target_vector[index].second = std::max(target_vector[index].second,nval.second);
+					index++;
+				}
+				break;
+			case SyntaxKind::AscendingRangeSelect : [[fallthrough]]; 
+			case SyntaxKind::DescendingRangeSelect: [[fallthrough]];
+			case SyntaxKind::SimpleRangeSelect :
+				{
+					const auto& sel = specifier->as<SelectorSyntax>().as<RangeSelectSyntax>();
+					target_vector[index].first = std::max(target_vector[index].first, raw_text_from_syntax(*(sel.left.get())).length());
+					target_vector[index].second = std::max(target_vector[index].second, raw_text_from_syntax(*(sel.right.get())).length());
+
+					index++;
+				}
+				break;
+			default:
+				throw std::domain_error("Unexpected selector kind value");
+				break;
+		}		
+	}
+}
+
 /**
  * @brief Get only text from a syntax node (without trivia)
  * 
@@ -636,104 +687,4 @@ std::string raw_text_from_syntax(const SyntaxNode &node)
 		}
 	}
     return result;
-}
-
-Token replace_spacing(slang::BumpAllocator& alloc , const Token& tok, const unsigned int space_number)
-{
-	// Store the string in "persistent" memory (BumpAllocator)
-	if(space_number == 0)
-		return tok.withTrivia(alloc,{});
-	
-	slang::byte* spacing_base = alloc.allocate(space_number, alignof(char));
-	std::memset(spacing_base,' ',space_number);
-
-	// Declare and store the trivia, then create the token to add.
-	Trivia* t = alloc.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,space_number));
-	return tok.withTrivia(alloc,{t,1});
-}
-
-/**
- * @brief This function allows aligning a token to the right by padding left with spaces.
- * 
- * @param alloc Bump allocator reference
- * @param tok Token to allign
- * @param align_size Total final size of the spacing + token
- * @param allow_no_space If set to false, at least one space will be inserted before the token
- * regardless of overflowing the requested size.
- * @return slang::parsing::Token the token with appropriate alignment as trivia.
- */
-Token token_align_right( slang::BumpAllocator& alloc ,const Token& tok, const unsigned int align_size, const bool allow_no_space )
-{
-	const unsigned int tok_len = tok.rawText().length();
-	const unsigned int target_spacing = align_size > tok_len ? (align_size - tok_len) : (allow_no_space ? 0U : 1U);
-
-	return replace_spacing(alloc,tok,target_spacing);
-}
-
-
-
-unsigned int align_dimension(slang::BumpAllocator& alloc,SyntaxList<VariableDimensionSyntax>& dimensions,const std::vector<std::pair<size_t,size_t>>& sizes_refs, const int first_alignment)
-{
-	bool first_element = true; // Detect the first element to right-align
-	assert(first_alignment >= 0);
-	unsigned int size_dim_index = 0;
-	unsigned int remaining_len = 0;
-	if (dimensions.size() > 0)
-	{
-		for (auto* dim : dimensions)
-		{
-			if (first_element)
-				dim->openBracket = token_align_right(alloc, dim->openBracket, first_alignment + 1, false);
-			else
-				dim->openBracket = replace_spacing(alloc, dim->openBracket, 0);
-
-			switch (dim->specifier->kind)
-			{
-			case SyntaxKind::RangeDimensionSpecifier :
-			{
-				RangeDimensionSpecifierSyntax& spec = dim->specifier->as<RangeDimensionSpecifierSyntax>();
-				if (spec.selector->kind == SyntaxKind::SimpleRangeSelect)
-				{
-					RangeSelectSyntax& select = spec.selector->as<RangeSelectSyntax>();
-					unsigned int temp_size = select.left->toString().length();
-					select.range = token_align_right(alloc, select.range, 1+ sizes_refs.at(size_dim_index).first - temp_size);
-
-					temp_size = select.right->toString().length();
-					dim->closeBracket = token_align_right(alloc, dim->closeBracket,1+ sizes_refs.at(size_dim_index).second - temp_size);
-
-					size_dim_index ++;
-				}
-				else if (spec.selector->kind == SyntaxKind::BitSelect)
-				{
-					BitSelectSyntax& select = spec.selector->as<BitSelectSyntax>();
-					unsigned int temp_size = select.expr->toString().length();
-					const std::pair<size_t,size_t>& sizes = sizes_refs.at(size_dim_index++);
-					dim->closeBracket = token_align_right(alloc, dim->closeBracket, 2+ sizes.first + sizes.second - temp_size);
-				}
-			}
-				break;
-			
-			default:
-				break;
-			}
-
-			first_element = false;
-		}
-
-	}
-	else
-	{
-		// Compensate for the first bracket alignment if there is no bracket at all.
-		remaining_len += first_alignment -1;	
-	}
-
-	// If all dimensions have not been used, compensate for missing dimensions with three characters ([:]) and 
-	// appropriate sizes as mostly used.
-	if(size_dim_index < sizes_refs.size())
-	{
-		remaining_len += (1 + 3 * (sizes_refs.size() - size_dim_index)) + sum_dim_vector(sizes_refs,size_dim_index);
-	}
-
-
-	return remaining_len;
 }

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <utility>
 #include "spdlog/spdlog.h" 
+#include "spdlog/stopwatch.h"
 #include "lsp_errors.hpp"
 #include "types/structs/LogTraceParams.hpp"
 #include "types/structs/LogMessageParams.hpp"
@@ -295,8 +296,9 @@ namespace slsp{
                     {
                         params = raw_input["params"];
                     }
-                    
+                    spdlog::stopwatch sw;
                     fct_ret = invoke(method,params);
+                    spdlog::debug("Method {} invokation done in {:.3}s",method,sw);
                 }
                 else if(has_id)
                 {

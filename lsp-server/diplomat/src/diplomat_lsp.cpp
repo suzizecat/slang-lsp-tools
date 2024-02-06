@@ -71,6 +71,7 @@ _watch_client_pid(watch_client_pid)
     capabilities.workspace = sc_ws;
     capabilities.definitionProvider = true;
     capabilities.referencesProvider = true;
+    capabilities.documentFormattingProvider = true; // Can handle formatting options
     capabilities.renameProvider = true;
 
     _bind_methods();    
@@ -128,6 +129,7 @@ void DiplomatLSP::_bind_methods()
     bind_notification("textDocument/didOpen", LSP_MEMBER_BIND(DiplomatLSP, _h_didOpenTextDocument));
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
     bind_request("textDocument/definition", LSP_MEMBER_BIND(DiplomatLSP, _h_gotoDefinition));
+    bind_request("textDocument/formatting", LSP_MEMBER_BIND(DiplomatLSP, _h_formatting));
     bind_request("textDocument/references", LSP_MEMBER_BIND(DiplomatLSP, _h_references));
     bind_request("textDocument/rename", LSP_MEMBER_BIND(DiplomatLSP, _h_rename));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));

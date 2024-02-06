@@ -19,6 +19,9 @@
 #include "types/structs/DefinitionParams.hpp" 
 #include "types/structs/Location.hpp" 
 
+#include "slang/syntax/SyntaxPrinter.h"
+#include "format_DataDeclaration.hpp"
+#include "spacing_manager.hpp"
 // UNIX only header
 #include <wait.h>
 #include <fstream>
@@ -49,6 +52,37 @@ void DiplomatLSP::_h_didOpenTextDocument(json _)
     DidOpenTextDocumentParams params =  _;
     _save_client_uri(params.textDocument.uri);
 }   
+
+json DiplomatLSP::_h_formatting(json _)
+{
+    DocumentFormattingParams params =  _;
+    std::string filepath = "/" + uri(params.textDocument.uri).get_path();
+    spdlog::info("Request to format the file {}",filepath);
+    slang::SourceManager sm;
+    slang::BumpAllocator mem;
+    SpacingManager idt(mem,params.options.tabSize,!params.options.insertSpaces);
+    auto st = slang::syntax::SyntaxTree::fromFile(filepath,sm).value();
+    idt.add_level();
+    DataDeclarationSyntaxVisitor fmter(&idt);
+    std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(st);
+
+
+    Position end;
+    end.line = sm.getLineNumber(st->root().getLastToken().range().end());
+    end.character = sm.getColumnNumber(st->root().getLastToken().range().end());
+
+    Position start = {0,0};
+    
+    json ret_cont = json::array();
+    TextEdit ret;
+    ret.range = {start,end};
+    ret.newText = slang::syntax::SyntaxPrinter::printFile(*formatted);
+
+    ret_cont.push_back(ret);
+    spdlog::debug("Formatted output: {}",ret.newText);
+    return ret_cont;
+}   
+
 
 void DiplomatLSP::_h_exit(json params)
 {

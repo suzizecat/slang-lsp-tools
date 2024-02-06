@@ -44,6 +44,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
         void _h_didOpenTextDocument(json params);
+        json _h_formatting(json params);
         json _h_gotoDefinition(json params);
         json _h_references(json params);
         json _h_rename(json params);
