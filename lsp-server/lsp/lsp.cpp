@@ -298,7 +298,7 @@ namespace slsp{
                     }
                     spdlog::stopwatch sw;
                     fct_ret = invoke(method,params);
-                    spdlog::debug("Method {} invokation done in {:.3}s",method,sw);
+                    spdlog::debug("Method {} invocation done in {:.3}s",method,sw);
                 }
                 else if(has_id)
                 {

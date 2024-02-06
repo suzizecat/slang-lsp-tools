@@ -73,8 +73,8 @@ namespace slsp
         diag.message = to_report.formattedMessage;
 
         Position diag_pos;
-        diag_pos.line = _sm->getLineNumber(to_report.location);
-        diag_pos.character = _sm->getColumnNumber(to_report.location);
+        diag_pos.line = _sm->getLineNumber(to_report.location)  -1 ;
+        diag_pos.character = _sm->getColumnNumber(to_report.location) -1;
 
         diag.range = Range();
         diag.range.start = diag_pos;
@@ -153,8 +153,8 @@ namespace slsp
             DiagnosticRelatedInformation rel_info;
 
             Position diag_pos;
-            diag_pos.line = _sm->getLineNumber(to_report.location);
-            diag_pos.character = _sm->getColumnNumber(to_report.location);
+            diag_pos.line = _sm->getLineNumber(to_report.location) - 1;
+            diag_pos.character = _sm->getColumnNumber(to_report.location) - 1;
 
             rel_info.location.range = Range();
             rel_info.location.range.start = diag_pos;
