@@ -84,6 +84,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
 
         std::unordered_set< std::filesystem::path> _excluded_paths;
+        std::unordered_set<std::string> _accepted_extensions;
         std::filesystem::path _settings_path;
         slsp::DiplomatLSPWorkspaceSettings _settings;
 

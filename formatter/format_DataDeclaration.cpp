@@ -19,6 +19,10 @@ DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(SpacingManager* inden
 	_array_sizes{},
 	_type_name_size(0),
 	_var_name_size(0),
+	_param_name_size(0),
+	_param_value_size(0),
+	_port_name_size(0),
+	_port_value_size(0),
 	_bloc_type_kind(SyntaxKind::Unknown),
 	_to_format{},
 	_mem(),
@@ -35,6 +39,10 @@ DataDeclarationSyntaxVisitor::DataDeclarationSyntaxVisitor(SpacingManager* inden
 		_remaining_alignment.clear();
 		_type_name_size = 0;
 		_var_name_size = 0;
+		_param_name_size = 0;
+		_param_value_size = 0;
+		_port_name_size = 0;
+		_port_value_size = 0;
     }
 
 /**
@@ -49,6 +57,29 @@ void DataDeclarationSyntaxVisitor::handle(const CompilationUnitSyntax& node)
 	// Process any remaining formatting.
 	process_pending_formats();
 }
+
+void DataDeclarationSyntaxVisitor::handle(const slang::syntax::HierarchyInstantiationSyntax &node)
+{
+	_switch_bloc_type(node, true);
+	visitDefault(node);
+	SyntaxNode* work = _format_any(&node);
+	replace(node,*work);
+}
+
+void DataDeclarationSyntaxVisitor::handle(const slang::syntax::NamedParamAssignmentSyntax &node)
+{
+	_param_name_size = std::max(node.name.rawText().length(),_param_name_size);
+	_param_value_size = std::max(node.expr->toString().length(),_param_value_size);
+}
+
+void DataDeclarationSyntaxVisitor::handle(const slang::syntax::NamedPortConnectionSyntax &node)
+{
+	_port_name_size = std::max(node.name.rawText().length(),_port_name_size);
+
+	if(node.expr != nullptr)
+		_port_value_size = std::max(node.expr->toString().length(),_port_value_size);
+}
+
 
 void DataDeclarationSyntaxVisitor::handle(const slang::syntax::AnsiPortListSyntax &node)
 {
@@ -134,6 +165,9 @@ slang::syntax::SyntaxNode* DataDeclarationSyntaxVisitor::_format_any(const slang
 {
 	switch (node->kind)
 	{
+	case SyntaxKind::HierarchyInstantiation:
+		return _format(node->as<HierarchyInstantiationSyntax>());
+		break;
 	case SyntaxKind::DataDeclaration:
 		return _format(node->as<DataDeclarationSyntax>());
 		break;
@@ -368,7 +402,81 @@ ImplicitAnsiPortSyntax* DataDeclarationSyntaxVisitor::_format(const ImplicitAnsi
 	return work;
 }
 
+HierarchyInstantiationSyntax* DataDeclarationSyntaxVisitor::_format(const HierarchyInstantiationSyntax& decl)
+{
+	HierarchyInstantiationSyntax* work = deepClone(decl,_mem);
+	ParameterValueAssignmentSyntax* params = work->parameters;
 
+	work->type = _idt->indent(work->type);
+	params->hash = _idt->replace_spacing(params->hash, 1);
+	params->openParen = _idt->remove_spacing(params->openParen);
+	params->closeParen = _idt->indent(params->closeParen);
+
+	{
+		IndentLock _bind_indent(*_idt); // RAII
+
+		// Parameters bindings
+		for(ParamAssignmentSyntax* elt : params->parameters)
+		{
+			switch (elt->kind)
+			{
+			case SyntaxKind::NamedParamAssignment :
+				{
+					NamedParamAssignmentSyntax& param = elt->as<NamedParamAssignmentSyntax>();
+					param.dot = _idt->indent(param.dot);
+					param.openParen = _idt->replace_spacing(param.openParen,_param_name_size - param.name.rawText().length());
+					param.closeParen = _idt->replace_spacing(param.closeParen,_param_value_size - param.expr->toString().length());
+				}
+				break;
+			
+			default:
+				break;
+			}
+		}
+	}
+		// Ports bindings
+
+		for(HierarchicalInstanceSyntax* elt : work->instances)
+		{
+			if(elt->decl != nullptr)
+			{
+				elt->decl->name = _idt->replace_spacing(elt->decl->name,1);
+			}
+
+			elt->openParen = _idt->replace_spacing(elt->openParen,1);
+
+			{
+				IndentLock _port_indent(*_idt); // RAII
+				for(PortConnectionSyntax* p : elt->connections)
+				{
+					switch (p->kind)
+					{	
+					case SyntaxKind::NamedPortConnection:
+						{
+							NamedPortConnectionSyntax& port = p->as<NamedPortConnectionSyntax>();
+							port.dot = _idt->indent(port.dot);
+							port.openParen = _idt->replace_spacing(port.openParen,_port_name_size - port.name.rawText().length());
+							if(port.expr == nullptr)
+								port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size);
+							else
+								port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size - port.expr->toString().length());
+						}
+						break;
+					
+					default:
+						break;
+					}
+				}
+			}
+
+			elt->closeParen = _idt->indent(elt->closeParen);
+		}
+
+
+	
+
+	return work;
+}
 
 /**
  * @brief Analyze the node and compute the internal values
@@ -490,18 +598,18 @@ void DataDeclarationSyntaxVisitor::_read_type_len(const slang::syntax::DataTypeS
  * 
  * @param node new node which kind will be the new bloc type
  */
-void DataDeclarationSyntaxVisitor::_switch_bloc_type(const SyntaxNode& node)
+void DataDeclarationSyntaxVisitor::_switch_bloc_type(const SyntaxNode& node, bool force)
 {
 	if(_bloc_type_kind == SyntaxKind::Unknown)
 		_bloc_type_kind = node.kind;
 
-	if(! node.isKind(_bloc_type_kind))
+	if(force || ! node.isKind(_bloc_type_kind))
 		process_pending_formats();
 }
 
-void DataDeclarationSyntaxVisitor::_switch_bloc_type(const SyntaxNode* node)
+void DataDeclarationSyntaxVisitor::_switch_bloc_type(const SyntaxNode* node, bool force)
 {
-	_switch_bloc_type(*node);
+	_switch_bloc_type(*node, force);
 }
 
 unsigned int type_length(const IntegerTypeSyntax* node)

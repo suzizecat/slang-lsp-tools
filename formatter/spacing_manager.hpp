@@ -20,6 +20,7 @@ class SpacingManager
    SpacingManager(slang::BumpAllocator& alloc, const unsigned int space_per_level, const bool use_tabs );
 
    slang::parsing::Token replace_spacing(const slang::parsing::Token& tok, int spaces);
+   slang::parsing::Token remove_spacing(const slang::parsing::Token& tok);
    slang::parsing::Token indent(const slang::parsing::Token& tok, int additional_spacing = 0);
    slang::parsing::Token token_align_right(const slang::parsing::Token& tok, unsigned int align_size, bool allow_no_space = true);
    
@@ -28,4 +29,15 @@ class SpacingManager
 
    inline void add_level(unsigned int to_add = 1) {_level += to_add;};
    inline void sub_level(unsigned int to_sub = 1) {_level -= std::min(to_sub,_level);};
+};
+
+
+struct IndentLock
+{
+   IndentLock(SpacingManager& manager, unsigned int level_to_add = 1U);
+   ~IndentLock();
+
+   protected:
+      SpacingManager& _managed;
+      unsigned int _added_level;
 };

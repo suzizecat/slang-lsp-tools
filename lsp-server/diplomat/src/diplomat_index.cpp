@@ -180,8 +180,6 @@ namespace slsp
     }
 
 
-
-    
     /**
      * @brief Fetch a syntax node or token based upon a source range.
      * 

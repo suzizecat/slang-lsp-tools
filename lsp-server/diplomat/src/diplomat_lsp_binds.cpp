@@ -166,8 +166,12 @@ void DiplomatLSP::_h_initialized(json params)
     slsp::types::ConfigurationItem conf_path;
     conf_path.section = "diplomatServer.server.configurationPath";
 
+    slsp::types::ConfigurationItem index_ext;
+    index_ext.section = "diplomatServer.index.validExtensions";
+
     slsp::types::ConfigurationParams conf_request;
     conf_request.items.push_back(conf_path);
+    conf_request.items.push_back(index_ext);
     
     if (_client_capabilities.workspace
         && _client_capabilities.workspace.value_or(slsp::types::WorkspaceClientCapabilities{}).configuration.value_or(false)
@@ -351,6 +355,14 @@ void DiplomatLSP::_h_get_configuration(json &clientinfo)
 {
     _settings_path = fs::path(clientinfo[0]);
     
+    _accepted_extensions.clear();
+    for(const std::string& ext : clientinfo[1])
+    {
+        _accepted_extensions.emplace(ext);
+        spdlog::debug("Add accepted extension {}",ext);
+    }   
+
+
     if(fs::exists(_settings_path))
     {
         spdlog::info("Read configuration file {}",_settings_path.generic_string());

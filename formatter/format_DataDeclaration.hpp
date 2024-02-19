@@ -32,6 +32,12 @@ class DataDeclarationSyntaxVisitor : public slang::syntax::SyntaxRewriter<DataDe
         std::vector<std::pair<size_t,size_t>> _array_sizes;
         size_t _type_name_size;
         size_t _var_name_size;
+        
+        // .name(value) for parameters and ports
+        size_t _param_name_size;
+        size_t _param_value_size;
+        size_t _port_name_size;
+        size_t _port_value_size;
 
         slang::BumpAllocator _mem;
 
@@ -48,6 +54,7 @@ class DataDeclarationSyntaxVisitor : public slang::syntax::SyntaxRewriter<DataDe
 
         slang::syntax::DataDeclarationSyntax* _format(const slang::syntax::DataDeclarationSyntax& decl);
         slang::syntax::ImplicitAnsiPortSyntax* _format(const slang::syntax::ImplicitAnsiPortSyntax& decl);
+        slang::syntax::HierarchyInstantiationSyntax* _format(const slang::syntax::HierarchyInstantiationSyntax& decl);
         size_t _format_data_type_syntax(slang::syntax::DataTypeSyntax* stx, bool first_element, size_t first_alignement_size);
         void _split_bloc(const slang::syntax::SyntaxNode& node);
         void _read_type_len(const slang::syntax::DataTypeSyntax* type);
@@ -55,15 +62,17 @@ class DataDeclarationSyntaxVisitor : public slang::syntax::SyntaxRewriter<DataDe
         void _store_format(const slang::syntax::ImplicitAnsiPortSyntax& node);
         void _read_type(const slang::syntax::DataDeclarationSyntax& node);
         void _read_type(const slang::syntax::ImplicitAnsiPortSyntax &node);
-        void _switch_bloc_type(const slang::syntax::SyntaxNode &node);
-        void _switch_bloc_type(const slang::syntax::SyntaxNode *node);
-        void _read_type_array(const slang::syntax::SyntaxList<slang::syntax::VariableDimensionSyntax> dimensions);
+        void _switch_bloc_type(const slang::syntax::SyntaxNode &node, bool force = false);
+        void _switch_bloc_type(const slang::syntax::SyntaxNode *node, bool force = false);
 
         public:
         explicit DataDeclarationSyntaxVisitor(SpacingManager *idt);
         void process_pending_formats();
         void clear();
         void handle(const slang::syntax::CompilationUnitSyntax &node);
+        void handle(const slang::syntax::HierarchyInstantiationSyntax &node);
+        void handle(const slang::syntax::NamedParamAssignmentSyntax &node);
+        void handle(const slang::syntax::NamedPortConnectionSyntax &node);
         void handle(const slang::syntax::AnsiPortListSyntax &node);
         void handle(const slang::syntax::DataDeclarationSyntax &node);
         void handle(const slang::syntax::ImplicitAnsiPortSyntax &node);

@@ -27,6 +27,10 @@ slang::parsing::Token SpacingManager::replace_spacing(const slang::parsing::Toke
 	return tok.withTrivia(_mem,{t,1});
 }
 
+slang::parsing::Token SpacingManager::remove_spacing(const slang::parsing::Token &tok)
+{
+	return replace_spacing(tok, 0);
+}
 
 slang::parsing::Token SpacingManager::indent(const slang::parsing::Token& tok, int additional_spacing)
 {
@@ -39,12 +43,18 @@ slang::parsing::Token SpacingManager::indent(const slang::parsing::Token& tok, i
 	
 	std::memset(spacing_base,_use_tabs ? '\t' : ' ',mem_indent);
 	std::memset(spacing_base + mem_indent ,' ',additional_spacing);
-	
+
 	Trivia indent_trivia(TriviaKind::Whitespace,std::string_view((char*)spacing_base,mem_full));
+
+	slang::byte* newline = _mem.allocate(1, alignof(char));
+	*newline = (slang::byte)'\n';
+	Trivia newline_trivia(TriviaKind::EndOfLine,std::string_view((char*)newline,1));
 	
 	// The goal is to skip all whitespaces at line start to replace them by the indent
 	slang::SmallVector<Trivia> kept_trivia;
+	
 	bool skip_spacings = false;
+	bool newline_clean  = false;
 
 	for(const auto& trivia : tok.trivia())
 	{
@@ -56,15 +66,26 @@ slang::parsing::Token SpacingManager::indent(const slang::parsing::Token& tok, i
 		else
 		{
 			if(trivia.kind == TriviaKind::EndOfLine)
+			{
 				skip_spacings = true;
+				newline_clean = true;
+			}
 			else
+			{
 				skip_spacings = false;
-
+				newline_clean = false;
+			}
 			kept_trivia.push_back(trivia);
 
 			if(trivia.kind == TriviaKind::EndOfLine)
 				kept_trivia.push_back(indent_trivia);
 		}
+	}
+	
+	if(! newline_clean)
+	{
+		kept_trivia.push_back(newline_trivia);
+		kept_trivia.push_back(indent_trivia);
 	}
 
 	// Declare and store the indentation trivia, then create the token to add.
@@ -219,4 +240,16 @@ unsigned int SpacingManager::align_dimension(SyntaxList<ElementSelectSyntax>& di
 
 
 	return remaining_len;
+}
+
+IndentLock::IndentLock(SpacingManager& manager, unsigned int level_to_add) :
+	_managed(manager),
+	_added_level(level_to_add)
+{
+	_managed.add_level(_added_level);
+}
+
+IndentLock::~IndentLock()
+{
+	_managed.sub_level(_added_level);
 }

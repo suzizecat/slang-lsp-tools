@@ -12,6 +12,11 @@ endif()
 option(SOCKPP_BUILD_SHARED "" OFF)
 option(SOCKPP_BUILD_STATIC "" ON)
 
+# For SPDLOG
+option(SPDLOG_ENABLE_PCH "" ON)
+option(SPDLOG_FMT_EXTERNAL "" ON)
+
+
 # As workaround
 option(SLANG_USE_MIMALLOC ""  ON)
 
