@@ -83,5 +83,5 @@ unsigned int type_length(const slang::syntax::IntegerTypeSyntax* node);
 void  dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::VariableDimensionSyntax> dimensions, std::vector<std::pair<size_t,size_t>>& target_vector);
 void  dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::ElementSelectSyntax> dimensions, std::vector<std::pair<size_t,size_t>>& target_vector);
 void  tokens_to_vector(const std::span<const slang::parsing::Token> toks, std::vector<size_t>& target_vector);
-std::string raw_text_from_syntax(const slang::syntax::SyntaxNode& node);
+
 

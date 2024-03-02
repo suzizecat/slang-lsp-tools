@@ -131,24 +131,36 @@ unsigned int SpacingManager::align_dimension(SyntaxList<VariableDimensionSyntax>
 			{
 			case SyntaxKind::RangeDimensionSpecifier :
 			{
+				const std::pair<size_t,size_t>& sizes = sizes_refs.at(size_dim_index++);
+				dim->closeBracket = remove_spacing(dim->closeBracket);
+
 				RangeDimensionSpecifierSyntax& spec = dim->specifier->as<RangeDimensionSpecifierSyntax>();
 				if (spec.selector->kind == SyntaxKind::SimpleRangeSelect)
 				{
 					RangeSelectSyntax& select = spec.selector->as<RangeSelectSyntax>();
-					unsigned int temp_size = select.left->toString().length();
-					select.range = token_align_right(select.range, 1+ sizes_refs.at(size_dim_index).first - temp_size);
+					Token* to_edit;
+					to_edit = select.left->getFirstTokenPtr();
 
-					temp_size = select.right->toString().length();
-					dim->closeBracket = token_align_right(dim->closeBracket,1+ sizes_refs.at(size_dim_index).second - temp_size);
+					unsigned int temp_size = raw_text_from_syntax(select.left).length() - to_edit->rawText().size();
 
-					size_dim_index ++;
+					*to_edit = token_align_right(*to_edit, sizes.first - temp_size);
+
+					to_edit = select.right->getFirstTokenPtr();
+					temp_size = raw_text_from_syntax(select.right).length() - to_edit->rawText().size();
+					*to_edit = token_align_right(*to_edit, sizes.second - temp_size);
+
+					select.range = remove_spacing(select.range);
 				}
 				else if (spec.selector->kind == SyntaxKind::BitSelect)
 				{
 					BitSelectSyntax& select = spec.selector->as<BitSelectSyntax>();
-					unsigned int temp_size = select.expr->toString().length();
-					const std::pair<size_t,size_t>& sizes = sizes_refs.at(size_dim_index++);
-					dim->closeBracket = token_align_right(dim->closeBracket, 2+ sizes.first + sizes.second - temp_size);
+
+					unsigned int temp_size = raw_text_from_syntax(*(select.expr)).length();
+					
+					Token* to_edit = select.expr->getFirstTokenPtr();
+					temp_size -= to_edit->rawText().size();
+					*to_edit = token_align_right(*to_edit,1+ sizes.first + sizes.second - temp_size);
+
 				}
 			}
 				break;
@@ -185,6 +197,8 @@ unsigned int SpacingManager::align_dimension(SyntaxList<ElementSelectSyntax>& di
 	assert(first_alignment >= 0);
 	unsigned int size_dim_index = 0;
 	unsigned int remaining_len = 0;
+	unsigned int temp_size = 0;
+	Token* to_edit;
 	if (dimensions.size() > 0)
 	{
 		for (auto* dim : dimensions)
@@ -192,29 +206,38 @@ unsigned int SpacingManager::align_dimension(SyntaxList<ElementSelectSyntax>& di
 			if (first_element)
 				dim->openBracket = token_align_right(dim->openBracket, first_alignment + 1, false);
 			else
-				dim->openBracket = replace_spacing(dim->openBracket, 0);
+				dim->openBracket = remove_spacing(dim->openBracket);
+
+			const std::pair<size_t,size_t>& sizes = sizes_refs.at(size_dim_index++);
 
 			switch (dim->selector->kind)
 			{
+				
+
 				case SyntaxKind::SimpleRangeSelect :
 				{
 					RangeSelectSyntax& select = dim->selector->as<RangeSelectSyntax>();
-					unsigned int temp_size = select.left->toString().length();
-					select.range = token_align_right(select.range, 1+ sizes_refs.at(size_dim_index).first - temp_size);
+					
+					to_edit = select.left->getFirstTokenPtr();				
+					temp_size = raw_text_from_syntax(select.left).length() - to_edit->rawText().size();
+					*to_edit = token_align_right(*to_edit, sizes.first - temp_size);
 
-					temp_size = select.right->toString().length();
-					dim->closeBracket = token_align_right(dim->closeBracket,1+ sizes_refs.at(size_dim_index).second - temp_size);
+					to_edit = select.right->getFirstTokenPtr();
+					temp_size = raw_text_from_syntax(select.right).length() - to_edit->rawText().size();
+					*to_edit = token_align_right(*to_edit, sizes.second - temp_size);
 
-					size_dim_index ++;
-
+					select.range = remove_spacing(select.range);
+					dim->closeBracket = remove_spacing(dim->closeBracket);
 				}
 				break;
 				case SyntaxKind::BitSelect :
 				{
 					BitSelectSyntax& select = dim->selector->as<BitSelectSyntax>();
-					unsigned int temp_size = select.expr->toString().length();
-					const std::pair<size_t,size_t>& sizes = sizes_refs.at(size_dim_index++);
-					dim->closeBracket = token_align_right(dim->closeBracket, 2+ sizes.first + sizes.second - temp_size);
+					to_edit = select.expr->getFirstTokenPtr();	
+					temp_size = raw_text_from_syntax(select.expr).length() - to_edit->rawText().size();
+					*to_edit = token_align_right(*to_edit, 1+ sizes.first + sizes.second - temp_size);
+
+					dim->closeBracket = remove_spacing(dim->closeBracket);
 				}
 				break;
 				default:
@@ -252,4 +275,42 @@ IndentLock::IndentLock(SpacingManager& manager, unsigned int level_to_add) :
 IndentLock::~IndentLock()
 {
 	_managed.sub_level(_added_level);
+}
+
+
+/**
+ * @brief Get only text from a syntax node (without trivia)
+ * 
+ * @param node Node to print
+ */
+std::string raw_text_from_syntax(const SyntaxNode &node)
+{
+	std::string result;
+	for(int i = 0; i < node.getChildCount(); i++)
+	{
+		const SyntaxNode* sub_node = node.childNode(i);
+		
+		if(sub_node != nullptr)
+		{
+			result += raw_text_from_syntax(*sub_node);
+		}
+		else
+		{
+			for(const auto& trivia : node.childToken(i).trivia())
+			{
+				if(trivia.kind == TriviaKind::Whitespace)
+				{
+					result += " ";
+					break;
+				}
+			}
+			result += node.childToken(i).rawText();
+		}
+	}
+    return result;
+}
+
+std::string raw_text_from_syntax(const SyntaxNode *node)
+{
+	return raw_text_from_syntax(*node);
 }

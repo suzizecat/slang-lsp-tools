@@ -765,34 +765,4 @@ void dimension_syntax_to_vector(const SyntaxList<ElementSelectSyntax> dimensions
 	}
 }
 
-/**
- * @brief Get only text from a syntax node (without trivia)
- * 
- * @param node Node to print
- */
-std::string raw_text_from_syntax(const SyntaxNode &node)
-{
-	std::string result;
-	for(int i = 0; i < node.getChildCount(); i++)
-	{
-		const SyntaxNode* sub_node = node.childNode(i);
-		
-		if(sub_node != nullptr)
-		{
-			result += raw_text_from_syntax(*sub_node);
-		}
-		else
-		{
-			for(const auto& trivia : node.childToken(i).trivia())
-			{
-				if(trivia.kind == TriviaKind::Whitespace)
-				{
-					result += " ";
-					break;
-				}
-			}
-			result += node.childToken(i).rawText();
-		}
-	}
-    return result;
-}
+

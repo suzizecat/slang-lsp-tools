@@ -41,3 +41,7 @@ struct IndentLock
       SpacingManager& _managed;
       unsigned int _added_level;
 };
+
+
+std::string raw_text_from_syntax(const slang::syntax::SyntaxNode& node);
+std::string raw_text_from_syntax(const slang::syntax::SyntaxNode* node);
