@@ -24,7 +24,8 @@ namespace slsp
 
             void _remap_internal_diagnostic_uri(slsp::types::PublishDiagnosticsParams* diag, const std::string& old_uri, const std::string& new_uri);
         public:
-        LSPDiagnosticClient(const sv_doclist_t& doc_list, const slang::SourceManager* sm);
+	        //LSPDiagnosticClient(const sv_doclist_t& doc_list, const slang::SourceManager* sm);
+	        LSPDiagnosticClient(const sv_doclist_t& doc_list, const slang::SourceManager* sm, const LSPDiagnosticClient* prev = nullptr );
             void _clear_diagnostics();
             void _cleanup_diagnostics();
             virtual void report(const slang::ReportedDiagnostic& to_report);

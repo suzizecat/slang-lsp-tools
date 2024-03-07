@@ -8,8 +8,21 @@
 using namespace slsp::types;
 namespace slsp
 {
-    LSPDiagnosticClient::LSPDiagnosticClient(const sv_doclist_t &doc_list, const slang::SourceManager* sm) : _documents(doc_list), _sm{sm}
+    LSPDiagnosticClient::LSPDiagnosticClient(const sv_doclist_t &doc_list, const slang::SourceManager* sm, const LSPDiagnosticClient* prev ) : _documents(doc_list), _sm{sm}
     {
+		// If a previous diagnostic client was existing, it is interesting to get back the list
+		// of files that had a diagnostic.
+		// Thus allowing a differential emission without full clear and rebuild.
+		PublishDiagnosticsParams *pub;
+		if(prev != nullptr)
+		{
+			for( const auto& [key, value] : prev->_diagnostics)
+			{
+				pub = new PublishDiagnosticsParams();
+				pub->uri = key;
+				_diagnostics[key] = std::unique_ptr<PublishDiagnosticsParams>(pub);
+	        }
+		}
     }
 
     void LSPDiagnosticClient::_clear_diagnostics()

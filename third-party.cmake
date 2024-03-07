@@ -33,18 +33,11 @@ GIT_REPOSITORY https://github.com/mariusbancila/stduuid.git
 GIT_TAG v1.2.3
 GIT_SHALLOW ON)
 
-
-FetchContent_Declare(pgm-index 
-GIT_REPOSITORY https://github.com/gvinciguerra/PGM-index.git
-GIT_TAG master
-GIT_SHALLOW ON)
-
-
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
   #GIT_TAG v4.0
-  GIT_TAG 66697a085436d9bf5b609cda8944b27074aa5290
+  GIT_TAG master
   GIT_SHALLOW ON)
 
 
