@@ -16,6 +16,21 @@ cmake -DCMAKE_BUILD_TYPE=Release -DDIPLOMAT_USE_MOLD=ON -B./build
 ```
 
 ## Usage
+
+### STDIO
+The language server can be run using the STDIO communication mode. 
+To run the server, simply start it by using :
+```bash
+./build/slang-lsp
+```
+
+For debug purpose, in order to catch the communications between the server and the client, use the STDIO sniffer provided in the tools folder :
+
+```bash
+tools/stdio_sniffer/wrap.sh sniffed.log ./build/slang-lsp
+```
+
+### TCP 
 To run the server linked to the vscode extension, start the server with 
 ```bash
 ./build/slang-lsp --tcp
