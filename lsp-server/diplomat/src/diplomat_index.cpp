@@ -262,7 +262,7 @@ namespace slsp
         slang::SourceRange ret_value = slang::SourceRange::NoLocation;
         
         if(matching_element && is_registered(*matching_element))
-            ret_value = _definition_table.at(CONST_TOKNODE_SR(*matching_element))->getSyntax()->sourceRange();
+            ret_value = _definition_table.at(matching_element->range())->getSyntax()->sourceRange();
         
         return ret_value;
     }
@@ -281,10 +281,10 @@ namespace slsp
 
         if(matching_element  && is_registered(*matching_element))
         {
-            const ast::Symbol* symb = _definition_table.at(CONST_TOKNODE_SR(*matching_element));
+            const ast::Symbol* symb = _definition_table.at(matching_element->range());
 
             for(const syntax::ConstTokenOrSyntax& elt : _reference_table.at(symb))
-                ret_value.push_back(CONST_TOKNODE_SR(elt));
+                ret_value.push_back(elt.range());
         }
 
         return ret_value;        
@@ -337,10 +337,10 @@ namespace slsp
 
                     index[ptr] = fmt::format("{}:{}:{}:{}:{}",
                         file.generic_string(),
-                        _sm->getLineNumber(CONST_TOKNODE_SR(elt).start()),
-                        _sm->getColumnNumber(CONST_TOKNODE_SR(elt).start()),
-                        _sm->getLineNumber(CONST_TOKNODE_SR(elt).end()),
-                        _sm->getColumnNumber(CONST_TOKNODE_SR(elt).end())
+                        _sm->getLineNumber(elt.range().start()),
+                        _sm->getColumnNumber(elt.range().start()),
+                        _sm->getLineNumber(elt.range().end()),
+                        _sm->getColumnNumber(elt.range().end())
                     );
                     ptr.pop_back();
                 }

@@ -206,11 +206,11 @@ json DiplomatLSP::_h_gotoDefinition(json _)
 
     fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
 
-    auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
+    auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1 , params.position.character +1);
     if (syntax)
     {
-        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-        slang::SourceRange return_range = _index->get_definition(CONST_TOKNODE_SR(*syntax));
+        log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+        slang::SourceRange return_range = _index->get_definition(syntax->range());
         spdlog::info("Found definition.");
 
         return _slang_to_lsp_location(return_range);
