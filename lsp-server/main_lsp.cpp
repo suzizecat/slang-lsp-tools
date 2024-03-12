@@ -135,6 +135,7 @@ int main(int argc, char** argv) {
         spdlog::set_default_logger(logger);
 
         DiplomatLSP lsp = DiplomatLSP();
+        lsp.set_rpc_use_endl(false);
         lsp.set_watch_client_pid(false);
         runner(lsp);
     }

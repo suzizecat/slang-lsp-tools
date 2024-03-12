@@ -191,6 +191,7 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
 
 void DiplomatLSP::_read_workspace_modules()
 {
+    log(MessageType_Info, "Reading workspace");
     namespace fs = fs;
     _documents.clear();
     _sm.reset(new slang::SourceManager());

@@ -19,8 +19,9 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
     _out(output),
     _data_available(),
     _ss(),
+    _closed(false),
     _aborted(false),
-    _closed(false)
+    _use_endl(true)
     {
         _inbox_manager = std::jthread(&RPCPipeTransport::_poll_inbox, this, _ss.get_token());
         _outbox_manager = std::jthread(&RPCPipeTransport::_push_outbox, this, _ss.get_token());
@@ -162,7 +163,12 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                         "{}"
                         ,to_out.length(),to_out);
                     
-                    _out << to_out << std::endl;
+                    _out << to_out;
+
+                    if(_use_endl)
+                        _out << std::endl;
+
+                    _out.flush();
 
                     _outbox.pop();
                     remaining_data = _outbox.empty();

@@ -34,6 +34,8 @@ namespace rpc
         bool _closed;
         bool _aborted;
 
+        bool _use_endl;
+
         void _poll_inbox(std::stop_token stok);
         void _push_outbox(std::stop_token stok);
 
@@ -46,6 +48,7 @@ namespace rpc
 
         void send(const nlohmann::json& data);
         void abort();
+        inline void set_endl(const bool use_endl) {_use_endl = use_endl;};
         inline bool is_closed() const { return _closed || _aborted; };
         nlohmann::json get();
     };

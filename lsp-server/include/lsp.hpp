@@ -96,6 +96,7 @@ namespace slsp{
         bool is_bound(const std::string& fct) const;
 
         void set_trace_level(const types::TraceValues level);
+        void set_rpc_use_endl(const bool use_endl){_rpc.set_endl(use_endl);};
 
         inline void shutdown() {_is_stopping = true;};
         inline void exit() { _is_stopped = true; };
