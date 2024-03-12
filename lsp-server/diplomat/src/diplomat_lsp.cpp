@@ -116,6 +116,7 @@ void DiplomatLSP::_bind_methods()
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
     bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
+    bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_module_top));
     
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
@@ -244,6 +245,9 @@ void DiplomatLSP::_compile()
 
     slang::ast::CompilationOptions coptions;
     coptions.flags &= ~ (slang::ast::CompilationFlags::SuppressUnused);
+    
+    if (_top_level)
+        coptions.topModules = {_top_level.value()};
     //coptions.flags |= slang::ast::CompilationFlags::IgnoreUnknownModules;
     slang::Bag bag(coptions);
     _compilation.reset(new slang::ast::Compilation(bag));
@@ -328,6 +332,14 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
         ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
 
     return ret;
+}
+
+
+
+void DiplomatLSP::set_top_level(const std::string& new_top)
+{
+    _top_level = new_top;
+    _compile();
 }
 
 

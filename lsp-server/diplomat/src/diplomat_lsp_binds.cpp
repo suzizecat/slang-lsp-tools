@@ -341,6 +341,19 @@ json DiplomatLSP::_h_get_module_bbox(json _)
     return doc->bb.value();
 }
 
+void DiplomatLSP::_h_set_module_top(json params)
+{
+    fs::path p;
+    for (const json& record : params.at(1))
+    {
+        p = fs::canonical(record["path"].template get<std::string>());
+    }
+
+    spdlog::info("Set top file {}", p.generic_string());
+    SVDocument* doc = _documents.at(p).get();
+    _top_level = doc->bb->module_name;
+}
+
 void DiplomatLSP::_h_ignore(json params)
 {
     for (const json& record : params.at(1))

@@ -61,6 +61,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_update_configuration(json& params);
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
+        void _h_set_module_top(json params);
         void _h_ignore(json params);
 
         void _bind_methods();
@@ -92,7 +93,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slsp::DiplomatIndex> _index;
 
-        std::string _top_level;
+        std::optional<std::string> _top_level;
 
         void _add_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_add);
         void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);
@@ -126,6 +127,8 @@ class DiplomatLSP : public slsp::BaseLSP
         //void read_config(std::filesystem::path& filepath);
         void hello(json params);
         void dump_index(json params);
+
+        void set_top_level(const std::string& new_top);
 
         uri get_file_uri(const std::filesystem::path& path) const;
 
