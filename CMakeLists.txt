@@ -79,18 +79,6 @@ PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>)
 set_property(TARGET sv-formatter-exe PROPERTY OUTPUT_NAME sv-formatter)
 set_property(TARGET sv-formatter-lib PROPERTY OUTPUT_NAME sv-formatter)
 
-add_compile_definitions(BOOST_PROCESS_NO_DEPRECATED)
-
-message(STATUS "Setup SV-Utils library")
-add_executable(sv-utils
-    utils/subprocess_handler.cpp
-)
-
-target_include_directories(sv-utils INTERFACE utils/
-PRIVATE external/boost_1_84_0)
-
-
-
 add_executable(sv-blackbox main_blackbox.cpp
 documenter_visitor.h
 documenter_visitor.cpp)
