@@ -7,6 +7,7 @@
 
 #include "nlohmann/json.hpp"
 #include "diplomat_lsp.hpp"
+#include "lsp_spdlog_sink.hpp"
 #include "lsp_default_binds.hpp"
 #include "rpc_transport.hpp"
 
@@ -77,6 +78,10 @@ int main(int argc, char** argv) {
         .help("Use a TCP connection")
         .default_value(false)
         .implicit_value(true);
+     prog.add_argument("--forward-log")
+        .help("Forward the logs to the client")
+        .default_value(false)
+        .implicit_value(true);
     prog.add_argument("--verbose")
         .help("Increase verbosity")
         .default_value(false)
@@ -99,6 +104,7 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
+    auto fwd_sink = std::make_shared<slsp::lsp_spdlog_sink_mt>();
 
     if(prog.get<bool>("--verbose"))
     {
@@ -124,6 +130,13 @@ int main(int argc, char** argv) {
         std::ostream tcp_output(&itf);
 
         DiplomatLSP lsp(tcp_input,tcp_output);
+
+        if(prog.get<bool>("--forward-log"))
+        {
+            fwd_sink->set_target_lsp(&lsp);
+            spdlog::default_logger()->sinks().push_back(fwd_sink);
+        }
+        
         runner(lsp);
     }
     else
@@ -137,6 +150,13 @@ int main(int argc, char** argv) {
         DiplomatLSP lsp = DiplomatLSP();
         lsp.set_rpc_use_endl(false);
         lsp.set_watch_client_pid(false);
+
+        if(prog.get<bool>("--forward-log"))
+        {
+            fwd_sink->set_target_lsp(&lsp);
+            spdlog::default_logger()->sinks().push_back(fwd_sink);
+        }
+
         runner(lsp);
     }
     return 0;
