@@ -240,6 +240,7 @@ void DiplomatLSP::_compile()
     de.setIgnoreAllWarnings(false);
     de.setSeverity(slang::diag::MismatchedTimeScales,slang::DiagnosticSeverity::Ignored);
     de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
+    de.setSeverity(slang::diag::UnusedDefinition,slang::DiagnosticSeverity::Ignored);
     de.addClient(_diagnostic_client);
 
 
