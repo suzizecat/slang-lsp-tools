@@ -17,10 +17,12 @@ SVDocument::SVDocument(std::string path, slang::SourceManager* sm) : sm(sm)
     }
 }
 
-const std::string SVDocument::get_module_name()
-{
-    return bb.value_or(_compute_module_bb()).module_name;
-}
+// const std::string SVDocument::get_module_name()
+// {
+//     return _bb->module_name;
+// }
+
+
 
 int SVDocument::buffer_position_from_location(int line, int column)
 {
@@ -59,13 +61,19 @@ slsp::types::Range SVDocument::range_from_slang(const slang::SourceRange& range)
     return slsp::types::Range{position_from_slang(range.start()),position_from_slang(range.end())};
 }
 
-const ModuleBlackBox& SVDocument::_compute_module_bb()
+std::unique_ptr<ModuleBlackBox> SVDocument::extract_blackbox()
+{
+    _compute_module_bb();
+    return std::move(_bb);
+}
+
+const ModuleBlackBox* SVDocument::_compute_module_bb()
 {
     VisitorModuleBlackBox visitor;
     st->root().visit(visitor);
 
-    bb = visitor.bb;
-    return bb.value();
+    _bb = std::move(visitor.bb);
+    return _bb.get();
 }
 
 /**
@@ -92,52 +100,3 @@ void SVDocument::_update_line_cache()
 
 }
 
-// std::optional<const syntax::SyntaxNode&> SVDocument::get_syntax_node_from_location(const SourceLocation& pos)
-// {
-    
-//     const syntax::SyntaxNode& root = st.get()->root();
-    
-//     std::stack<const syntax::SyntaxNode*> position;
-//     position.push(&root);
-    
-//     while (position.top()->getChildCount() > 0)
-//     {
-//         const syntax::SyntaxNode* node = position.top();
-//         const syntax::SyntaxNode* selected = nullptr;
-
-//         for (int i = 0; i < node->getChildCount(); i++)
-//         {
-//             const syntax::SyntaxNode* child_node = node->childNode(i);
-//             // If we got a token instead of a proper node, just skip
-//             if (child_node == nullptr)
-//                 continue;
-
-//             const slang::SourceLocation pos_start = child_node->sourceRange().start();
-//             const slang::SourceLocation pos_end = child_node->sourceRange().end();
-
-//             if (pos_start.buffer() != pos.buffer())
-//                 continue;
-//             if (pos_start > pos || pos > pos_end)
-//                 continue;
-
-//             selected = child_node;
-//         }
-
-//         if (selected != nullptr)
-//             position.push(selected);
-//         else
-//         {
-//             break;
-//         }
-//     }
-    
-//     if (position.size() == 1)
-//     {
-//         std::optional<const syntax::SyntaxNode&> empty_return;
-//         return empty_return;
-//     }
-//     else
-//     {
-//         return *(position.top());
-//     }
-// }

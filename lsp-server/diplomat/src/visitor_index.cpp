@@ -32,6 +32,7 @@ bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const st
 bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const std::string& lookup_name)
 {    
     const ast::Symbol* root_symb = _scope.lookupName(lookup_name);
+    
     if(root_symb != nullptr)
     {
         _index->add_reference_to(*root_symb,node,_ref_filepath);

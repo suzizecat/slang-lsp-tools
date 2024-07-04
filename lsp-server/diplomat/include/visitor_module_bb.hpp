@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <unordered_set>
 
 using json = nlohmann::json; 
 
@@ -26,7 +27,7 @@ struct ModulePort
 	std::string direction;
 	bool is_interface;
 	std::string modport;
-    std::string_view comment;
+    std::string comment;
 };
 
 struct ModuleBlackBox
@@ -34,6 +35,7 @@ struct ModuleBlackBox
     std::string module_name;
     std::vector<ModuleParam> parameters;
     std::vector<ModulePort> ports;
+    std::unordered_set<std::string> deps;
 };
 
     void to_json(json& j, const ModuleParam& p);
@@ -57,9 +59,10 @@ public:
         void handle(const slang::syntax::AnsiPortListSyntax &port);
         void handle(const slang::syntax::ImplicitAnsiPortSyntax &port);
         void handle(const slang::syntax::ParameterDeclarationSyntax &node);
+        void handle(const slang::syntax::HierarchyInstantiationSyntax &node);
 
         void set_source_manager(const slang::SourceManager *new_sm);
 
 		// std::string module_name;
-		ModuleBlackBox bb;
+		std::unique_ptr<ModuleBlackBox> bb;
 };

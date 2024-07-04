@@ -153,6 +153,9 @@ int main(int argc, char** argv) {
 
         if(prog.get<bool>("--forward-log"))
         {
+            if(spdlog::get_level() >= spdlog::level::trace)
+                spdlog::set_level(spdlog::level::debug);
+                
             fwd_sink->set_target_lsp(&lsp);
             spdlog::default_logger()->sinks().push_back(fwd_sink);
         }

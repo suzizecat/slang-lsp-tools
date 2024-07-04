@@ -132,11 +132,21 @@ namespace slsp
      */
     void DiplomatIndex::add_reference_to(const slang::ast::Symbol& symbol, const syntax::ConstTokenOrSyntax& ref,const std::filesystem::path& reffile )
     {
-        if(! is_registered(symbol))
-            add_symbol(symbol);
+        const slang::ast::Symbol* symbol_to_target = &symbol;
+        if(! is_registered(symbol_to_target))
+        {
+            symbol_to_target = get_symbol_from_exact_range(symbol_to_target->getSyntax()->sourceRange());
+            if(symbol_to_target == nullptr)
+            {
+                add_symbol(symbol);
+                symbol_to_target = &symbol;
+            }
+            //_instance_type_symbol = _index->get_symbol_from_exact_range(CONST_TOKNODE_SR(*reference_node));
+        }
+            
         
-        _reference_table[&symbol].insert(ref);
-        _definition_table[CONST_TOKNODE_SR(ref)] = &symbol;
+        _reference_table[symbol_to_target].insert(ref);
+        _definition_table[CONST_TOKNODE_SR(ref)] = symbol_to_target;
 
         Index_FileID_t rid = ensure_file(reffile);
         unsigned int ln = _sm->getLineNumber(CONST_TOKNODE_SR(ref).start());
@@ -154,6 +164,17 @@ namespace slsp
     bool DiplomatIndex::is_registered(const slang::ast::Symbol& symbol) const
     {
         return _reference_table.contains(&symbol);
+    }
+
+    /**
+     * @brief Check if a symbol has already been registered in the index
+     * 
+     * @param symbol Symbol to lookup 
+     * @return true  if found
+     */
+    bool DiplomatIndex::is_registered(const slang::ast::Symbol* symbol) const
+    {
+        return _reference_table.contains(symbol);
     }
 
 

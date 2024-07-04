@@ -52,7 +52,10 @@ DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_p
 _this_shared(this),
 _sm(new slang::SourceManager()),
 _diagnostic_client(new slsp::LSPDiagnosticClient(_documents,_sm.get())),
-_watch_client_pid(watch_client_pid)
+_watch_client_pid(watch_client_pid),
+_project_tree_files{},
+_project_tree_modules{},
+_project_file_tree_valid(false)
 {
     
     TextDocumentSyncOptions sync;
@@ -116,6 +119,8 @@ void DiplomatLSP::_bind_methods()
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
     bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
+    bind_notification("diplomat-server.push-config", LSP_MEMBER_BIND(DiplomatLSP,_h_push_config));
+    bind_request("diplomat-server.pull-config", LSP_MEMBER_BIND(DiplomatLSP,_h_pull_config));
     bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_module_top));
     
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
@@ -176,7 +181,8 @@ void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_
     {
         uri path = uri(wf.uri);
         spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
-        _root_dirs.push_back(fs::path("/" + path.get_path()));
+        //_root_dirs.push_back(fs::path("/" + path.get_path()));
+        _settings.workspace_dirs.emplace(fs::path("/" + path.get_path()));
     }
 }
 
@@ -186,7 +192,9 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
     {
         uri path = uri(wf.uri);
         spdlog::info("Remove workspace {} ({}) to working directories.", wf.name, wf.uri);
-        std::remove(_root_dirs.begin(), _root_dirs.end(), "/" + path.get_path());
+        // std::remove(_root_dirs.begin(), _root_dirs.end(), "/" + path.get_path());
+        _settings.workspace_dirs.erase( "/" + path.get_path());
+        //std::remove(_settings.workspace_dirs.begin(), _settings.workspace_dirs.end(),);
     }
 }
 
@@ -195,11 +203,14 @@ void DiplomatLSP::_read_workspace_modules()
     log(MessageType_Info, "Reading workspace");
     namespace fs = fs;
     _documents.clear();
+    _blackboxes.clear();
     _sm.reset(new slang::SourceManager());
 
     fs::path p;
     SVDocument* doc;
-    for (const fs::path& root : _root_dirs)
+    std::unique_ptr<ModuleBlackBox> bb;
+    //for (const fs::path& root : _root_dirs)
+    for (const fs::path& root : _settings.workspace_dirs)
     {
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
@@ -216,11 +227,106 @@ void DiplomatLSP::_read_workspace_modules()
             {
                 spdlog::debug("Read SV file {}", p.generic_string());
                 doc = _read_document(p);
-                _module_to_file[doc->get_module_name()] = p.generic_string();
+                _blackboxes[p] = doc->extract_blackbox();
+                _module_to_file[_blackboxes[p]->module_name] = p.generic_string();
             }
         }
     }
 }
+
+
+void DiplomatLSP::_read_filetree_modules()
+{
+    log(MessageType_Info, "Reading filetree");
+    namespace fs = fs;
+    // Explicitely do NOT clear the blackbox list in order to keep what was done on 
+    // global pass and attempts to relink later.
+    _documents.clear();
+    _sm.reset(new slang::SourceManager());
+
+
+    SVDocument* doc;
+    for (const fs::path& file : _project_tree_files)
+    {                
+        spdlog::debug("Read SV file from project tree {}", file.generic_string());
+        doc = _read_document(file);
+        _blackboxes[file] = doc->extract_blackbox();
+        _module_to_file[_blackboxes[file]->module_name] = file.generic_string();
+    }
+}
+
+
+const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) const
+{
+    try
+    {
+        return _documents.at(_module_to_file.at(module)).get();
+    }
+    catch(const std::out_of_range& e)
+    {
+        spdlog::warn("No document found when looking up the module {}",module);
+        return nullptr;
+    }
+}
+
+const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) const
+{
+    try
+    {
+        return _blackboxes.at(_module_to_file.at(module)).get();
+    }
+    catch(const std::out_of_range& e)
+    {
+        spdlog::warn("No document found when looking up the module {}",module);
+        return nullptr;
+    }
+}
+
+void DiplomatLSP::_compute_project_tree()
+{
+    spdlog::info("Rebuild project file tree");
+    _clear_project_tree();
+    // A top level shall be set beforehand.
+    if(! _top_level)
+        return;
+    _add_module_to_project_tree(_top_level.value());
+    _project_file_tree_valid = true;
+}
+
+void DiplomatLSP::_clear_project_tree() 
+{
+    _project_file_tree_valid = false;
+    _project_tree_files.clear(); 
+    _project_tree_modules.clear();
+}
+
+void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
+{
+    // The workspace modules list shall have been computed beforehand.
+    // Select the SVDocument from the module name to retrieve its dependencies.
+    const ModuleBlackBox* bb = _bb_from_module(mod);
+
+    // No problem with re-inserting as _project_tree_modules is a set.
+    _project_tree_modules.insert(mod);
+
+    // Current document could be nullptr if the required module has not been found.
+    // In this case it is just skipped. 
+    if(bb != nullptr)
+    {
+        _project_tree_files.insert(_module_to_file.at(mod));
+
+        for(const std::string_view& _ : bb->deps)
+        {
+            // Convert string view to string to not depend on the buffer.
+            std::string dep(_);
+            if(!_project_tree_modules.contains(dep))
+            {
+                _add_module_to_project_tree(dep);
+            }
+        }
+    }
+}
+
 
 void DiplomatLSP::_compile()
 {
@@ -230,9 +336,12 @@ void DiplomatLSP::_compile()
     // As per slang limitation, it is needed to recreate the diagnostic engine
     // because the source manager will be deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuilt.
-    _read_workspace_modules();
-    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents,_sm.get(),_diagnostic_client.get()));
+    if(!_project_file_tree_valid)
+        _read_workspace_modules();
+    else
+        _read_filetree_modules();
 
+    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents,_sm.get(),_diagnostic_client.get()));
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
     
@@ -253,12 +362,24 @@ void DiplomatLSP::_compile()
     slang::Bag bag(coptions);
     _compilation.reset(new slang::ast::Compilation(bag));
 
-    spdlog::info("Add syntax trees");
-    for (const auto& [key, value] : _documents)
+    if(_top_level)
     {
-        _compilation->addSyntaxTree(value->st);
+        // Always rebuild the project tree.
+        _compute_project_tree();
+        spdlog::info("Add syntax trees from project file tree");
+        for (const auto& file : _project_tree_files)
+        {
+            _compilation->addSyntaxTree(_documents.at(file)->st);
+        }
     }
-
+    else
+    {
+        spdlog::info("Add syntax trees from workspace");    
+        for (const auto& [key, value] : _documents)
+        {
+            _compilation->addSyntaxTree(value->st);
+        }
+    }
     _compilation->getRoot();
 
     spdlog::info("Issuing diagnostics");
@@ -273,6 +394,7 @@ void DiplomatLSP::_compile()
     try
     {
         _compilation->getRoot().visit(idx_visit);
+        spdlog::info("Indexer visit done");
         _index = std::move(idx_visit.extract_index());
         if(_broken_index_emitted)
         {

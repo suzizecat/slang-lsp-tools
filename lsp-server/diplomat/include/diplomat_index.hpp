@@ -117,6 +117,7 @@ namespace slsp
             void add_reference_to(const slang::ast::Symbol& symbol, const slang::syntax::ConstTokenOrSyntax& ref,const std::filesystem::path& reffile);
             
             bool is_registered(const slang::ast::Symbol& symbol) const;
+            bool is_registered(const slang::ast::Symbol* symbol) const;
             bool is_registered(const slang::syntax::ConstTokenOrSyntax& node) const;
             bool is_registered(const std::filesystem::path& fileref) const;
 

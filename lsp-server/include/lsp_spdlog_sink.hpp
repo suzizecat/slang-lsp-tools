@@ -23,8 +23,7 @@ namespace slsp
         
         _buffer += fmt::to_string(formatted);
 
-        char& end = _buffer.back();
-        if(end == '\n')
+        if(msg.level > spdlog::level::debug && _buffer.ends_with("\n"))
             _buffer.pop_back();
         }
 

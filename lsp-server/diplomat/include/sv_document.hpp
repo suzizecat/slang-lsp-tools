@@ -22,7 +22,7 @@ struct SVDocument
     std::shared_ptr<slang::syntax::SyntaxTree > st;
     
     SVDocument(std::string path, slang::SourceManager* sm);
-    const std::string get_module_name();
+    // const std::string get_module_name();
     int buffer_position_from_location(int line, int column);
     
     slsp::types::Position position_from_slang(const slang::SourceLocation& pos);
@@ -31,12 +31,14 @@ struct SVDocument
 
     // std::optional<const slang::syntax::SyntaxNode&>  get_syntax_node_from_location(const slang::SourceLocation& pos);
 
-    std::optional<ModuleBlackBox> bb;
     std::optional<std::string> doc_uri;
 
+    std::unique_ptr<ModuleBlackBox> extract_blackbox();
+
     protected:
+    std::unique_ptr<ModuleBlackBox> _bb;
     slang::BufferID _buff_id;
     std::optional<std::vector<unsigned int> > _line_size_cache;
-    const ModuleBlackBox& _compute_module_bb();
+    const ModuleBlackBox* _compute_module_bb();
     void _update_line_cache();
 };

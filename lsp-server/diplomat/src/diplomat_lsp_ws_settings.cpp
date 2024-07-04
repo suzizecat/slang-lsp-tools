@@ -1,6 +1,7 @@
 #include "diplomat_lsp_ws_settings.hpp"
 #include "fmt/format.h"
 #include <stdexcept>
+
 namespace slsp
 {
 
@@ -28,10 +29,14 @@ namespace slsp
 
     void to_json(nlohmann::json &j, const DiplomatLSPWorkspaceSettings &s)
     {
-        j = nlohmann::json{{"excludedPaths", s.excluded_paths}, {"excludedDiags", s.ignored_diagnostics}};
+        j = nlohmann::json{
+            {"workspaceDirs",s.workspace_dirs},
+            {"excludedPaths", s.excluded_paths}, 
+            {"excludedDiags", s.ignored_diagnostics}};
     }
     void from_json(const nlohmann::json &j, DiplomatLSPWorkspaceSettings &s)
     {
+        j.at("workspaceDirs").get_to(s.workspace_dirs);
         j.at("excludedPaths").get_to(s.excluded_paths);
         j.at("excludedDiags").get_to(s.ignored_diagnostics);
     }

@@ -61,6 +61,9 @@ target_link_libraries(sv-formatter-lib PRIVATE slang::slang)
 target_include_directories(sv-formatter-lib INTERFACE formatter/)
 
 add_executable(sv-formatter-exe
+
+utils/ast-printer/ast_print.cpp
+
 formatter/main_formatter.cpp
 )
 
@@ -73,8 +76,18 @@ PRIVATE slang::slang
 PRIVATE sv-formatter-lib
 )
 
+
+
+add_library(diplomat-system-lib STATIC 
+    system/src/process_handler_lnx.cpp
+)
+
+target_include_directories(diplomat-system-lib PRIVATE system/include)
+
+
 target_include_directories(sv-formatter-exe
-PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>)
+PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>
+PRIVATE utils/ast-printer)
 
 set_property(TARGET sv-formatter-exe PROPERTY OUTPUT_NAME sv-formatter)
 set_property(TARGET sv-formatter-lib PROPERTY OUTPUT_NAME sv-formatter)
@@ -154,3 +167,12 @@ PRIVATE slang::slang)
 target_include_directories(sv-explorer 
 PRIVATE explorer/)
 
+add_executable(sv-tree
+utils/ast-printer/ast_print.cpp)
+
+target_link_libraries(sv-tree
+PRIVATE slang::slang
+PRIVATE argparse::argparse)
+
+target_include_directories(sv-explorer 
+PRIVATE utils/ast_print)

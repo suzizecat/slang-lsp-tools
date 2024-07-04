@@ -61,7 +61,12 @@ void from_json(const json& j, ModuleBlackBox& p)
 	j.at("ports").get_to(p.ports);
 }
 
-VisitorModuleBlackBox::VisitorModuleBlackBox(bool only_modules, const slang::SourceManager* sm) : _only_modules(true), _sm(sm) {}
+VisitorModuleBlackBox::VisitorModuleBlackBox(bool only_modules, const slang::SourceManager* sm) : 
+	_only_modules(true), 
+	_sm(sm), 
+	bb(new ModuleBlackBox())
+{
+}
 
 void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_sm)
 {
@@ -70,22 +75,28 @@ void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_s
 
 void VisitorModuleBlackBox::handle(const slang::syntax::ModuleHeaderSyntax& node)
 {
-	bb.module_name = node.name.valueText();
+	bb->module_name = node.name.valueText();
 
 	visitDefault(node);
 }
+
+void VisitorModuleBlackBox::handle(const HierarchyInstantiationSyntax& node)
+{
+	bb->deps.insert(std::string(node.type.rawText()));
+}
+
 
 void VisitorModuleBlackBox::handle(const AnsiPortListSyntax& node)
 {
 	visitDefault(node);
 
-	if(bb.ports.size() > 0)
+	if(bb->ports.size() > 0)
 	{
 		for(const slang::parsing::Trivia t : node.getLastToken().trivia())
 		{
 			if(t.getRawText().starts_with("//"))
 			{
-				bb.ports.back().comment = t.getRawText();
+				bb->ports.back().comment = std::string(t.getRawText());
 			}
 		}
 	}
@@ -101,8 +112,8 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 
 	// std::cout << "    Name      : " << declarator->name.valueText() << std::endl;
 	mport.name = declarator->name.valueText();
-	// bb.ports hold the list of ports of the module I'm analyzing
-	if(bb.ports.size() > 0)
+	// bb->ports hold the list of ports of the module I'm analyzing
+	if(bb->ports.size() > 0)
 	{
 		for(const slang::parsing::Trivia t : port.header->getFirstToken().trivia())
 		{
@@ -110,7 +121,7 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 			// in particular by checking the line number with the port declaration.
 			if(t.getRawText().starts_with("//"))
 			{
-				bb.ports.back().comment = t.getRawText();
+				bb->ports.back().comment = std::string(t.getRawText());
 				break;
 			}
 		}
@@ -186,7 +197,7 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 	}
 
 	//data["ports"].push_back(json_def);
-	bb.ports.push_back(mport);
+	bb->ports.push_back(mport);
 
 }
 
@@ -224,7 +235,7 @@ void VisitorModuleBlackBox::handle(const ParameterDeclarationSyntax& node)
 			mparam.default_value = init_expr;
 		}
 		
-		bb.parameters.push_back(mparam);
+		bb->parameters.push_back(mparam);
 
 	}
 }
