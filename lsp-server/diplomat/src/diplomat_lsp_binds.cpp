@@ -6,6 +6,7 @@
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
+#include <slang/ast/symbols/CompilationUnitSymbols.h>
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
@@ -398,6 +399,47 @@ void DiplomatLSP::_h_ignore(json params)
 		_settings.excluded_paths.insert(p);
 		_project_file_tree_valid = false;
 	}
+}
+
+/**
+ * @brief Resolves design hierarchical paths and return the location of the definition
+ * of the targeted symbols
+ * 
+ * @param params JSON structure equivalent to a list of hierarchical paths
+ * @return json association initial path => Location. Return null on unresolved paths.
+ */
+json DiplomatLSP::_h_resolve_hier_path(json params)
+{
+	// Params will be a list of hier paths to resolve.
+	json ret;
+	if(! _assert_index())
+	{
+		return ret;
+	}
+	const auto& design_root = _compilation->getRoot();
+	for (const std::string& path: params)
+	{
+		spdlog::debug("Resolve path {}",path);
+		auto bracket_pos = path.find('[');
+
+		const slang::ast::Symbol* match = std::string::npos == bracket_pos ? design_root.lookupName(path) : design_root.lookupName(path.substr(0,bracket_pos));
+		if(match == nullptr)
+		{
+			spdlog::debug("Resolution yielded no result");
+			ret[path] = nullptr;
+			continue;
+		}
+
+		const slang::syntax::SyntaxNode* stx = match->getSyntax();
+		const slang::SourceRange target = _index->get_definition(stx->sourceRange());
+		
+		if (target == slang::SourceRange::NoLocation)
+			ret[path] = nullptr;
+		else 
+			ret[path] = _slang_to_lsp_location(target);
+	}
+
+	return ret;
 }
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)
