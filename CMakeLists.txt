@@ -77,20 +77,70 @@ PRIVATE sv-formatter-lib
 )
 
 
-
-add_library(diplomat-system-lib STATIC 
-    system/src/process_handler_lnx.cpp
-)
-
-target_include_directories(diplomat-system-lib PRIVATE system/include)
-
-
 target_include_directories(sv-formatter-exe
 PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>
 PRIVATE utils/ast-printer)
 
 set_property(TARGET sv-formatter-exe PROPERTY OUTPUT_NAME sv-formatter)
 set_property(TARGET sv-formatter-lib PROPERTY OUTPUT_NAME sv-formatter)
+
+message(STATUS "Setup SV-Explorer library and executable ")
+
+
+add_library(sv-explorer-lib STATIC 
+explorer/hier_visitor.cpp
+)
+
+target_link_libraries(sv-explorer-lib 
+PRIVATE slang::slang
+PRIVATE nlohmann_json::nlohmann_json)
+target_include_directories(sv-explorer-lib INTERFACE explorer/)
+
+
+add_executable(sv-explorer-exe
+explorer/main.cpp
+explorer/explorer_visitor.cpp
+)
+
+target_link_libraries(sv-explorer-exe
+PRIVATE nlohmann_json::nlohmann_json
+PRIVATE slang::slang
+PRIVATE sv-explorer-lib
+)
+
+
+target_include_directories(sv-explorer-exe
+PRIVATE $<TARGET_PROPERTY:sv-explorer-lib,INTERFACE_INCLUDE_DIRECTORIES>
+PRIVATE utils/ast_print)
+
+set_property(TARGET sv-explorer-exe PROPERTY OUTPUT_NAME sv-explorer)
+set_property(TARGET sv-explorer-lib PROPERTY OUTPUT_NAME sv-explorer)
+
+######################################################################
+######################################################################
+######################################################################
+
+
+# target_link_libraries(sv-explorer
+# PRIVATE nlohmann_json::nlohmann_json
+# PRIVATE slang::slang)
+
+# target_include_directories(sv-explorer 
+# PRIVATE explorer/)
+
+######################################################################
+######################################################################
+######################################################################
+
+message(STATUS "Setup SV-LSP executable and other stuff")
+
+
+# add_library(diplomat-system-lib STATIC 
+# system/src/process_handler_lnx.cpp
+# )
+
+# target_include_directories(diplomat-system-lib PRIVATE system/include)
+
 
 add_executable(sv-blackbox main_blackbox.cpp
 documenter_visitor.h
@@ -137,6 +187,7 @@ PRIVATE sockpp-static
 PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
 PRIVATE sv-formatter-lib
+PRIVATE sv-explorer-lib
 PUBLIC slang::slang
 )
 
@@ -155,17 +206,6 @@ PRIVATE nlohmann_json::nlohmann_json
 target_include_directories(lsp-test-client 
 PRIVATE lsp-server/include)
 
-add_executable(sv-explorer
-explorer/main.cpp
-explorer/hier_visitor.cpp
-explorer/explorer_visitor.cpp)
-
-target_link_libraries(sv-explorer
-PRIVATE nlohmann_json::nlohmann_json
-PRIVATE slang::slang)
-
-target_include_directories(sv-explorer 
-PRIVATE explorer/)
 
 add_executable(sv-tree
 utils/ast-printer/ast_print.cpp)
@@ -174,5 +214,5 @@ target_link_libraries(sv-tree
 PRIVATE slang::slang
 PRIVATE argparse::argparse)
 
-target_include_directories(sv-explorer 
-PRIVATE utils/ast_print)
+# target_include_directories(sv-explorer 
+# PRIVATE utils/ast_print)

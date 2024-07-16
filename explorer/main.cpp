@@ -7,7 +7,7 @@
 #include "slang/ast/symbols/InstanceSymbols.h"
 #include "slang/ast/symbols/BlockSymbols.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
-#include "slang/util/Version.h"
+//#include "slang/util/Version.h"
 #include "slang/util/Enum.h"
 #include "slang/text/SourceLocation.h"
 #include <iostream>
@@ -242,12 +242,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    if (showVersion == true) {
-        printf("slang version %d.%d.%d+%s\n", VersionInfo::getMajor(),
-            VersionInfo::getMinor(), VersionInfo::getPatch(),
-            std::string(VersionInfo::getHash()).c_str());
-        return 0;
-    }
+   
 
     if (!driver.processOptions())
         return 2;
@@ -268,7 +263,7 @@ int main(int argc, char** argv) {
     print_symbols(root_symb);
 
     ExplorerVisitor visitor;
-    HierVisitor h_visitor;
+    HierVisitor h_visitor(false);
 
     root_symb.visit(h_visitor);
     std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;

@@ -29,6 +29,8 @@
 
 #include "uri.hh"
 
+#include "hier_visitor.h"
+
 using namespace slsp::types;
 
 namespace fs = std::filesystem;
@@ -326,6 +328,8 @@ void DiplomatLSP::_h_push_config(json params)
 	spdlog::debug("Config is {}",params.dump(1));
 	_settings = params[0];
 
+	show_message(slsp::types::MessageType::MessageType_Info,"Configuration successfullyloaded by the server.");
+
 }
 
 
@@ -440,6 +444,29 @@ json DiplomatLSP::_h_resolve_hier_path(json params)
 	}
 
 	return ret;
+}
+
+/**
+ * @brief Return a JSON view of the design hierarchy
+ * 
+ * @param _ 
+ * @return json 
+ */
+json DiplomatLSP::_h_get_design_hierarchy(json _)
+{
+	json ret;
+
+	if(! _assert_index())
+	{
+		return ret;
+	}
+	const slang::ast::RootSymbol& design_root = _compilation->getRoot();
+	HierVisitor hier_visitor(false);
+
+	design_root.visit(hier_visitor);
+
+	return hier_visitor.get_hierarchy();
+
 }
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)

@@ -67,6 +67,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_ignore(json params);
 
         json _h_resolve_hier_path(json params);
+        json _h_get_design_hierarchy(json params);
 
         void _bind_methods();
 
