@@ -54,7 +54,6 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_setTrace(json params);
         json _h_shutdown(json params);
 
-        void _h_save_config(json params);
         void _h_push_config(json params);
         json _h_pull_config(json params);
         void _h_set_top_module(json params);
@@ -102,7 +101,6 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slsp::DiplomatIndex> _index;
 
-        std::optional<std::string> _top_level;
 
         bool _project_file_tree_valid;
 

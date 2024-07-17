@@ -307,14 +307,14 @@ json DiplomatLSP::_h_rename(json _)
 
 
 
-void DiplomatLSP::_h_save_config(json params)
-{
-	spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
-	log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
-	std::ofstream out(_settings_path);
-	json j = _settings;
-	out << j.dump(4);
-}
+// void DiplomatLSP::_h_save_config(json params)
+// {
+// 	spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
+// 	log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
+// 	std::ofstream out(_settings_path);
+// 	json j = _settings;
+// 	out << j.dump(4);
+// }
 
 /**
  * @brief Pushing configuration, from client to server.
@@ -343,14 +343,13 @@ json DiplomatLSP::_h_pull_config(json params)
 {
 	spdlog::info("Send configuration to the client.");
 	log(slsp::types::MessageType::MessageType_Info,"Configuration pulled from server");
-	std::ofstream out(_settings_path);
 	json j = _settings;
 	return j;
 }
 
 void DiplomatLSP::_h_set_top_module(json _)
 {
-	_top_level = _[0].at("top").template get<std::string>();
+	_settings.top_level = _[0].at("top").template get<std::string>();
 }
 
 json DiplomatLSP::_h_get_modules(json params)
@@ -389,7 +388,7 @@ void DiplomatLSP::_h_set_module_top(json params)
 
 	spdlog::info("Set top file {}", p.generic_string());
 	ModuleBlackBox* bb = _blackboxes.at(p).get();
-	_top_level = bb->module_name;
+	_settings.top_level = bb->module_name;
 
 	_compute_project_tree();
 	_compile();
@@ -472,7 +471,8 @@ json DiplomatLSP::_h_get_design_hierarchy(json _)
 
 void DiplomatLSP::_h_get_configuration(json &clientinfo)
 {
-	_settings_path = fs::path(clientinfo[0]);
+	//TODO Cleanup
+	// _settings_path = fs::path(clientinfo[0]);
 	
 	_accepted_extensions.clear();
 	for(const std::string& ext : clientinfo[1])

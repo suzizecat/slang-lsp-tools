@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_set>
 #include <optional>
-
+#include <regex>
 #include <filesystem>
 
 #include "nlohmann/json.hpp"
@@ -27,7 +27,12 @@ namespace slsp
 	{
 		std::unordered_set<std::filesystem::path> workspace_dirs;
 		std::unordered_set<std::string> excluded_paths;
+		std::unordered_set<std::string> excluded_patterns;
 		std::vector<SlangDiagDesignator> ignored_diagnostics;
+		std::vector<std::regex> excluded_regexs;
+		std::optional<std::string> top_level;
+
+		void refresh_regexs();
 	};
 	
 	void to_json(nlohmann::json& j, const SlangDiagDesignator& s);

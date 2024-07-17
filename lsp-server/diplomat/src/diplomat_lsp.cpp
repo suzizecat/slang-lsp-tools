@@ -118,7 +118,7 @@ void DiplomatLSP::_bind_methods()
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
-    bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
+    //bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
     bind_notification("diplomat-server.push-config", LSP_MEMBER_BIND(DiplomatLSP,_h_push_config));
     bind_request("diplomat-server.pull-config", LSP_MEMBER_BIND(DiplomatLSP,_h_pull_config));
     bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_module_top));
@@ -212,19 +212,42 @@ void DiplomatLSP::_read_workspace_modules()
     fs::path p;
     SVDocument* doc;
     std::unique_ptr<ModuleBlackBox> bb;
+
     //for (const fs::path& root : _root_dirs)
     for (const fs::path& root : _settings.workspace_dirs)
     {
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
-            if (!file.exists() ||  _settings.excluded_paths.contains(fs::canonical(file.path())))
+            bool skipped = false;
+            if (!file.exists())
+            {
+                skipped = true;    
+            }
+
+            std::string path = fs::canonical(file.path()).generic_string();
+            
+            if ( ! skipped && _settings.excluded_paths.contains(path))
+                skipped = true;
+            
+            if (!skipped)
+            {
+                for(const std::regex& rgx : _settings.excluded_regexs)
+                {   
+                    if (std::regex_match(path,rgx))
+                    {
+                        skipped = true;
+                        break;
+                    }
+                }
+            }
+            
+            if(skipped)
             {
                 if(file.is_directory())
-                    it.disable_recursion_pending();
-                continue;
+                        it.disable_recursion_pending();
+                    continue;
             }
-                
                 
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
@@ -290,9 +313,9 @@ void DiplomatLSP::_compute_project_tree()
     spdlog::info("Rebuild project file tree");
     _clear_project_tree();
     // A top level shall be set beforehand.
-    if(! _top_level)
+    if(! _settings.top_level)
         return;
-    _add_module_to_project_tree(_top_level.value());
+    _add_module_to_project_tree(_settings.top_level.value());
     _project_file_tree_valid = true;
 }
 
@@ -359,13 +382,13 @@ void DiplomatLSP::_compile()
     slang::ast::CompilationOptions coptions;
     coptions.flags &= ~ (slang::ast::CompilationFlags::SuppressUnused);
     
-    if (_top_level)
-        coptions.topModules = {_top_level.value()};
+    if (_settings.top_level)
+        coptions.topModules = {_settings.top_level.value()};
     //coptions.flags |= slang::ast::CompilationFlags::IgnoreUnknownModules;
     slang::Bag bag(coptions);
     _compilation.reset(new slang::ast::Compilation(bag));
 
-    if(_top_level)
+    if(_settings.top_level)
     {
         // Always rebuild the project tree.
         _compute_project_tree();
@@ -464,7 +487,7 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
 
 void DiplomatLSP::set_top_level(const std::string& new_top)
 {
-    _top_level = new_top;
+    _settings.top_level = new_top;
     _compile();
 }
 
