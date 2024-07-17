@@ -328,7 +328,8 @@ void DiplomatLSP::_h_push_config(json params)
 	spdlog::debug("Config is {}",params.dump(1));
 	_settings = params[0];
 
-	show_message(slsp::types::MessageType::MessageType_Info,"Configuration successfullyloaded by the server.");
+	show_message(slsp::types::MessageType::MessageType_Info,"Configuration successfully loaded by the server.");
+	_compile();
 
 }
 
@@ -461,7 +462,7 @@ json DiplomatLSP::_h_get_design_hierarchy(json _)
 		return ret;
 	}
 	const slang::ast::RootSymbol& design_root = _compilation->getRoot();
-	HierVisitor hier_visitor(false);
+	HierVisitor hier_visitor(false,&_doc_path_to_client_uri);
 
 	design_root.visit(hier_visitor);
 
@@ -493,7 +494,7 @@ void DiplomatLSP::_h_get_configuration(json &clientinfo)
 void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)
 {
 	_h_get_configuration(clientinfo);
-	_compile();
+	//_compile();
 }
 
 void DiplomatLSP::_h_update_configuration(json &params)

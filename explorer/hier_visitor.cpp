@@ -1,9 +1,10 @@
 #include "hier_visitor.h"
+#include <slang/text/SourceManager.h>
 #include <iostream>
 using json = nlohmann::json;
 namespace ast = slang::ast;
 
- HierVisitor::HierVisitor(bool output_io) : _output_io(output_io)
+ HierVisitor::HierVisitor(bool output_io, const std::unordered_map<std::filesystem::path, std::string>* path_to_uri) : _output_io(output_io), _doc_path_to_uri(path_to_uri)
  {
 	_hierarchy = json::array();
  }
@@ -11,15 +12,34 @@ namespace ast = slang::ast;
 void HierVisitor::handle(const slang::ast::InstanceSymbol &node)
 {
 	//_hierarchy[_pointer].push_back(json());
+	
 	_pointer.push_back(std::to_string(_hierarchy[_pointer].size()));
-	if(_output_io)
+
+	const ast::DefinitionSymbol& def = node.getDefinition();
+	const slang::SourceManager* sm = def.getParentScope()->getCompilation().getSourceManager();
+
+	if (_output_io)
 	{
 		_hierarchy[_pointer/"in"] = json::array();
 		_hierarchy[_pointer/"out"] = json::array();
 	}
 	_hierarchy[_pointer/"def"] = true;
 	_hierarchy[_pointer/"name"] = std::string(node.name);
-	_hierarchy[_pointer/"childs"] = json::array();
+	_hierarchy[_pointer/"module"] = std::string(def.name);
+	_hierarchy[_pointer / "childs"] = json::array();
+
+	const std::filesystem::path& filepath = sm->getFullPath(def.location.buffer());
+
+	if (_doc_path_to_uri != nullptr && _doc_path_to_uri->contains(filepath))
+	{
+		_hierarchy[_pointer / "file"] = _doc_path_to_uri->at(filepath);	
+	}
+	else
+	{
+		_hierarchy[_pointer / "file"] = filepath.generic_string();
+	}
+
+	
 	_pointer.push_back("childs");
 	visitDefault(node);
 	_pointer.pop_back();
@@ -48,6 +68,7 @@ void HierVisitor::handle(const slang::ast::UninstantiatedDefSymbol& node)
 	_pointer.push_back(std::to_string(_hierarchy[_pointer].size()));
 	_hierarchy[_pointer/"def"] = false;
 	_hierarchy[_pointer/"name"] = node.name;
+	_hierarchy[_pointer/"module"] = std::string(node.definitionName);
 	_pointer.pop_back();
 }
 

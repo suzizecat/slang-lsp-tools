@@ -36,8 +36,8 @@ GIT_SHALLOW ON)
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
-  #GIT_TAG v4.0
-  GIT_TAG 81fcb0e2f5af2f1d6e718c7bd75bd96c84a1701a
+  GIT_TAG v6.0
+  #GIT_TAG 81fcb0e2f5af2f1d6e718c7bd75bd96c84a1701a
   GIT_SHALLOW ON)
 
 
