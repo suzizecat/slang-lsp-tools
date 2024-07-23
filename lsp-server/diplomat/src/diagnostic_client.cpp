@@ -31,6 +31,11 @@ namespace slsp
             value->diagnostics.clear();
     }
 
+    /**
+     * @brief Cleanup the internal diagnostic list.
+     * That is, remove registered files from the diagnostic engine if they
+     * do not produce diagnostics anymore. 
+     */
     void LSPDiagnosticClient::_cleanup_diagnostics()
     {
         std::erase_if(_diagnostics, [](const auto &item)

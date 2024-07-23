@@ -30,11 +30,19 @@ using namespace slsp::types;
 
 namespace fs = std::filesystem;
 
+
+/**
+ * @brief Checks that the index is in a working state and may be used.
+ * 
+ * @param always_throw if set, throw on each call instead of the first failing one
+ * @return true if the index is in a working state
+ * @return false otherwise.
+ */
 bool DiplomatLSP::_assert_index(bool always_throw)
 {
     if (_index == nullptr)
     {
-        if (!_broken_index_emitted)
+        if (!_broken_index_emitted || always_throw)
         {
             _broken_index_emitted = true;
             throw slsp::lsp_request_failed_exception(
@@ -48,6 +56,13 @@ bool DiplomatLSP::_assert_index(bool always_throw)
     return true;
 }
 
+/**
+ * @brief Construct a new Diplomat LSP::DiplomatLSP object
+ * 
+ * @param is Input stream used for low level communication with the client.
+ * @param os Output stream used for low level communication with the client.
+ * @param watch_client_pid If set, should exit/kill the server when the watced PID stop running.
+ */
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _this_shared(this),
 _sm(new slang::SourceManager()),
@@ -100,7 +115,12 @@ slsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRan
 }
 
 
-
+/**
+ * @brief Always return a slang compilation of the workspace.
+ * If no compilation has been done, run the compilation beforehand.
+ * 
+ * @return slang::ast::Compilation* compilation object for the workspace. 
+ */
 slang::ast::Compilation* DiplomatLSP::get_compilation()
 {
     if (_compilation == nullptr)
@@ -109,7 +129,12 @@ slang::ast::Compilation* DiplomatLSP::get_compilation()
     return _compilation.get();
 }
 
-
+/**
+ * @brief Binds all LSP methods to an internal handle (_h_* function)
+ * This also registers the commands within the capabilities of the LSP
+ * which are sent back to the client. 
+ * 
+ */
 void DiplomatLSP::_bind_methods()
 {
     bind_request("initialize",LSP_MEMBER_BIND(DiplomatLSP,_h_initialize));
@@ -149,6 +174,7 @@ void DiplomatLSP::_bind_methods()
 /**
  * @brief Send diagnostics for display to the client
  * 
+ * In vscode, this is shown as "Problems" of the workspace. 
  */
 void DiplomatLSP::_emit_diagnostics()
 {
@@ -178,29 +204,42 @@ void DiplomatLSP::_erase_diagnostics()
 
 }
 
+/**
+ * @brief Add folders to Diplomat's workspace, provided by the LSP client.
+ * Those folders will be scanned for source files.
+ * 
+ * @param to_add list of WorkspaceFolders, provided by a client, to be included in the workspace.
+ */
 void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_add)
 {
     for (const WorkspaceFolder& wf : to_add)
     {
         uri path = uri(wf.uri);
         spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
-        //_root_dirs.push_back(fs::path("/" + path.get_path()));
         _settings.workspace_dirs.emplace(fs::path("/" + path.get_path()));
     }
 }
 
+/**
+ * @brief Removes a list of workspace folders from the registered workspace directory.
+ * 
+ * @param to_rm Workspaces to remove.
+ */
 void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& to_rm)
 {
     for (const WorkspaceFolder& wf : to_rm)
     {
         uri path = uri(wf.uri);
         spdlog::info("Remove workspace {} ({}) to working directories.", wf.name, wf.uri);
-        // std::remove(_root_dirs.begin(), _root_dirs.end(), "/" + path.get_path());
         _settings.workspace_dirs.erase( "/" + path.get_path());
-        //std::remove(_settings.workspace_dirs.begin(), _settings.workspace_dirs.end(),);
     }
 }
 
+
+/**
+ * @brief Read the whole workspace to extract the modules names and blackbox definitions.
+ * Does not elaborate, nor generate the index, diagnostics and such.
+ */
 void DiplomatLSP::_read_workspace_modules()
 {
     log(MessageType_Info, "Reading workspace");
@@ -213,31 +252,38 @@ void DiplomatLSP::_read_workspace_modules()
     SVDocument* doc;
     std::unique_ptr<ModuleBlackBox> bb;
 
-    //for (const fs::path& root : _root_dirs)
     for (const fs::path& root : _settings.workspace_dirs)
     {
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
             bool skipped = false;
+            
+            // Skip if the file does not actually exists (broken symlink, for example)
             if (!file.exists())
             {
                 skipped = true;    
             }
-
-            std::string path = fs::canonical(file.path()).generic_string();
-            
-            if ( ! skipped && _settings.excluded_paths.contains(path))
-                skipped = true;
-            
-            if (!skipped)
+           
+            // canonical shall not be called on a non-existing path.
+            if(! skipped)
             {
-                for(const std::regex& rgx : _settings.excluded_regexs)
-                {   
-                    if (std::regex_match(path,rgx))
-                    {
-                        skipped = true;
-                        break;
+                std::string path = fs::canonical(file.path()).generic_string();
+                
+                // Check for explicitely excluded paths (fast)
+                if (_settings.excluded_paths.contains(path))
+                    skipped = true;
+                
+                //! Check, if needed, for the exclusion patterns.
+                if (!skipped)
+                {
+                    for(const std::regex& rgx : _settings.excluded_regexs)
+                    {   
+                        if (std::regex_match(path,rgx))
+                        {
+                            skipped = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -245,10 +291,11 @@ void DiplomatLSP::_read_workspace_modules()
             if(skipped)
             {
                 if(file.is_directory())
-                        it.disable_recursion_pending();
-                    continue;
+                    it.disable_recursion_pending();
+                continue;
             }
-                
+            
+
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
                 spdlog::debug("Read SV file {}", p.generic_string());
@@ -261,6 +308,12 @@ void DiplomatLSP::_read_workspace_modules()
 }
 
 
+/**
+ * @brief Read and refresh the blackboxes of the project filetree, considering only the files
+ * in the project (and not the whole worktree).
+ * 
+ * Thus, allowing a partial and faster refresh of the blackbox views.
+ */
 void DiplomatLSP::_read_filetree_modules()
 {
     log(MessageType_Info, "Reading filetree");
@@ -282,6 +335,12 @@ void DiplomatLSP::_read_filetree_modules()
 }
 
 
+/**
+ * @brief Retrieve the SVDocument from a module name if it exists.
+ * 
+ * @param module name to lookup.
+ * @return const SVDocument* Pointer to the SVDocument found if any, nullptr otherwise.
+ */
 const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) const
 {
     try
@@ -295,6 +354,12 @@ const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) 
     }
 }
 
+/**
+ * @brief Retrive the blackbox definition associated to a module name if any.
+ * 
+ * @param module Module name to lookup.
+ * @return const ModuleBlackBox* Blackbox definition found if any, nullptr otherwise.
+ */
 const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) const
 {
     try
@@ -308,6 +373,9 @@ const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) co
     }
 }
 
+/**
+ * @brief Rebuild the project module and file trees
+ */
 void DiplomatLSP::_compute_project_tree()
 {
     spdlog::info("Rebuild project file tree");
@@ -319,6 +387,9 @@ void DiplomatLSP::_compute_project_tree()
     _project_file_tree_valid = true;
 }
 
+/**
+ * @brief Erase the project file and modules tree.
+ */
 void DiplomatLSP::_clear_project_tree() 
 {
     _project_file_tree_valid = false;
@@ -326,6 +397,12 @@ void DiplomatLSP::_clear_project_tree()
     _project_tree_modules.clear();
 }
 
+/**
+ * @brief Add a given module to the project tree, and all its dependencies.
+ * This is a recursive function used to build the whole filetree of the project.
+ * 
+ * @param mod name of the module to add to the project tree.
+ */
 void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
 {
     // The workspace modules list shall have been computed beforehand.
@@ -353,20 +430,22 @@ void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
     }
 }
 
-
+/**
+ * @brief Performs all steps of the compilation and elaboration of the design, 
+ * including diagnostic emission.
+ */
 void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
         
-    
-    // As per slang limitation, it is needed to recreate the diagnostic engine
-    // because the source manager will be deleted by _read_workspace_modules.
-    // Therefore, the client shall also be rebuilt.
     if(!_project_file_tree_valid)
         _read_workspace_modules();
     else
         _read_filetree_modules();
 
+    // As per slang limitation, it is needed to recreate the diagnostic engine
+    // because the source manager will be deleted by _read_workspace_modules.
+    // Therefore, the client shall also be rebuilt.
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents,_sm.get(),_diagnostic_client.get()));
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
@@ -377,7 +456,6 @@ void DiplomatLSP::_compile()
     de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
     de.setSeverity(slang::diag::UnusedDefinition,slang::DiagnosticSeverity::Ignored);
     de.addClient(_diagnostic_client);
-
 
     slang::ast::CompilationOptions coptions;
     coptions.flags &= ~ (slang::ast::CompilationFlags::SuppressUnused);
@@ -434,19 +512,27 @@ void DiplomatLSP::_compile()
         spdlog::error("Indexing error {}", e.what());
     }
     spdlog::info("Compilation done.");
-    
-    
 }
 
+
+/**
+ * @brief Store an URI, provided by the client, for a workspace file.
+ * This will be used to provide the right location in diagnostics, thus avoiding
+ * opening twice the same file due to mismatching paths.
+ * 
+ * @param client_uri The URI to store.
+ */
 void DiplomatLSP::_save_client_uri(const std::string& client_uri)
 {
     spdlog::debug("Register raw URI {}.",client_uri);
-    fs::path canon_path = fs::canonical("/" + uri(client_uri).get_path());
+    
+    fs::path orig_path = fs::path("/" + uri(client_uri).get_path());
+    if(! fs::exists(orig_path))
+        return;
+
+    fs::path canon_path = fs::canonical(orig_path);
     std::string abspath = canon_path.generic_string();
     
-    // if(_doc_path_to_client_uri.contains(canon_path) && _doc_path_to_client_uri.at(canon_path) == client_uri)
-    //     return;
-
     _doc_path_to_client_uri[canon_path] = client_uri;
     if(_documents.contains(canon_path))
     {
@@ -462,6 +548,12 @@ void DiplomatLSP::_save_client_uri(const std::string& client_uri)
     }
 }
 
+/**
+ * @brief Read a source file and return the generated SVDocument.
+ * 
+ * @param path path of the file to read
+ * @return SVDocument* Representation of the file read.
+ */
 SVDocument* DiplomatLSP::_read_document(fs::path path)
 {
     std::string canon_path = fs::canonical(path);
@@ -477,6 +569,8 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
     }
 
     SVDocument* ret = _documents.at(canon_path).get();
+
+    // Rebind the file path if an URI is already registered.
     if(_doc_path_to_client_uri.contains(canon_path))
         ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
 
@@ -484,7 +578,12 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
 }
 
 
-
+/**
+ * @brief Set the top-level module (by name).
+ * This will force a recompilation of the design.
+ * 
+ * @param new_top Module name of the top level.
+ */
 void DiplomatLSP::set_top_level(const std::string& new_top)
 {
     _settings.top_level = new_top;
