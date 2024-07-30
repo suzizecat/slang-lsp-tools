@@ -141,7 +141,7 @@ void DiplomatLSP::_bind_methods()
     bind_notification("diplomat-server.index-dump", LSP_MEMBER_BIND(DiplomatLSP,dump_index));
     bind_request("diplomat-server.get-modules", LSP_MEMBER_BIND(DiplomatLSP,_h_get_modules));
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
-    bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,hello));
+    bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,_h_force_clear_index));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
     //bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
     bind_notification("diplomat-server.push-config", LSP_MEMBER_BIND(DiplomatLSP,_h_push_config));
@@ -150,6 +150,7 @@ void DiplomatLSP::_bind_methods()
     
     bind_request("diplomat-server.resolve-paths", LSP_MEMBER_BIND(DiplomatLSP,_h_resolve_hier_path));
     bind_request("diplomat-server.get-hierarchy", LSP_MEMBER_BIND(DiplomatLSP,_h_get_design_hierarchy));
+    bind_request("displomat-server.list-symbols", LSP_MEMBER_BIND(DiplomatLSP,_h_list_symbols));
 
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));

@@ -7,6 +7,8 @@
 
 #include "slang/diagnostics/AllDiags.h"
 #include <slang/ast/symbols/CompilationUnitSymbols.h>
+#include <slang/ast/Symbol.h>
+#include <slang/ast/Scope.h>
 
 #include "types/structs/InitializeParams.hpp"
 #include "types/structs/InitializeResult.hpp"
@@ -405,6 +407,15 @@ void DiplomatLSP::_h_ignore(json params)
 	}
 }
 
+void DiplomatLSP::_h_force_clear_index(json _)
+{
+	_project_file_tree_valid = false;
+	_compilation.reset();
+	_broken_index_emitted = true;
+	_read_workspace_modules();
+	_compile();
+}
+
 /**
  * @brief Resolves design hierarchical paths and return the location of the definition
  * of the targeted symbols
@@ -506,4 +517,33 @@ void DiplomatLSP::_h_update_configuration(json &params)
 	slsp::types::ConfigurationParams conf_request;
 	conf_request.items.push_back(conf_path);
 	send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
+}
+
+json DiplomatLSP::_h_list_symbols(json& params)
+{
+	std::string path = params.at(0);
+	auto* compilation = get_compilation();
+	const slang::ast::Symbol* lookup_result = compilation->getRoot().lookupName(path);
+	const slang::ast::Scope* scope;
+
+	if( lookup_result->kind == slang::ast::SymbolKind::Instance )
+		lookup_result = &(lookup_result->as<slang::ast::InstanceSymbol>().body);
+
+	if(! lookup_result->isScope())
+		scope = lookup_result->getParentScope();
+	else
+		scope = &(lookup_result->as<slang::ast::Scope>());
+
+	spdlog::info("Request design list of symbol for path {}",path);
+	std::vector<std::string> ret;
+	for(const auto& symbol : scope->membersOfType<slang::ast::ValueSymbol>())
+	{
+		if(!symbol.name.empty())
+		{
+			spdlog::debug("    Return {}",symbol.name);
+			ret.push_back(std::string(symbol.name));
+		}
+	}
+
+	return ret;
 }

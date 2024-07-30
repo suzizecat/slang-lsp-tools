@@ -64,9 +64,11 @@ class DiplomatLSP : public slsp::BaseLSP
         json _h_get_module_bbox(json params);
         void _h_set_module_top(json params);
         void _h_ignore(json params);
+        void _h_force_clear_index(json params);
 
         json _h_resolve_hier_path(json params);
         json _h_get_design_hierarchy(json params);
+        json _h_list_symbols(json& params);
 
         void _bind_methods();
 
