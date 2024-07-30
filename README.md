@@ -1,3 +1,7 @@
+## Documentation
+
+The full documentation and feature description will be available [here](https://suzizecat.github.io/diplomat-lsp/index.html)
+
 ## Build instruction
 
 Given that you have a modern C++ compiler (able to handle C++20), do:
