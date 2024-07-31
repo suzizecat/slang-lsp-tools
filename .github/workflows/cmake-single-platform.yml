@@ -27,7 +27,7 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDIPLOMAT_VERSION=${{ github.ref_name }}
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target slang-lsp
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target slang-lsp -j `nproc`
     - name: Check versions
       run: |
         echo "Placed tag is ${{ github.ref_name }}. Server version is `${{github.workspace}}/build/slang-lsp --version`."

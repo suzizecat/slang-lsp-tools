@@ -27,6 +27,7 @@ if("${DIPLOMAT_VERSION}" STREQUAL "auto")
 	endif()
 else()
 	message(STATUS "Using manually provided version string")
+    set(VERSION_STRING ${DIPLOMAT_VERSION})
 endif()
 
 message(STATUS "Software version: " ${VERSION_STRING})
