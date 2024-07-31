@@ -13,8 +13,7 @@ env:
   C: gcc-11
 
 jobs:
-  build-server:
-    if: false
+  build:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -53,11 +52,11 @@ jobs:
         if-no-files-found: error
 
   light-debug:
+    if: false
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Configure CMake
@@ -74,7 +73,7 @@ jobs:
         if-no-files-found: error
 
   release:
-    needs: light-debug
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Process release version
@@ -83,11 +82,13 @@ jobs:
         with:
           version: ${{ github.ref_name }}
           lenient: false
+          
       - name: Retrieve changelog
         if: ${{ success() }}
         uses: actions/download-artifact@v4
         with:
           name: CHANGELOG-${{ github.ref_name }}
+          
       - name: Extract changelog
         run: |
           head -n $((`grep -n -m 2  '^# ' ${{github.workspace}}/CHANGELOG.md | sed 's/:.\+//g' | tail -n 1`-1)) ${{github.workspace}}/CHANGELOG.md > ${{github.workspace}}/RELNOTES.md
