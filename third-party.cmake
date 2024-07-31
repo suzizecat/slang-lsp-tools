@@ -46,7 +46,7 @@ FetchContent_Declare(argparse
   GIT_TAG v3.0
   GIT_SHALLOW ON)
 
-FetchContent_Populate(uri)
+FetchContent_MakeAvailable(uri)
 
 # FetchContent_MakeAvailable(pgm-index)
 
