@@ -3,10 +3,33 @@ cmake_minimum_required(VERSION 3.15)
 project(sv_explorer)
 
 option(DIPLOMAT_USE_MOLD "Use mold linker" OFF)
+set(DIPLOMAT_VERSION "auto" CACHE STRING "Version string to be outputed on --version call") 
+
+
 if(${DIPLOMAT_USE_MOLD})
     message(STATUS "Use mold as a linker")    
     add_link_options(-fuse-ld=mold)
 endif()
+
+set(VERSION_STRING "undefined")
+
+if("${DIPLOMAT_VERSION}" STREQUAL "auto")
+	execute_process(COMMAND git describe --tags RESULT_VARIABLE GIT_OK OUTPUT_VARIABLE VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+	
+	# message(STATUS "Git returned ${GIT_OK} ${VERSION_STRING}")
+	if ("${GIT_OK}" EQUAL "0")
+
+		message(STATUS "Use automatic version string from GIT")
+		set(VERSION_STRING "${VERSION_STRING}-custom")
+	else()
+		message(WARNING "Failed to retrieve version using git. Use -DDIPLOMAT_VERSION to manually set a version string")
+		set(VERSION_STRING "undefined")
+	endif()
+else()
+	message(STATUS "Using manually provided version string")
+endif()
+
+message(STATUS "Software version: " ${VERSION_STRING})
 
 # Use sockpp as a static lib
 option(SOCKPP_BUILD_SHARED "" OFF)
@@ -172,6 +195,8 @@ lsp-server/diplomat/src/diagnostic_client.cpp
 lsp-server/diplomat/src/diplomat_index.cpp
 
 )
+
+target_compile_definitions(slang-lsp PUBLIC DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\")
 
 target_precompile_headers(slang-lsp PRIVATE ${SVLS_GEN_HEADERS})
 

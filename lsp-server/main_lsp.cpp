@@ -18,6 +18,11 @@
 
 #include "tcp_interface_server.hpp"
 
+#ifndef DIPLOMAT_VERSION_STRING
+#define DIPLOMAT_VERSION_STRING "custom-build"
+#endif
+
+
 using json = nlohmann::json;
 using namespace slsp::types;
 void say_hello(slsp::BaseLSP* lsp, json& params)
@@ -73,7 +78,7 @@ void runner(slsp::BaseLSP& lsp)
 }
 
 int main(int argc, char** argv) {
-    argparse::ArgumentParser prog("slang Language server", "0.0.1");
+    argparse::ArgumentParser prog("slang Language server", DIPLOMAT_VERSION_STRING );
     prog.add_argument("--tcp")
         .help("Use a TCP connection")
         .default_value(false)
