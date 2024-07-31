@@ -32,12 +32,14 @@ jobs:
       run: |
         echo "Placed tag is ${{ github.ref_name }}. Server version is `${{github.workspace}}/build/slang-lsp --version`."
         [[ "${{ github.ref_name }}" == `${{github.workspace}}/build/slang-lsp --version` ]]
+    - name: Rename executable
+      run: mv ${{github.workspace}}/build/slang-lsp ${{github.workspace}}/build/slang-lsp.${{ github.ref_name }}
     - name: Upload artifacts - main app
       uses: actions/upload-artifact@v4
       if: ${{ success() }}
       with:
         name: slang-lsp-${{ github.ref_name }}
-        path: ${{github.workspace}}/build/slang-lsp
+        path: ${{github.workspace}}/build/slang-lsp.${{ github.ref_name }}
         overwrite: true
         if-no-files-found: error
         # Is a binary
@@ -104,17 +106,17 @@ jobs:
           name: slang-lsp-${{ github.ref_name }}
         
       - name: Create main release from tag
-        if: ${{ success() && steps.semver.outputs.build-parts == '0' }}
+        if: ${{ success() && steps.semver.outputs.release ==  github.ref_name}}
         uses: softprops/action-gh-release@v2
         with: 
           body_path: ${{github.workspace}}/RELNOTES.md
           make_latest: true
           prerelease: false
           files: |
-            slang-lsp-${{ github.ref_name }}
+            slang-lsp.${{ github.ref_name }}
 
       - name: Create dev release from tag
-        if: ${{ success() && steps.semver.outputs.build-parts != '0' }}
+        if: ${{ success() && steps.semver.outputs.release !=  github.ref_name }}
         uses: softprops/action-gh-release@v2
         with: 
           body_path: ${{github.workspace}}/RELNOTES.md
@@ -122,7 +124,7 @@ jobs:
           prerelease: true
           name: "Latest Dev Release"
           files: |
-            slang-lsp-${{ github.ref_name }}
+            slang-lsp.${{ github.ref_name }}
 
 
       - name: Update latest branch
