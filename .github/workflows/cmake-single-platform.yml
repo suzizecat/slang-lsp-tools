@@ -31,7 +31,7 @@ jobs:
     - name: Check versions
       run: |
         echo "Placed tag is ${{ github.ref_name }}. Server version is `${{github.workspace}}/build/slang-lsp --version`."
-        '[[ "${{ github.ref_name }}" == `${{github.workspace}}/build/slang-lsp --version` ]]'
+        [[ "${{ github.ref_name }}" == `${{github.workspace}}/build/slang-lsp --version` ]]
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       if: ${{ success() }}
