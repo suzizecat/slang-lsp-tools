@@ -82,7 +82,10 @@ jobs:
         with:
           version: ${{ github.ref_name }}
           lenient: false
-          
+      - run: |
+          echo "Tag     : ${{github.ref_name}}"
+          echo "Release : ${{steps.semver.outputs.release}}"    
+          echo "N Build : ${{steps.semver.outputs.build-parts}}"    
       - name: Retrieve changelog
         if: ${{ success() }}
         uses: actions/download-artifact@v4
