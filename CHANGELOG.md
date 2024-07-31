@@ -1,7 +1,7 @@
 # 0.0.6
 ## First release
 
-- Setup of the CI/CD
+- Setup of the CI/CD 
 
 
 # To write a release note
