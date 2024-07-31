@@ -13,7 +13,8 @@ env:
   C: gcc-11
 
 jobs:
-  build:
+  build-server:
+    if: never()
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -51,8 +52,29 @@ jobs:
         overwrite: true
         if-no-files-found: error
 
+  light-debug:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDIPLOMAT_VERSION=${{ github.ref_name }}
+    - name: Upload artifacts - CHANGELOG
+      uses: actions/upload-artifact@v4
+      if: ${{ success() }}
+      with:
+        name: CHANGELOG-${{ github.ref_name }}.md
+        path: ${{github.workspace}}/CHANGELOG.md
+        overwrite: true
+        if-no-files-found: error
+
   release:
-    needs: build
+    needs: light-debug
     runs-on: ubuntu-latest
     steps:
       - name: Process release version
@@ -66,7 +88,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: CHANGELOG-${{ github.ref_name }}.md
-      
+      - run: ls -rtl
       - name: Extract changelog
         run: |
           head -n $((`grep -n -m 2  '^# ' ${{github.workspace}}/CHANGELOG-${{ github.ref_name }}.md | sed 's/:.\+//g' | tail -n 1`-1)) ${{github.workspace}}/CHANGELOG-${{ github.ref_name }}.md > ${{github.workspace}}/RELNOTES.md
