@@ -4,7 +4,7 @@ name: CMake Ubuntu-latest
 
 on:
   push:
-    tags: [ "[0-9]+.[0-9]+.[0-9]+*" ]
+    tags: [ "^[0-9]+.[0-9]+.[0-9]+*" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -42,7 +42,66 @@ jobs:
         if-no-files-found: error
         # Is a binary
         compression-level: 0
+
+  release:
+    needs: build
+    steps:
+      - name: Process release version
+        id: semver
+        uses: madhead/semver-utils@latest
+        with:
+          version: ${{ github.ref_name }}
+          lenient: false
+      
+      - name: Extract changelog
+        run: |
+          head -n $((`grep -n -m 2  '^# ' ${{github.workspace}}/CHANGELOG.md | sed 's/:.\+//g' | tail -n 1`-1)) ${{github.workspace}}/CHANGELOG.md > ${{github.workspace}}RELNOTES.md
+          cat ${{github.workspace}}/RELNOTES.md
+      
+      - name: Retrieve artifact
+        if: ${{ success() }}
+        uses: actions/download-artifact@v4
+        with:
+          name: slang-lsp-${{ github.ref_name }}
         
+      - name: Create main release from tag
+        if: ${{ success() && steps.semver.outputs.build-parts == '0' }}
+        uses: softprops/action-gh-release@v2
+        with: 
+          body_path: ${{github.workspace}}/RELNOTES.md
+          make_latest: true
+          prerelease: false
+          files: |
+            slang-lsp-${{ github.ref_name }}
+
+      - name: Create dev release from tag
+        if: ${{ success() && steps.semver.outputs.build-parts != '0' }}
+        uses: softprops/action-gh-release@v2
+        with: 
+          body_path: ${{github.workspace}}/RELNOTES.md
+          make_latest: false
+          prerelease: true
+          name: "Latest Dev Release"
+          files: |
+            slang-lsp-${{ github.ref_name }}
+
+
+      - name: Update latest branch
+        if: ${{ success() }}
+        uses: EndBug/latest-tag@latest
+        with:
+          # You can change the name of the tag or branch with this input.
+          # Default: 'latest'
+          # ref: someCustomTagName
+      
+          # If a description is provided, the action will use it to create an annotated tag. If none is given, the action will create a lightweight tag.
+          # Default: ''
+          # description: Description for the tag
+      
+          # Force-update a branch instead of using a tag.
+          # Default: false
+          force-branch: true
+
 #    - name: Test
 #      working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.
