@@ -45,6 +45,7 @@ jobs:
 
   release:
     needs: build
+    runs-on: ubuntu-latest
     steps:
       - name: Process release version
         id: semver
