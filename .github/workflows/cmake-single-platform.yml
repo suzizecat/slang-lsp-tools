@@ -32,7 +32,7 @@ jobs:
       run: |
         echo "Placed tag is ${{ github.ref_name }}. Server version is `${{github.workspace}}/build/slang-lsp --version`."
         [[ "${{ github.ref_name }}" == `${{github.workspace}}/build/slang-lsp --version` ]]
-    - name: Upload artifacts
+    - name: Upload artifacts - main app
       uses: actions/upload-artifact@v4
       if: ${{ success() }}
       with:
@@ -42,6 +42,14 @@ jobs:
         if-no-files-found: error
         # Is a binary
         compression-level: 0
+    - name: Upload artifacts - CHANGELOG
+      uses: actions/upload-artifact@v4
+      if: ${{ success() }}
+      with:
+        name: CHANGELOG-${{ github.ref_name }}.md
+        path: ${{github.workspace}}/CHANGELOG.md
+        overwrite: true
+        if-no-files-found: error
 
   release:
     needs: build
@@ -53,10 +61,15 @@ jobs:
         with:
           version: ${{ github.ref_name }}
           lenient: false
+      - name: Retrieve changelog
+        if: ${{ success() }}
+        uses: actions/download-artifact@v4
+        with:
+          name: CHANGELOG-${{ github.ref_name }}.md
       
       - name: Extract changelog
         run: |
-          head -n $((`grep -n -m 2  '^# ' ${{github.workspace}}/CHANGELOG.md | sed 's/:.\+//g' | tail -n 1`-1)) ${{github.workspace}}/CHANGELOG.md > ${{github.workspace}}RELNOTES.md
+          head -n $((`grep -n -m 2  '^# ' ${{github.workspace}}/CHANGELOG-${{ github.ref_name }}.md | sed 's/:.\+//g' | tail -n 1`-1)) ${{github.workspace}}/CHANGELOG-${{ github.ref_name }}.md > ${{github.workspace}}/RELNOTES.md
           cat ${{github.workspace}}/RELNOTES.md
       
       - name: Retrieve artifact
