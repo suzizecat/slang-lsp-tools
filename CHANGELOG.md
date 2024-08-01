@@ -1,7 +1,8 @@
 # Changelog
-## First release
 
-- Setup of the CI/CD 
+Considered as first release.
+Aligned with `diplomat-vscode@0.1.0`. 
+
 
 # 0.0.5 - Unreleased
 Next version will be 0.0.6

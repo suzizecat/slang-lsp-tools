@@ -311,6 +311,24 @@ namespace slsp
         return ret_value;        
     }
 
+    std::vector<slang::syntax::ConstTokenOrSyntax > DiplomatIndex::get_symbols_tok_from_file(const std::filesystem::path& file) const
+    {
+        std::vector < slang::syntax::ConstTokenOrSyntax> ret;
+
+        Index_FileID_t target_index = _index_from_filepath(file);
+        Index_FileContent_t lu_file_content = _index.at(target_index);
+
+        for (const auto& [line, lcontent] : lu_file_content)
+        {
+            for (const slang::syntax::ConstTokenOrSyntax& tok : lcontent)
+                ret.push_back(tok);
+        }
+
+        return ret;
+
+    }
+
+
     /**
      * @brief Delete all empty references in the index.
      * 

@@ -128,6 +128,8 @@ namespace slsp
             slang::SourceRange get_definition(const slang::SourceRange& range) const;
             std::vector<slang::SourceRange> get_references(const slang::SourceRange& range) const;
 
+            std::vector<slang::syntax::ConstTokenOrSyntax > get_symbols_tok_from_file(const std::filesystem::path& file) const;
+
             void cleanup();
 
             json dump();

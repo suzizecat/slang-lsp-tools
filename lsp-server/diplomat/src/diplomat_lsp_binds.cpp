@@ -2,7 +2,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
-
+#include <algorithm>
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -36,6 +36,26 @@
 using namespace slsp::types;
 
 namespace fs = std::filesystem;
+
+// trim from start (in place)
+inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// Utility
+void trim(std::string& in) {
+	ltrim(in);
+	rtrim(in);
+}
 
 
 void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
@@ -534,14 +554,31 @@ json DiplomatLSP::_h_list_symbols(json& params)
 	else
 		scope = &(lookup_result->as<slang::ast::Scope>());
 
-	spdlog::info("Request design list of symbol for path {}",path);
-	std::vector<std::string> ret;
-	for(const auto& symbol : scope->membersOfType<slang::ast::ValueSymbol>())
+	spdlog::info("Request design list of symbol for path {}", path);
+	const slang::ast::InstanceBodySymbol* target_instance_body = scope->getContainingInstance();
+
+	if (!target_instance_body)
+		throw slsp::lsp_request_failed_exception("Failed to lookup the required instance");
+
+	std::filesystem::path file_for_index_lookup = _module_to_file.at(std::string(target_instance_body->name));
+
+	std::unordered_map<std::string,std::vector<slsp::types::Range>> ret;
+	for (const slang::syntax::ConstTokenOrSyntax& tok : _index->get_symbols_tok_from_file(file_for_index_lookup))
 	{
-		if(!symbol.name.empty())
+		std::string name = std::string(tok.isNode() ? tok.node()->getFirstToken().valueText() : tok.token().valueText());
+		trim(name);
+
+		if (!name.empty())
 		{
-			spdlog::debug("    Return {}",symbol.name);
-			ret.push_back(std::string(symbol.name));
+			slsp::types::Range tok_range = _slang_to_lsp_location(tok.range()).range;
+
+			if (!ret.contains(name))
+				ret[name] = { tok_range };
+			else
+				ret[name].push_back(tok_range);
+			
+			
+			spdlog::debug("    Return {}", name);
 		}
 	}
 
