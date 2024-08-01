@@ -126,7 +126,9 @@ jobs:
           files: |
             slang-lsp.${{ github.ref_name }}
 
-
+      - uses: actions/checkout@v4
+        if: ${{ success() }}
+        
       - name: Update latest branch
         if: ${{ success() }}
         uses: EndBug/latest-tag@latest
