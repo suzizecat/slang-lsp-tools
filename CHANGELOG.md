@@ -1,8 +1,10 @@
-# 0.0.6
+# Changelog
 ## First release
 
 - Setup of the CI/CD 
 
+# 0.0.5 - Unreleased
+Next version will be 0.0.6
 
 # To write a release note
 
