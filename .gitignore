@@ -33,3 +33,11 @@
 
 build/
 .vscode/
+
+lsp-server/include/types/
+*.log
+
+.idea/
+__pycache__/
+**/LSPGen/meta/
+**/LSPGen/out/

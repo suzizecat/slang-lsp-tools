@@ -24,6 +24,8 @@ class SpacingManager
    slang::parsing::Token indent(const slang::parsing::Token& tok, int additional_spacing = 0);
    slang::parsing::Token token_align_right(const slang::parsing::Token& tok, unsigned int align_size, bool allow_no_space = true);
    
+   slang::parsing::Token replace_comment_spacing(const slang::parsing::Token& tok, int spaces);
+
    unsigned int align_dimension(slang::syntax::SyntaxList<slang::syntax::VariableDimensionSyntax>& dimensions,const std::vector<std::pair<size_t,size_t>>& sizes_refs, const int first_alignment);
    unsigned int align_dimension(slang::syntax::SyntaxList<slang::syntax::ElementSelectSyntax>& dimensions,const std::vector<std::pair<size_t,size_t>>& sizes_refs, const int first_alignment);
 

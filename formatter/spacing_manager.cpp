@@ -111,6 +111,50 @@ Token SpacingManager::token_align_right(const Token& tok, const unsigned int ali
 }
 
 
+/**
+ * @brief Replace the whitespaces before the comment in the trivia of the token that is 
+ * passed in comment.
+ * 
+ * This is a low-level function for end-of-line commends, and should not be used as indentation.
+ * 
+ * @param tok Token to work on
+ * @param spaces number of spaces wanted
+ * @return Token Fixed token
+ */
+Token SpacingManager::replace_comment_spacing(const Token& tok, int spaces)
+{
+	if(tok.trivia().empty())
+		return tok;
+
+	assert(spaces >= 0);
+
+	slang::byte* spacing_base = _mem.allocate(spaces, alignof(char));
+	std::memset(spacing_base,' ',spaces);
+
+	size_t nb_trivia = 1;
+	bool found_comment = false;
+	bool trivia_record_started = false;
+	Trivia* first_space = _mem.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,spaces));
+
+	// Clone all trivia of the token, except the leading whitespaces.
+	for(const Trivia& t : tok.trivia())
+	{
+		// If the first non-whitespace is a newline, do NOT update the spacing.
+		if(! trivia_record_started && t.kind == TriviaKind::EndOfLine)
+			return tok;
+		if(trivia_record_started || t.kind != TriviaKind::Whitespace)
+		{
+			nb_trivia ++;
+			trivia_record_started = true;
+			_mem.emplace<Trivia>(t);
+
+			if(! found_comment)
+				found_comment = t.kind == TriviaKind::LineComment;
+		}
+	}
+
+	return found_comment ?  tok.withTrivia(_mem,{first_space,nb_trivia}) : tok;
+}
 
 unsigned int SpacingManager::align_dimension(SyntaxList<VariableDimensionSyntax>& dimensions,const std::vector<std::pair<size_t,size_t>>& sizes_refs, const int first_alignment)
 {

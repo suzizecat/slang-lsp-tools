@@ -14,9 +14,13 @@
 #include "spacing_manager.hpp"
 #include "format_DataDeclaration.hpp"
 
+#ifndef DIPLOMAT_VERSION_STRING
+#define DIPLOMAT_VERSION_STRING "custom-build"
+#endif
+
 
 int main(int argc, char** argv) {
-    argparse::ArgumentParser prog("systemverilog code formatter", "0.0.2");
+    argparse::ArgumentParser prog("systemverilog code formatter", DIPLOMAT_VERSION_STRING);
     prog.add_argument("file")
         .help("File path");
     prog.add_argument("--use-tabs","-t")

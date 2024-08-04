@@ -58,6 +58,12 @@ void DataDeclarationSyntaxVisitor::handle(const CompilationUnitSyntax& node)
 	process_pending_formats();
 }
 
+/**
+ * @brief This handle is called for all module instantiation.
+ * 
+ * 
+ * @param node module instanciation to handle
+ */
 void DataDeclarationSyntaxVisitor::handle(const slang::syntax::HierarchyInstantiationSyntax &node)
 {
 	_switch_bloc_type(node, true);
@@ -99,10 +105,12 @@ void DataDeclarationSyntaxVisitor::handle(const slang::syntax::AnsiPortListSynta
 		}
 		else
 		{
+			// Align end of line commas
 			vec.push_back(_idt->replace_spacing(elt.token(),_remaining_alignment[alignment_index++]));
 		}
 	}
 
+	work.closeParen = _idt->replace_comment_spacing(work.closeParen,2);
 	work.ports = vec.copy(_mem);
 	replace(node,work);
 	clear();
@@ -342,6 +350,9 @@ ImplicitAnsiPortSyntax* DataDeclarationSyntaxVisitor::_format(const ImplicitAnsi
 {
 	ImplicitAnsiPortSyntax* work = deepClone(decl,_mem);
 
+	// Adjust the spacing of the comment of the *previous* node, as the trivia are *BEFORE* the token.
+	*(work->getFirstTokenPtr()) = _idt->replace_comment_spacing(work->getFirstToken(),1);
+
 	unsigned int modifier_id = 0;
 	int next_alignement_size = 0;
 	bool first_element = true;
@@ -447,27 +458,47 @@ HierarchyInstantiationSyntax* DataDeclarationSyntaxVisitor::_format(const Hierar
 
 			{
 				IndentLock _port_indent(*_idt); // RAII
-				for(PortConnectionSyntax* p : elt->connections)
+				slang::SmallVector<TokenOrSyntax> vec;
+				for(auto& list_element : elt->connections.elems())
 				{
-					switch (p->kind)
-					{	
-					case SyntaxKind::NamedPortConnection:
-						{
-							NamedPortConnectionSyntax& port = p->as<NamedPortConnectionSyntax>();
-							port.dot = _idt->indent(port.dot);
-							port.openParen = _idt->replace_spacing(port.openParen,_port_name_size - port.name.rawText().length());
-							if(port.expr == nullptr)
-								port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size);
-							else
-								port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size - port.expr->toString().length());
+
+					if(list_element.isNode())
+					{
+						PortConnectionSyntax* p = deepClone(list_element.node()->as<PortConnectionSyntax>(), _mem);
+						
+						switch (p->kind)
+						{	
+						case SyntaxKind::NamedPortConnection:
+							{
+								NamedPortConnectionSyntax& port = p->as<NamedPortConnectionSyntax>();
+								port.dot = _idt->replace_comment_spacing(_idt->indent(port.dot),1);
+								port.openParen = _idt->replace_spacing(port.openParen,_port_name_size - port.name.rawText().length());
+								if(port.expr == nullptr)
+									port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size);
+								else
+									port.closeParen = _idt->replace_spacing(port.closeParen,_port_value_size - port.expr->toString().length());
+							}
+							break;
+						
+						default:
+							break;
 						}
-						break;
-					
-					default:
-						break;
+
+
+						vec.push_back(p);
+					}
+					else
+					{
+						// Here is the management of the commas of the separated list.
+						vec.push_back(_idt->remove_spacing(list_element.token()));
+
 					}
 				}
+
+				elt->closeParen = _idt->replace_comment_spacing(elt->closeParen,2);
+				elt->connections = vec.copy(_mem);
 			}
+
 
 			elt->closeParen = _idt->indent(elt->closeParen);
 		}
