@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
          print_tokens(&(st->root()));
     }
     
-    BumpAllocator mem;
+    slang::BumpAllocator mem;
     SpacingManager idt(mem,prog.get<unsigned int>("--spacing"),prog.get<bool>("--use-tabs"));
     
     idt.add_level();

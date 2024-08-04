@@ -234,7 +234,9 @@ PRIVATE lsp-server/include)
 
 
 add_executable(sv-tree
-utils/ast-printer/ast_print.cpp)
+utils/ast-printer/ast_print.cpp
+utils/ast-printer/ast_print_main.cpp
+)
 
 target_link_libraries(sv-tree
 PRIVATE slang::slang
