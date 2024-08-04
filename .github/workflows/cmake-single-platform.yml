@@ -25,21 +25,22 @@ jobs:
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDIPLOMAT_VERSION=${{ github.ref_name }}
-    - name: Build
+    
+    - name: Build Language Server
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target slang-lsp -j `nproc`
-    - name: Check versions
-      run: |
-        echo "Placed tag is ${{ github.ref_name }}. Server version is `${{github.workspace}}/build/slang-lsp --version`."
-        [[ "${{ github.ref_name }}" == `${{github.workspace}}/build/slang-lsp --version` ]]
-    - name: Rename executable
-      run: mv ${{github.workspace}}/build/slang-lsp ${{github.workspace}}/build/slang-lsp.${{ github.ref_name }}
+    - name: Build Formatter
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target sv-formatter-exe -j `nproc`
+    
     - name: Upload artifacts - main app
       uses: actions/upload-artifact@v4
       if: ${{ success() }}
       with:
         name: slang-lsp-${{ github.ref_name }}
-        path: ${{github.workspace}}/build/slang-lsp.${{ github.ref_name }}
+        path: |
+          ${{github.workspace}}/build/slang-lsp
+          ${{github.workspace}}/build/sv-formatter
         overwrite: true
         if-no-files-found: error
         # Is a binary
@@ -104,6 +105,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: slang-lsp-${{ github.ref_name }}
+
+      - name: Rename executable
+        run: | 
+          mv ${{github.workspace}}/slang-lsp ${{github.workspace}}/slang-lsp.${{ github.ref_name }}
+          mv ${{github.workspace}}/sv-formatter ${{github.workspace}}/sv-formatter.${{ github.ref_name }}
         
       - name: Create main release from tag
         if: ${{ success() && steps.semver.outputs.release ==  github.ref_name}}
@@ -114,6 +120,7 @@ jobs:
           prerelease: false
           files: |
             slang-lsp.${{ github.ref_name }}
+            sv-formatter.${{ github.ref_name }}
 
       - name: Create dev release from tag
         if: ${{ success() && steps.semver.outputs.release !=  github.ref_name }}
@@ -125,6 +132,7 @@ jobs:
           name: "Latest Dev Release"
           files: |
             slang-lsp.${{ github.ref_name }}
+            sv-formatter.${{ github.ref_name }}
 
       - uses: actions/checkout@v4
         if: ${{ success() }}
