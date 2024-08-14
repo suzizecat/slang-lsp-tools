@@ -2,6 +2,8 @@
 #include "fmt/format.h"
 #include <stdexcept>
 
+#define JSON_TO_STRUCT_SAFE_BIND(json_obj, json_key, struct_obj) \
+    if(json_obj.contains(json_key))    json_obj.at(json_key).get_to(struct_obj)
 
 namespace nlohmann {
     template <typename T>
@@ -53,10 +55,21 @@ namespace slsp
     }
 
 
+    void to_json(nlohmann::json& j, const DiplomatLSPIncludeDirs& s)
+    {
+        j = nlohmann::json{{"user", s.user}, {"system", s.system}};
+    }
+    void from_json(const nlohmann::json& j, DiplomatLSPIncludeDirs& s)
+    {
+        JSON_TO_STRUCT_SAFE_BIND(j,"user",s.user);
+        JSON_TO_STRUCT_SAFE_BIND(j,"system",s.system);
+    }
+
     void to_json(nlohmann::json &j, const DiplomatLSPWorkspaceSettings &s)
     {
         j = nlohmann::json{
             {"workspaceDirs", s.workspace_dirs},
+            {"includes", s.includes},
             {"excludedPaths", s.excluded_paths},
             {"excludedPatterns", s.excluded_patterns},
             {"excludedDiags", s.ignored_diagnostics},
@@ -64,11 +77,12 @@ namespace slsp
     }
     void from_json(const nlohmann::json &j, DiplomatLSPWorkspaceSettings &s)
     {
-        j.at("workspaceDirs").get_to(s.workspace_dirs);
-        j.at("excludedPaths").get_to(s.excluded_paths);
-        j.at("excludedPatterns").get_to(s.excluded_patterns);
-        j.at("excludedDiags").get_to(s.ignored_diagnostics);
-        j.at("topLevel").get_to(s.top_level);
+        JSON_TO_STRUCT_SAFE_BIND(j,"workspaceDirs",s.workspace_dirs);
+        JSON_TO_STRUCT_SAFE_BIND(j,"excludedPaths",s.excluded_paths);
+        JSON_TO_STRUCT_SAFE_BIND(j,"includes",s.includes);
+        JSON_TO_STRUCT_SAFE_BIND(j,"excludedPatterns",s.excluded_patterns);
+        JSON_TO_STRUCT_SAFE_BIND(j,"excludedDiags",s.ignored_diagnostics);
+        JSON_TO_STRUCT_SAFE_BIND(j,"topLevel",s.top_level);
 
         s.refresh_regexs();
     }

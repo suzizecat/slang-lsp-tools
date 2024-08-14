@@ -247,7 +247,12 @@ void DiplomatLSP::_read_workspace_modules()
     namespace fs = fs;
     _documents.clear();
     _blackboxes.clear();
+    
     _sm.reset(new slang::SourceManager());
+    for(auto& path : _settings.includes.user)
+        _sm->addUserDirectories(path);
+    for(auto& path : _settings.includes.system)
+        _sm->addUserDirectories(path);
 
     fs::path p;
     SVDocument* doc;
@@ -322,7 +327,12 @@ void DiplomatLSP::_read_filetree_modules()
     // Explicitely do NOT clear the blackbox list in order to keep what was done on 
     // global pass and attempts to relink later.
     _documents.clear();
+    
     _sm.reset(new slang::SourceManager());
+    for(auto& path : _settings.includes.user)
+        _sm->addUserDirectories(path);
+    for(auto& path : _settings.includes.system)
+        _sm->addUserDirectories(path);
 
 
     SVDocument* doc;
@@ -465,6 +475,8 @@ void DiplomatLSP::_compile()
         coptions.topModules = {_settings.top_level.value()};
     //coptions.flags |= slang::ast::CompilationFlags::IgnoreUnknownModules;
     slang::Bag bag(coptions);
+
+    // Regenerate compilation object to allow for a "recompilation".
     _compilation.reset(new slang::ast::Compilation(bag));
 
     if(_settings.top_level)
@@ -485,6 +497,8 @@ void DiplomatLSP::_compile()
             _compilation->addSyntaxTree(value->st);
         }
     }
+
+    // Actually compile and elaborate the design
     _compilation->getRoot();
 
     spdlog::info("Issuing diagnostics");

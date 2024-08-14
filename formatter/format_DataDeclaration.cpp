@@ -138,6 +138,12 @@ void DataDeclarationSyntaxVisitor::handle(const ContinuousAssignSyntax &node)
 	//_store_format(node);
 }
 
+/**
+ * @brief This function allow splitting elements in blocks if more than an
+ * empty line is present
+ * 
+ * @param node 
+ */
 void DataDeclarationSyntaxVisitor::_split_bloc(const SyntaxNode& node)
 {
 	int nb_newlines = 0;

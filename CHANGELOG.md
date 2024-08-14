@@ -1,7 +1,12 @@
 # Changelog
 
+## Added
+
+ - Add support for `include` folders and directives.
+
+# 0.1.0 
 Considered as first release.
-Aligned with `diplomat-vscode@0.1.0`. 
+Aligned with `diplomat-vscode@0.2.0`. 
 
 
 # 0.0.5 - Unreleased
