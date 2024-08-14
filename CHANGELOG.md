@@ -2,7 +2,8 @@
 
 ## Added
 
- - Add support for `include` folders and directives.
+ - Add support for `include` folders in config files.
+ - Add support to add user include folder through `diplomat-server.add-incdir` 
 
 ## Dependencies
  - Updated fmtlib from 10.2.1 to 11.0.2

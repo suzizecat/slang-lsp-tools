@@ -427,6 +427,23 @@ void DiplomatLSP::_h_ignore(json params)
 	}
 }
 
+/**
+ * @brief Handle to add an include directory.
+ * This is intended to be used as a command in VSCode for right click action in the 
+ * filesystem view.
+ * 
+ * @param params 
+ */
+void DiplomatLSP::_h_add_to_include(json params)
+{
+	for (const json& record : params.at(1))
+	{
+		fs::path p = fs::canonical(record["path"].template get<std::string>());
+		spdlog::info("Add user include path {}", p.generic_string());
+		_settings.includes.user.push_back(p.generic_string());
+	}
+}
+
 void DiplomatLSP::_h_force_clear_index(json _)
 {
 	_project_file_tree_valid = false;
