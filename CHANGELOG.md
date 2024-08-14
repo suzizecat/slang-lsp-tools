@@ -4,6 +4,13 @@
 
  - Add support for `include` folders and directives.
 
+## Dependencies
+ - Updated fmtlib from 10.2.1 to 11.0.2
+ - Updated sockpp from 0.8.1  to 1.0.0
+ - Updated spdlog from 1.13.0 to 1.14.1
+ - Updated argparse from 3.0 to 3.1
+   - Fix warning at compile time
+
 # 0.1.0 
 Considered as first release.
 Aligned with `diplomat-vscode@0.2.0`. 

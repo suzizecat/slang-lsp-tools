@@ -5,17 +5,18 @@ include(FetchContent)
 
 FetchContent_Declare(fmt
 GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-GIT_TAG 10.2.1 # For correct management with slang
+#GIT_TAG 10.2.1 # For correct management with slang
+GIT_TAG 11.0.2
 GIT_SHALLOW ON)
 
 FetchContent_Declare(network
 GIT_REPOSITORY https://github.com/fpagliughi/sockpp.git
-GIT_TAG v0.8.1
+GIT_TAG v1.0.0
 GIT_SHALLOW ON)
 
 FetchContent_Declare(spdlog
 GIT_REPOSITORY https://github.com/gabime/spdlog.git
-GIT_TAG v1.13.0
+GIT_TAG v1.14.1
 GIT_SHALLOW ON)
 
 FetchContent_Declare(json 
@@ -43,7 +44,7 @@ FetchContent_Declare( slang
 
 FetchContent_Declare(argparse
   GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-  GIT_TAG v3.0
+  GIT_TAG v3.1
   GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(uri)
