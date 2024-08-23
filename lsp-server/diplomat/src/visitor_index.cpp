@@ -140,7 +140,16 @@ void RefVisitor::handle(const syntax::IdentifierSelectNameSyntax& node)
     visitDefault(node);
 }
 
+void RefVisitor::handle(const syntax::DeclaratorSyntax &node)
+{
+    _add_reference(node.name, node.name.rawText());
+}
 
+void RefVisitor::handle(const slang::syntax::ClassMethodDeclarationSyntax& node)
+{
+    // Bypass
+    spdlog::info("Class method");
+}
 
 IndexVisitor::IndexVisitor(const slang::SourceManager* sm) :
     ast::ASTVisitor<IndexVisitor,true,false>(),
@@ -185,5 +194,38 @@ void IndexVisitor::handle(const ast::ValueSymbol &node)
     _index->add_symbol(node);
 }
 
+void IndexVisitor::handle(const slang::ast::ClassType& node)
+{
+    _index->add_symbol(node);
+    visitDefault(node);
+
+    const syntax::SyntaxNode* stx_node = node.getSyntax();
+
+    if(stx_node != nullptr)
+    {
+        RefVisitor ref(_index.get(), node, _sm);
+        stx_node->visit(ref);
+    }
+
+}
+
+// void IndexVisitor::handle(const slang::ast::ClassPropertySymbol& node)
+// {
+//     _index->add_symbol(node);
+// }
+
+void IndexVisitor::handle(const slang::ast::SubroutineSymbol& node)
+{
+    _index->add_symbol(node);
+    visitDefault(node);
+}
+
+void IndexVisitor::handle(const slang::ast::FormalArgumentSymbol& node)
+{
+    int i;
+    if(node.name == "newval")
+        i = 0;
+    _index->add_symbol(node);
+}
 
 }

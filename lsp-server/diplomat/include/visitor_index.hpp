@@ -46,6 +46,7 @@ namespace slsp
             void handle(const slang::syntax::IdentifierSelectNameSyntax& node);
             void handle(const slang::syntax::NamedPortConnectionSyntax& node);
             void handle(const slang::syntax::NamedParamAssignmentSyntax& node);
+            void handle(const slang::syntax::DeclaratorSyntax& node);
 
             
             inline void set_ref_context(const std::filesystem::path& path, const bool in_instanciation) 
@@ -66,6 +67,10 @@ namespace slsp
 
             void handle(const slang::ast::InstanceSymbol& node);
             void handle(const slang::ast::ValueSymbol& node);
+            void handle(const slang::ast::ClassType& node);
+            //void handle(const slang::ast::ClassPropertySymbol& node);
+            void handle(const slang::ast::SubroutineSymbol& node);
+            void handle(const slang::ast::FormalArgumentSymbol& node);
 
             inline DiplomatIndex* get_index() {return _index.get(); };
             inline std::unique_ptr<DiplomatIndex> extract_index() {return std::move(_index); };
