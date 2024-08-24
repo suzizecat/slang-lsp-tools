@@ -409,9 +409,16 @@ void DiplomatLSP::_h_set_module_top(json params)
 	}
 
 	spdlog::info("Set top file {}", p.generic_string());
-	ModuleBlackBox* bb = _blackboxes.at(p).get();
-	_settings.top_level = bb->module_name;
-
+	if(!_blackboxes.contains(p))
+	{
+		spdlog::error("Setting top file seems to have failed. The path might not be handled by Diplomat");
+		show_message(MessageType::MessageType_Error,"Setting top file has failed");
+	}
+	else
+	{
+		ModuleBlackBox* bb = _blackboxes.at(p).get();
+		_settings.top_level = bb->module_name;
+	}
 	_compute_project_tree();
 	_compile();
 }

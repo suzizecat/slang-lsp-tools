@@ -238,8 +238,12 @@ utils/ast-printer/ast_print.cpp
 utils/ast-printer/ast_print_main.cpp
 )
 
+target_include_directories(sv-tree 
+PRIVATE utils/ast-printer
+)
+
 target_link_libraries(sv-tree
-PRIVATE slang::slang
+PUBLIC slang::slang
 PRIVATE argparse::argparse)
 
 # target_include_directories(sv-explorer 

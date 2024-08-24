@@ -42,13 +42,27 @@ namespace slsp
      */
     Index_FileID_t DiplomatIndex::_index_from_filepath(const fs::path& filepath) const
     {
-        return fs::canonical(filepath);
+        try
+        {
+            return fs::canonical(filepath);    
+        }
+        catch (const std::exception& e)
+        {
+            throw e;
+        }
+        
     }
 
     Index_FileID_t DiplomatIndex::_index_from_symbol(const slang::ast::Symbol &symbol) const
     {
         const slang::SourceManager* sm = symbol.getParentScope()->getCompilation().getSourceManager();
-        return _index_from_filepath(sm->getFullPath(symbol.location.buffer()));
+        const fs::path& fullpath = sm->getFullPath(symbol.location.buffer());
+
+        if(fullpath.empty())
+        {
+            throw NoBufferException("An invalid buffer path had been looked up");  
+        }
+        return _index_from_filepath(fullpath);
     }
 
     /**
@@ -97,7 +111,18 @@ namespace slsp
 
     void DiplomatIndex::add_symbol(const slang::ast::Symbol& symbol,  const slang::syntax::ConstTokenOrSyntax& anchor)
     {
-        Index_FileID_t sid = _index_from_symbol(symbol);
+        Index_FileID_t sid;
+        try
+        {
+            sid = _index_from_symbol(symbol);
+        }
+        catch(const NoBufferException& e)
+        {
+            // Just skip the symbol creation altogether
+            return; 
+        }
+        
+        
         _ensure_index(sid);
             const unsigned int symbol_line = _sm->getLineNumber(CONST_TOKNODE_SR(anchor).start());
         if(! _index[sid].contains(symbol_line))
@@ -135,7 +160,10 @@ namespace slsp
         const slang::ast::Symbol* symbol_to_target = &symbol;
         if(! is_registered(symbol_to_target))
         {
-            symbol_to_target = get_symbol_from_exact_range(symbol_to_target->getSyntax()->sourceRange());
+            const slang::syntax::SyntaxNode* stx = symbol_to_target->getSyntax();
+            if(stx == nullptr)
+                return;
+            symbol_to_target = get_symbol_from_exact_range(stx->sourceRange());
             if(symbol_to_target == nullptr)
             {
                 add_symbol(symbol);

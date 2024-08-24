@@ -140,71 +140,79 @@ const ast::Symbol* get_definition_from_position(const ast::Scope& scope, const S
 */
 void print_symbols(const ast::Scope& scope, int level = 0)
 {
-    const ast::Symbol* result = scope.lookupName("i_step_trigger");
-    if (result != nullptr)
-    {
-        for(int i = 0; i < level ; i++)
-            std::cout << "  ";
-        std::cout << " $ Ref found to ";
-        print_symbol_origin(scope,*result);
-        std::cout << std::endl;
-    }
-
 
     for (const ast::Symbol& symb : scope.members())
     {
         for(int i = 0; i < level; i++)
             std::cout << "  ";
-        std::cout << (symb.isScope() ? " # Scope " : " - Symbol")  << " of kind " << toString(symb.kind) << " with name " << symb.name << " ";
+        std::cout << (symb.isScope() ? "<scope " : (symb.kind == ast::SymbolKind::Instance ? "<instance " : "<symbol "))  << " kind=\"" << toString(symb.kind) << "\" name=\"" << symb.name << "\" ";
 
 
         if(symb.isScope())
         {
-            std::cout << "spanning in ";
+            
             auto* stx_node = symb.getSyntax();
-            const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
-            slang::SourceRange pos = stx_node->sourceRange();
-            std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
-            std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
-            std::cout << std::endl;
+            
+            if(stx_node != nullptr)
+            {
+                std::cout << "span=\"";
+                const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
+                slang::SourceRange pos = stx_node->sourceRange();
+                std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
+                std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
+                std::cout << "\"";
+            }
+            else
+            {}
+            std::cout << ">"<<std::endl;
             print_symbols(symb.as<ast::Scope>(),level +1);
+            for(int i = 0; i < level; i++)
+                std::cout << "  ";
+            std::cout << "</scope>"<<std::endl;
         }
         else if (symb.kind == ast::SymbolKind::Instance)
         {
 
-            std::cout << " of type " << symb.as<slang::ast::InstanceSymbol>().body.name << " "; 
+            std::cout << "instOf=\"" << symb.as<slang::ast::InstanceSymbol>().body.name << "\" "; 
             auto* stx_node = symb.as<slang::ast::InstanceSymbol>().body.getSyntax();
 
-            const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
             if (stx_node != nullptr)
             {
+                std::cout << "span=\"";
+                const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
                 slang::SourceRange pos = stx_node->sourceRange();
                 std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
                 std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
+                std::cout << "\"";
             }
             else
             {
-                std::cout << " without syntax node.";
+                //std::cout << " without syntax node.";
             }
-            
+            std::cout << ">"<<std::endl;
             std::cout << std::endl;
             print_symbols(symb.as<ast::InstanceSymbol>().body, level +1);
+            for(int i = 0; i < level; i++)
+                std::cout << "  ";
+            std::cout << "</instance>"<<std::endl;
         }
         else
         {
             const auto* stx_node = symb.getSyntax();
-            const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
             if (stx_node != nullptr)
             {
+                std::cout << "span=\"";
+                const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
                 slang::SourceRange pos = stx_node->sourceRange();
                 std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
                 std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
+                std::cout << "\"";
             }
             else
             {
-                std::cout << " without syntax node.";
+               // std::cout << " without syntax node.";
             }
-         
+            std::cout << "/>";
             std::cout << std::endl;
            
             // const auto* definition = symb.;
@@ -251,56 +259,57 @@ int main(int argc, char** argv) {
 
     auto compilation = driver.createCompilation();
         
-    ok &= driver.reportCompilation(*compilation, /* quiet */ false);
+    //ok &= driver.reportCompilation(*compilation, /* quiet */ false);
     const ast::RootSymbol&  root_symb = compilation->getRoot();
     const ast::Symbol* net = root_symb.lookupName("lock");
     
-    if(compilation->isFinalized())
-    {
-        std::cout << "Design has been compiled properly" << std::endl;
-    }
-
+    // if(compilation->isFinalized())
+    // {
+    //     std::cout << "Design has been compiled properly" << std::endl;
+    // }
+    std::cout << "<design_root>" << std::endl;
     print_symbols(root_symb);
+    std::cout << "</design_root>" << std::endl;
 
-    ExplorerVisitor visitor;
-    HierVisitor h_visitor(false);
+    // ExplorerVisitor visitor;
+    // HierVisitor h_visitor(false);
 
-    root_symb.visit(h_visitor);
-    std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;
+    // root_symb.visit(h_visitor);
+    // std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;
 
-    root_symb.visit(visitor);
-    std::cout << "Refs visitor results :" << std::endl << visitor.get_refs().dump(4) << std::endl;
+    // root_symb.visit(visitor);
+    // std::cout << "Refs visitor results :" << std::endl << visitor.get_refs().dump(4) << std::endl;
 
 
-    std::cout << "Testing global lookup..." << std::endl;
-    const ast::Symbol* results = root_symb.lookupName("i_spd_trigger");
-    if(results != nullptr)
-        std::cout << "    Found the requested symbol somewhere !" << std::endl;
-    else
-        std::cout << "    Nothing found." << std::endl;
-    for(std::shared_ptr<syntax::SyntaxTree> stree : driver.syntaxTrees)
-    {
-        std::cout << "Found a syntax tree" << std::endl;
-        const syntax::SyntaxNode& root = stree->root();
-        const syntax::SyntaxNode* lu_node = getNodeFromPosition(&root,slang::SourceLocation(stree->root().sourceRange().start().buffer(),1928));
-        if(lu_node != nullptr)
-            std::cout << "Found: " << lu_node->toString() << std::endl;
-        //std::cout << stree->root().toString() << std::endl;
+    // std::cout << "Testing global lookup..." << std::endl;
+    // const ast::Symbol* results = root_symb.lookupName("i_spd_trigger");
+    // if(results != nullptr)
+    //     std::cout << "    Found the requested symbol somewhere !" << std::endl;
+    // else
+    //     std::cout << "    Nothing found." << std::endl;
+    // for(std::shared_ptr<syntax::SyntaxTree> stree : driver.syntaxTrees)
+    // {
+    //     std::cout << "Found a syntax tree" << std::endl;
+    //     const syntax::SyntaxNode& root = stree->root();
+    //     const syntax::SyntaxNode* lu_node = getNodeFromPosition(&root,slang::SourceLocation(stree->root().sourceRange().start().buffer(),1928));
+    //     if(lu_node != nullptr)
+    //         std::cout << "Found: " << lu_node->toString() << std::endl;
+    //     //std::cout << stree->root().toString() << std::endl;
 
-    }
+    // }
 
-    const slang::SourceManager* sm = compilation->getSourceManager();
-    BufferID target_id;
-    for (BufferID id : sm->getAllBuffers())
-    {
-        if (sm->getFullPath(id).filename() == "prescaler_finder.sv")
-        {
-            target_id = id;
-            break;
-        }
-    }
+    // const slang::SourceManager* sm = compilation->getSourceManager();
+    // BufferID target_id;
+    // for (BufferID id : sm->getAllBuffers())
+    // {
+    //     if (sm->getFullPath(id).filename() == "prescaler_finder.sv")
+    //     {
+    //         target_id = id;
+    //         break;
+    //     }
+    // }
 
-    slang::SourceLocation sl(target_id, 884);
+    // slang::SourceLocation sl(target_id, 884);
 
     // std::cout << "Test lookup..." << std::endl;
     // const slang::ast::Symbol* match = get_definition_from_position(root_symb, sl);

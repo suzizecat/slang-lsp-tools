@@ -154,7 +154,11 @@ namespace slsp
         else
         {
 
-            std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
+            std::filesystem::path buffer_path = sourceManager->getFullPath(to_report.location.buffer());
+            if(buffer_path.empty())
+                return;
+            
+            buffer_path = std::filesystem::canonical(buffer_path);
             
             SVDocument* doc = nullptr;
             if (_documents.contains(buffer_path.generic_string()))
@@ -164,7 +168,7 @@ namespace slsp
             if (doc != nullptr)
                 the_uri = doc->doc_uri.value_or(fmt::format("file://{}", buffer_path.generic_string()));
             else
-            the_uri = fmt::format("file://{}", buffer_path.generic_string());
+                the_uri = fmt::format("file://{}", buffer_path.generic_string());
 
             // In some case, slang report "first defined here" kind of diagnostics.
             // In this situation, we add it as related information.

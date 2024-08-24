@@ -104,6 +104,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slsp::DiplomatIndex> _index;
 
+        std::optional<std::string> _uvm_home_path;
 
         bool _project_file_tree_valid;
 
@@ -123,6 +124,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _add_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_add);
         void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);
 
+        void _reset_source_manager();
         void _read_workspace_modules();
         void _read_filetree_modules();
         void _compile();

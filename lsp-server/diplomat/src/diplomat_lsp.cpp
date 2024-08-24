@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include "types/structs/SetTraceParams.hpp"
 
+#include <cstdlib>
+
 #include "slang/diagnostics/AllDiags.h"
 #include "slang/util/Bag.h"
 
@@ -239,6 +241,37 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
 
 
 /**
+ * @brief Provides an unified function to reset and housekeep the source
+ * manager.
+ * 
+ */
+void DiplomatLSP::_reset_source_manager()
+{
+    _sm.reset(new slang::SourceManager());
+
+    char* uvm_home_raw = std::getenv("UVM_HOME");
+    if(uvm_home_raw != NULL)
+    {
+        std::string uvm_home = std::string(uvm_home_raw);
+        spdlog::info("UVM_HOME detected {}",uvm_home);
+
+        //Add UVM as an includepath
+        _uvm_home_path = uvm_home + "/src";
+        _sm->addUserDirectories(_uvm_home_path.value());
+
+        fs::path uvm_top = fs::path(_uvm_home_path.value() + "/uvm.sv");
+        _read_document(uvm_top);
+        spdlog::info("UVM Loaded !");
+    }
+    
+
+    for(auto& path : _settings.includes.user)
+        _sm->addUserDirectories(path);
+    for(auto& path : _settings.includes.system)
+        _sm->addUserDirectories(path);
+}
+
+/**
  * @brief Read the whole workspace to extract the modules names and blackbox definitions.
  * Does not elaborate, nor generate the index, diagnostics and such.
  */
@@ -249,11 +282,7 @@ void DiplomatLSP::_read_workspace_modules()
     _documents.clear();
     _blackboxes.clear();
     
-    _sm.reset(new slang::SourceManager());
-    for(auto& path : _settings.includes.user)
-        _sm->addUserDirectories(path);
-    for(auto& path : _settings.includes.system)
-        _sm->addUserDirectories(path);
+    _reset_source_manager();
 
     fs::path p;
     SVDocument* doc;
@@ -305,7 +334,7 @@ void DiplomatLSP::_read_workspace_modules()
 
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
-                spdlog::debug("Read SV file {}", p.generic_string());
+                spdlog::info("Read SV file {}", p.generic_string());
                 doc = _read_document(p);
                 _blackboxes[p] = doc->extract_blackbox();
                 _module_to_file[_blackboxes[p]->module_name] = p.generic_string();
@@ -329,17 +358,12 @@ void DiplomatLSP::_read_filetree_modules()
     // global pass and attempts to relink later.
     _documents.clear();
     
-    _sm.reset(new slang::SourceManager());
-    for(auto& path : _settings.includes.user)
-        _sm->addUserDirectories(path);
-    for(auto& path : _settings.includes.system)
-        _sm->addUserDirectories(path);
-
+    _reset_source_manager();
 
     SVDocument* doc;
     for (const fs::path& file : _project_tree_files)
     {                
-        spdlog::debug("Read SV file from project tree {}", file.generic_string());
+        spdlog::info("Read SV file from project tree {}", file.generic_string());
         doc = _read_document(file);
         _blackboxes[file] = doc->extract_blackbox();
         _module_to_file[_blackboxes[file]->module_name] = file.generic_string();
@@ -467,6 +491,10 @@ void DiplomatLSP::_compile()
     de.setSeverity(slang::diag::MismatchedTimeScales,slang::DiagnosticSeverity::Ignored);
     de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
     de.setSeverity(slang::diag::UnusedDefinition,slang::DiagnosticSeverity::Ignored);
+
+    if(_uvm_home_path)
+        de.addIgnoreMacroPaths(_uvm_home_path.value());
+        
     de.addClient(_diagnostic_client);
 
     slang::ast::CompilationOptions coptions;

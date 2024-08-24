@@ -3,6 +3,8 @@
 
 #include "slang/text/SourceManager.h"
 
+#include "slang/driver/Driver.h"
+
 using namespace slang;
 
 int main(int argc, char** argv) {

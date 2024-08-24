@@ -13,14 +13,21 @@ namespace syntax = slang::syntax;
 namespace slsp
 {
 
-RefVisitor::RefVisitor(DiplomatIndex* index, const ast::Scope& scope, const slang::SourceManager* sm) : 
-    syntax::SyntaxVisitor<RefVisitor>(), 
+RefVisitor::RefVisitor(DiplomatIndex* index, 
+const ast::Scope& scope, 
+const slang::SourceManager* sm,
+const std::unordered_set<const slang::syntax::SyntaxNode*>* _explored) : 
+    SyntaxSelectVisitor<RefVisitor>(), 
     _index(index),
     _sm(sm),
     _scope(scope),
     _ref_filepath(sm->getFullPath(scope.asSymbol().getSyntax()->sourceRange().start().buffer())),
-    _in_instanciation(false)
-{}
+    _in_instanciation(false),
+    _scoped_name_root(nullptr),
+    _scoped_name()
+{
+    _to_skip = _explored;
+}
 
 
 
@@ -30,8 +37,8 @@ bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const st
 }
 
 bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const std::string& lookup_name)
-{    
-    const ast::Symbol* root_symb = _scope.lookupName(lookup_name);
+{  
+    const ast::Symbol* root_symb = _scope.lookupName(_get_scoped_name_prefix() + lookup_name);
     
     if(root_symb != nullptr)
     {
@@ -40,6 +47,19 @@ bool RefVisitor::_add_reference(const syntax::ConstTokenOrSyntax& node, const st
     }
     return false;
 }
+
+std::string RefVisitor::_get_scoped_name_prefix()
+{
+    std::string ret;
+
+    for(const std::string& elt : _scoped_name)
+        ret += elt;
+
+    if(!ret.empty())
+        spdlog::debug("Used prefix {}",ret);
+    return ret;
+}
+
 
 /**
  * @brief Register modules name as symbols
@@ -148,8 +168,33 @@ void RefVisitor::handle(const syntax::DeclaratorSyntax &node)
 void RefVisitor::handle(const slang::syntax::ClassMethodDeclarationSyntax& node)
 {
     // Bypass
-    spdlog::info("Class method");
 }
+
+void RefVisitor::handle(const slang::syntax::ScopedNameSyntax& node)
+{
+    // Aggregate the _scoped_name and then use the standard visitors to actually add references.
+    if(_scoped_name_root == nullptr)
+        _scoped_name_root = &node;
+
+    visit(*(node.left));
+
+    if(node.left->kind != syntax::SyntaxKind::ScopedName)
+    {
+        _scoped_name.push_back(node.left->toString() + std::string(node.separator.rawText()));
+    }
+
+    visit(*(node.right));
+    
+    if(_scoped_name_root == &node)
+    {
+        _scoped_name.clear();
+        _scoped_name_root = nullptr;
+    }
+    
+}
+
+
+
 
 IndexVisitor::IndexVisitor(const slang::SourceManager* sm) :
     ast::ASTVisitor<IndexVisitor,true,false>(),
@@ -226,6 +271,22 @@ void IndexVisitor::handle(const slang::ast::FormalArgumentSymbol& node)
     if(node.name == "newval")
         i = 0;
     _index->add_symbol(node);
+}
+
+void IndexVisitor::handle(const slang::ast::Scope& node)
+{
+    const slang::syntax::SyntaxNode* covered_syntax = node.asSymbol().getSyntax();
+    visitDefault(node);
+    
+    if(covered_syntax != nullptr)
+    {
+
+        RefVisitor ref(_index.get(), node, _sm, &_explored);
+        if(ref.is_valid())
+            covered_syntax->visit(ref);
+
+        _explored.emplace(covered_syntax);
+    }
 }
 
 }

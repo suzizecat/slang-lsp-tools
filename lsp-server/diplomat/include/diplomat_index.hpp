@@ -92,7 +92,11 @@ namespace slsp
     typedef std::unordered_map< unsigned int,  Index_LineContent_t> Index_FileContent_t; // Type representing the content of a single file.
     typedef std::unordered_map<Index_FileID_t, Index_FileContent_t >  SyntaxNodeIndex_t;
 
-
+    class NoBufferException : public std::runtime_error
+    {
+        public :
+            NoBufferException(const std::string& what = "") : std::runtime_error(what){}
+    } ;
 
     class DiplomatIndex
     {
