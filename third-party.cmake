@@ -27,7 +27,7 @@ GIT_SHALLOW ON)
 FetchContent_Declare(uri 
 GIT_REPOSITORY https://github.com/ben-zen/uri-library.git
 GIT_TAG 23690f8
-GIT_SHALLOW ON)
+GIT_SHALLOW OFF)
 
 FetchContent_Declare(uuid 
 GIT_REPOSITORY https://github.com/mariusbancila/stduuid.git
@@ -37,7 +37,7 @@ GIT_SHALLOW ON)
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
-  GIT_TAG v6.0
+  GIT_TAG v7.0
   #GIT_TAG 81fcb0e2f5af2f1d6e718c7bd75bd96c84a1701a
   GIT_SHALLOW ON)
 
