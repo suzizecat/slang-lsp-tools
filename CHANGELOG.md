@@ -1,5 +1,21 @@
 # Changelog
 
+## Changed
+
+ - Reorganization of all "sub applications" in sub-cmake files
+
+## Fixed
+
+ - Removed definition of hash for slang::SourceRange introduced by Slang 7.0 (#14)
+
+## Dependencies
+
+ - Slang from 6.0 to 7.0 
+ - uri from `master` to a fixed hash + remove shallow clone (#13)
+
+
+# 0.2.0
+
 ## Added
 
  - Add support for `include` folders in config files.

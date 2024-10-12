@@ -6,18 +6,6 @@
 #include "slang/parsing/Token.h"
 
 template<>
-struct std::hash<slang::SourceRange>
-{
-    std::size_t operator()(const slang::SourceRange& l) const noexcept
-    {
-        std::size_t h1 = std::hash<slang::SourceLocation>{}(l.start());
-        std::size_t h2 = std::hash<slang::SourceLocation>{}(l.end());
-        return h1 ^ (h2 << 1); // or use boost::hash_combine
-    }
-};
-
-
-template<>
 struct std::hash<slang::parsing::Token>
 {
     std::size_t operator()(const slang::parsing::Token& t) const noexcept

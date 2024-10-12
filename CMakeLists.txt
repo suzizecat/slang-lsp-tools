@@ -32,6 +32,7 @@ endif()
 
 message(STATUS "Software version: " ${VERSION_STRING})
 
+
 # Use sockpp as a static lib
 option(SOCKPP_BUILD_SHARED "" OFF)
 option(SOCKPP_BUILD_STATIC "" ON)
@@ -44,126 +45,34 @@ option(SPDLOG_FMT_EXTERNAL "" ON)
 # As workaround
 option(SLANG_USE_MIMALLOC ""  ON)
 
-# Add all third parties 
-include(third-party.cmake)
-
-set(LSP_METAMODEL_PATH ${CMAKE_CURRENT_BINARY_DIR}/metaModel.json)
-set(LSP_DATASTRUCT_ROOT ${CMAKE_SOURCE_DIR}/lsp-server/include/types)
-set(LSP_DATASTRUCT_CMAKE ${LSP_DATASTRUCT_ROOT}/generated_headers.cmake)
-
-if(NOT EXISTS ${LSP_DATASTRUCT_CMAKE} OR NOT EXISTS ${LSP_METAMODEL_PATH})
-    
-    message(STATUS "Regenerating LSP data structures using " ${LSP_METAMODEL_PATH})
-    file(
-        DOWNLOAD https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/metaModel/metaModel.json 
-        ${LSP_METAMODEL_PATH}
-        )
-
-    execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/LSPGen/main.py -fo ${LSP_DATASTRUCT_ROOT} ${LSP_METAMODEL_PATH})
-    message(STATUS "Regeneration done. ")
-
-endif()
-
-include(${LSP_DATASTRUCT_CMAKE})
-list(TRANSFORM SVLS_GEN_HEADERS PREPEND ${LSP_DATASTRUCT_ROOT}/)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+# Add all third parties 
+include(cmake/third-party.cmake)
+include(cmake/create-component.cmake)
+include(cmake/lsp-datastructures.cmake)
+
+
+
 
 # add_subdirectory(lib-diplomat-index)
 ###########################################################
 # SV-FORMATTER 
 ###########################################################
-message(STATUS "Setup SV-Formatter library and executable ")
-add_library(sv-formatter-lib STATIC 
-    formatter/format_DataDeclaration.cpp
-    formatter/spacing_manager.cpp
-)
+include(cmake/sv-formatter.cmake)
+include(cmake/sv-explorer.cmake)
+# include(cmake/sv-indexer.cmake)
 
-target_link_libraries(sv-formatter-lib PRIVATE slang::slang)
-target_include_directories(sv-formatter-lib INTERFACE formatter/)
-
-add_executable(sv-formatter-exe
-
-utils/ast-printer/ast_print.cpp
-
-formatter/main_formatter.cpp
-)
-
-target_link_libraries(sv-formatter-exe
-PRIVATE argparse::argparse
-PRIVATE fmt::fmt
-PRIVATE spdlog::spdlog
-
-PRIVATE slang::slang
-PRIVATE sv-formatter-lib
-)
-
-
-target_include_directories(sv-formatter-exe
-PRIVATE $<TARGET_PROPERTY:sv-formatter-lib,INTERFACE_INCLUDE_DIRECTORIES>
-PRIVATE utils/ast-printer)
-
-set_property(TARGET sv-formatter-exe PROPERTY OUTPUT_NAME sv-formatter)
-set_property(TARGET sv-formatter-lib PROPERTY OUTPUT_NAME sv-formatter)
-
-message(STATUS "Setup SV-Explorer library and executable ")
-
-
-add_library(sv-explorer-lib STATIC 
-explorer/hier_visitor.cpp
-)
-
-target_link_libraries(sv-explorer-lib 
-PRIVATE slang::slang
-PRIVATE nlohmann_json::nlohmann_json)
-target_include_directories(sv-explorer-lib INTERFACE explorer/)
-
-
-add_executable(sv-explorer-exe
-explorer/main.cpp
-explorer/explorer_visitor.cpp
-)
-
-target_link_libraries(sv-explorer-exe
-PRIVATE nlohmann_json::nlohmann_json
-PRIVATE slang::slang
-PRIVATE sv-explorer-lib
-)
-
-
-target_include_directories(sv-explorer-exe
-PRIVATE $<TARGET_PROPERTY:sv-explorer-lib,INTERFACE_INCLUDE_DIRECTORIES>
-PRIVATE utils/ast_print)
-
-set_property(TARGET sv-explorer-exe PROPERTY OUTPUT_NAME sv-explorer)
-set_property(TARGET sv-explorer-lib PROPERTY OUTPUT_NAME sv-explorer)
 
 ######################################################################
 ######################################################################
 ######################################################################
 
-
-# target_link_libraries(sv-explorer
-# PRIVATE nlohmann_json::nlohmann_json
-# PRIVATE slang::slang)
-
-# target_include_directories(sv-explorer 
-# PRIVATE explorer/)
-
-######################################################################
-######################################################################
-######################################################################
 
 message(STATUS "Setup SV-LSP executable and other stuff")
-
-
-# add_library(diplomat-system-lib STATIC 
-# system/src/process_handler_lnx.cpp
-# )
-
-# target_include_directories(diplomat-system-lib PRIVATE system/include)
 
 
 add_executable(sv-blackbox main_blackbox.cpp
@@ -194,7 +103,6 @@ lsp-server/diplomat/src/visitor_module_bb.cpp
 lsp-server/diplomat/src/visitor_index.cpp
 lsp-server/diplomat/src/diagnostic_client.cpp
 lsp-server/diplomat/src/diplomat_index.cpp
-
 )
 
 target_compile_definitions(slang-lsp PUBLIC DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\")
@@ -214,6 +122,7 @@ PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
 PRIVATE sv-formatter-lib
 PRIVATE sv-explorer-lib
+# PRIVATE sv-indexer-lib
 PUBLIC slang::slang
 )
 
@@ -238,8 +147,12 @@ utils/ast-printer/ast_print.cpp
 utils/ast-printer/ast_print_main.cpp
 )
 
+target_include_directories(sv-tree 
+PRIVATE utils/ast-printer
+)
+
 target_link_libraries(sv-tree
-PRIVATE slang::slang
+PUBLIC slang::slang
 PRIVATE argparse::argparse)
 
 # target_include_directories(sv-explorer 
