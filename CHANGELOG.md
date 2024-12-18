@@ -1,5 +1,9 @@
 # Changelog
 
+## Added
+
+ - For reference, added the diplomat workspace settings schema in the source tree.
+
 ## Changed
 
  - Reorganization of all "sub applications" in sub-cmake files
@@ -7,6 +11,7 @@
 ## Fixed
 
  - Removed definition of hash for slang::SourceRange introduced by Slang 7.0 (#14)
+ - Prevent segfault on badly constructed module top level interface (#15)
 
 ## Dependencies
 

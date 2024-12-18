@@ -168,9 +168,15 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 						{
 							const ConstTokenOrSyntax child = dimen->getChild(i);
 							if(child.isToken())
+							{
 								size_expr +=  child.token().valueText();
-							else if (child.isNode())
+							}
+							// The node may be null if there is a weird syntax issue such as logic [<empty>] ...
+							// Issue #15
+							else if (child.isNode() && child.node() != nullptr)
+							{
 								size_expr +=  child.node()->toString();
+							}
 						}
 					}
 					mport.size = size_expr;
