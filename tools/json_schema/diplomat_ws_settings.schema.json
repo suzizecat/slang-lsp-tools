@@ -1,0 +1,76 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/suzizecat/slang-lsp-tools/refs/heads/master/tools/json_schema/diplomat_ws_settings.schema.json",
+    "title": "Diplomat Workspace Settings",
+    "description": "Workspace settings serialized by the server",
+    "type": "object",
+    "properties": {
+        "excludedDiags": {
+            "description": "Include paths",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "subsystem": {
+                        "description": "Slang subsystem code for the ignored diagnostic",
+                        "type": "integer"
+                    },
+                    "code": {
+                        "description": "Slang diagnostic code for the ignored diagnostic",
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "excludedPaths": {
+            "description": "Paths (directory or files) to exclude from the analysis",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "excludedPatterns": {
+            "description": "Unix style 'glob' patterns of files and directory to exclude",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "includes": {
+            "description": "Include paths",
+            "type": "object",
+            "properties": {
+                "system": {
+                    "description": "Path to use as system includes",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "user": {
+                    "description": "Path to use as user includes",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                }
+            }
+        },
+        "topLevel": {
+            "description": "Name of the top level module",
+            "type": "string"
+        },
+        "workspaceDirs": {
+            "description": "List of workspaces (root dir) to consider for the analysis",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        }
+    }
+}
