@@ -1,32 +1,33 @@
 #include "diplomat_lsp_ws_settings.hpp"
 #include "fmt/format.h"
 #include <stdexcept>
+#include "index_elements.hpp"
 
-#define JSON_TO_STRUCT_SAFE_BIND(json_obj, json_key, struct_obj) \
-    if(json_obj.contains(json_key))    json_obj.at(json_key).get_to(struct_obj)
+// #define JSON_TO_STRUCT_SAFE_BIND(json_obj, json_key, struct_obj) \
+//     if(json_obj.contains(json_key))    json_obj.at(json_key).get_to(struct_obj)
 
-namespace nlohmann {
-    template <typename T>
-    struct adl_serializer<std::optional<T>> {
-        static void to_json(json& j, const std::optional<T>& opt) {
-            if (opt) {
-              j = *opt; // this will call adl_serializer<T>::to_json which will
-                        // find the free function to_json in T's namespace!
-            } else {
-                j = nullptr;
-            }
-        }
+// namespace nlohmann {
+//     template <typename T>
+//     struct adl_serializer<std::optional<T>> {
+//         static void to_json(json& j, const std::optional<T>& opt) {
+//             if (opt) {
+//               j = *opt; // this will call adl_serializer<T>::to_json which will
+//                         // find the free function to_json in T's namespace!
+//             } else {
+//                 j = nullptr;
+//             }
+//         }
 
-        static void from_json(const json& j, std::optional<T>& opt) {
-            if (j.is_null()) {
-                opt = std::optional<T>();
-            } else {
-                opt = j.template get<T>(); // same as above, but with
-                                           // adl_serializer<T>::from_json
-            }
-        }
-    };
-}
+//         static void from_json(const json& j, std::optional<T>& opt) {
+//             if (j.is_null()) {
+//                 opt = std::optional<T>();
+//             } else {
+//                 opt = j.template get<T>(); // same as above, but with
+//                                            // adl_serializer<T>::from_json
+//             }
+//         }
+//     };
+// }
 
 
 namespace slsp

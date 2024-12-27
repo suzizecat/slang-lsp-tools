@@ -1,0 +1,16 @@
+UseTab: AlignWithSpaces
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 100
+
+AlignConsecutiveAssignments :
+  Enabled: true
+  AlignCompound: true
+
+AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
+
+PointerAlignment: Left
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+PenaltyReturnTypeOnItsOwnLine: 1000
+AllowShortFunctionsOnASingleLine: InlineOnly

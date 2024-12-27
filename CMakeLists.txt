@@ -64,8 +64,8 @@ include(cmake/lsp-datastructures.cmake)
 ###########################################################
 include(cmake/sv-formatter.cmake)
 include(cmake/sv-explorer.cmake)
-# include(cmake/sv-indexer.cmake)
-
+include(cmake/sv-indexer.cmake)
+ 
 
 ######################################################################
 ######################################################################
