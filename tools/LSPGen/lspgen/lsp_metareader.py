@@ -23,6 +23,12 @@ class LSPMetareader:
 
 		self.or_resolution : _T.Dict[str,str] = dict()
 
+		# Removed properties for structure. Keyed by structure name.
+		self.removed_properties : _T.Dict[str,_T.List[str]] = dict()
+
+		# Manually added mixins for elements. Keyed by elements name.
+		self.added_mixins :   _T.Dict[str,_T.List[str]] = dict()
+
 
 	def read(self, path):
 		with open(path, "r",encoding="utf-8") as f:
@@ -53,7 +59,8 @@ class LSPMetareader:
 		self.methods.append(method)
 
 	def add_structure_from_json(self, struct, override_name : str = None):
-		new_struct = LSPDefinition(struct["name"] if override_name is None else override_name)
+		used_name = struct["name"] if override_name is None else override_name
+		new_struct = LSPDefinition(used_name)
 		if "documentation" in struct:
 			new_struct.documentation = struct["documentation"]
 		for src in ["extends", "mixins"]:
@@ -63,9 +70,22 @@ class LSPMetareader:
 					if ext_type.type_name in self.type_override:
 						ext_type.update(self.type_override[ext_type.type_name])
 					new_struct.extend_list.append(ext_type)
+		
+		if used_name in self.added_mixins :
+			for elt_name in self.added_mixins[used_name]:
+				ext_type = LSPType(elt_name)
+				if ext_type.type_name in self.type_override:
+					ext_type.update(self.type_override[ext_type.type_name])
+				new_struct.extend_list.append(ext_type)
+
 		for elt in struct["properties"]:
+			
+			if used_name in self.removed_properties :
+				if elt["name"] in self.removed_properties[used_name] :
+					continue
 			new_prop = self.property_from_json(elt, master_name=new_struct.type.type_name)
 			new_struct.properties.append(new_prop)
+
 		self.structures[new_struct.type.type_name] = new_struct
 
 	@staticmethod

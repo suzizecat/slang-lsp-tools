@@ -69,6 +69,8 @@ if __name__ == "__main__":
 	reader.type_override["TextDocumentContentChangeEvent"] = json
 	reader.type_override["WorkspaceDocumentDiagnosticReport"] = WorkspaceFullDocumentDiagnosticReport
 
+	reader.removed_properties["RenameParams"] = ["textDocument","position"]
+	reader.added_mixins["RenameParams"] = ["TextDocumentPositionParams"]
 
 	reader.add_or_resolution(["TextDocumentSyncOptions","TextDocumentSyncKind"],"TextDocumentSyncOptions")
 

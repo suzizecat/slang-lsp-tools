@@ -10,9 +10,14 @@ if(NOT EXISTS ${LSP_DATASTRUCT_CMAKE} OR NOT EXISTS ${LSP_METAMODEL_PATH})
         ${LSP_METAMODEL_PATH}
         )
 
+    message(STATUS "Command is python3 ${CMAKE_SOURCE_DIR}/tools/LSPGen/main.py -fo ${LSP_DATASTRUCT_ROOT} ${LSP_METAMODEL_PATH}")
     execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/LSPGen/main.py -fo ${LSP_DATASTRUCT_ROOT} ${LSP_METAMODEL_PATH})
     message(STATUS "Regeneration done. ")
 
+else()
+message(STATUS "LSP Datastructure already exists.")
+message(STATUS "Command would have been python3 ${CMAKE_SOURCE_DIR}/tools/LSPGen/main.py -fo ${LSP_DATASTRUCT_ROOT} ${LSP_METAMODEL_PATH}")
+     
 endif()
 
 include(${LSP_DATASTRUCT_CMAKE})
