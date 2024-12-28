@@ -168,7 +168,7 @@ namespace slsp
             symbol_to_target = get_symbol_from_exact_range(stx->sourceRange());
             if(symbol_to_target == nullptr)
             {
-                spdlog::warn("Failed to lookup symbol {}",symbol_to_target->name);
+                spdlog::warn("Failed to lookup symbol {}",symbol.name);
                 return;
                 add_symbol(symbol);
                 symbol_to_target = &symbol;

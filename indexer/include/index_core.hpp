@@ -32,8 +32,10 @@ namespace diplomat::index
 
         IndexScope* set_root_scope(const std::string name);
 
+        IndexFile* add_file(const std::filesystem::path& path);
+        IndexFile* add_file(const std::string_view& path);
+
         IndexFile* get_file(const std::filesystem::path& path);
-        IndexFile* get_file(const std::string_view& path);
 
         IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& src_range);
 
@@ -41,7 +43,10 @@ namespace diplomat::index
 
         // void process_references();
 
-       inline auto get_files() const { return std::views::keys(_files);} ;
+       inline auto get_indexed_files_paths() const { return std::views::keys(_files);} ;
+       inline auto get_indexed_files() const { return std::views::values(_files);} ;
+
+        IndexScope* get_scope_by_position(const IndexLocation& pos);
 
         IndexCore() = default;
         ~IndexCore() = default;

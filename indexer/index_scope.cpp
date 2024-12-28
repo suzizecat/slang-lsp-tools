@@ -135,6 +135,15 @@ namespace diplomat::index {
 		}
 	}
 
+	IndexScope* IndexScope::get_scope_by_name(const std::string_view& name)
+	{
+		std::string strname(name);
+		if(_children.contains(strname))
+			return _children.at(strname).get();
+			
+		return nullptr;
+	}
+
 	std::string IndexScope::get_full_path() const
 	{
 		if(_parent != nullptr)

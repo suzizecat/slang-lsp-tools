@@ -35,7 +35,9 @@ namespace diplomat::index
 
 		void add_reference(IndexRange ref_location);
 		void set_source(const IndexRange& new_source);
+		inline const std::optional<IndexRange>& get_source() const {return _source_range;};
 		inline const std::string& get_name() const {return _name;};
+
 	};
 
 	void to_json(nlohmann::json& j, const IndexSymbol& s);

@@ -32,6 +32,7 @@ namespace diplomat::index {
 			void _close_scope(const std::string_view& name);
 
 			void _default_symbol_handle(const slang::ast::Symbol& node);
+			void _default_scope_handle(const slang::ast::Scope& node, const std::string_view& scope_name, const bool is_virtual = false);
 			void _default_scope_handle(const slang::ast::Scope& node, const bool is_virtual = false);
 			inline IndexScope* _current_scope() const {return _scope_stack.empty() ? nullptr : _scope_stack.top(); };
 		public: 
@@ -45,6 +46,8 @@ namespace diplomat::index {
 			//void handle(const slang::ast::PortSymbol& node);
 			void handle(const slang::ast::VariableSymbol& node);
 			void handle(const slang::ast::GenvarSymbol& node);
+			void handle(const slang::ast::ParameterSymbol& node);
+			void handle(const slang::ast::InstanceSymbol& node);
 
 			inline std::unique_ptr<IndexCore> get_index() {return std::move(_index);};
 	};

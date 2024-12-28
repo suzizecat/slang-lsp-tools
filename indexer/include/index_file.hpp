@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+
+#include <slang/syntax/SyntaxNode.h>
 namespace diplomat::index      
 {
 
@@ -23,6 +25,10 @@ namespace diplomat::index
         friend void to_json(nlohmann::json& j, const IndexFile& s);
     protected:
         std::filesystem::path _filepath;
+
+        // This may contain the syntax tree used to define the file
+        std::optional<const slang::syntax::SyntaxNode*> _syntax_root; 
+
         // Used for fast lookup of scopes
         std::unordered_map<std::string, IndexScope*> _scopes;
         std::unordered_map<IndexRange, std::unique_ptr<IndexSymbol>> _declarations;
@@ -38,8 +44,14 @@ namespace diplomat::index
         IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& location);
         void register_scope(IndexScope* _scope); 
         IndexScope* lookup_scope_by_range(const IndexRange& loc);
+        IndexScope* lookup_scope_by_location(const IndexLocation& loc);
 
         void add_reference(IndexSymbol* symb, IndexRange& range );
+
+        inline void set_syntax_root(const slang::syntax::SyntaxNode* node ) {_syntax_root = node;};
+        inline const slang::syntax::SyntaxNode* get_syntax_root() const {return _syntax_root.value_or(nullptr);};
+
+        inline const std::filesystem::path& get_path() const {return _filepath;} ;
     };
 
     void to_json(nlohmann::json& j, const IndexFile& s);

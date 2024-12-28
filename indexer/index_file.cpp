@@ -23,9 +23,20 @@ namespace diplomat::index {
 	IndexScope* IndexFile::lookup_scope_by_range(const IndexRange& range)
 	{
 		IndexScope* ret;
-		for(auto& [_ , scope] : _scopes)
+		for(auto&  scope : std::views::values(_scopes))
 		{
 			if((ret = scope->get_scope_for_range(range)) != nullptr)
+				return ret;
+		}
+		return nullptr;
+	}
+
+	IndexScope* IndexFile::lookup_scope_by_location(const IndexLocation& loc)
+	{
+		IndexScope* ret;
+		for(auto&  scope : std::views::values(_scopes))
+		{
+			if((ret = scope->get_scope_for_location(loc)) != nullptr)
 				return ret;
 		}
 		return nullptr;

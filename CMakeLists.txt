@@ -11,6 +11,7 @@ if(${DIPLOMAT_USE_MOLD})
     add_link_options(-fuse-ld=mold)
 endif()
 
+
 set(VERSION_STRING "undefined")
 
 if("${DIPLOMAT_VERSION}" STREQUAL "auto")
@@ -111,7 +112,8 @@ target_precompile_headers(slang-lsp PRIVATE ${SVLS_GEN_HEADERS})
 
 target_include_directories(slang-lsp 
 PRIVATE lsp-server/include
-PRIVATE lsp-server/diplomat/include)
+PRIVATE lsp-server/diplomat/include
+PRIVATE $<TARGET_PROPERTY:sv-indexer-lib,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_link_libraries(slang-lsp 
 PRIVATE argparse::argparse

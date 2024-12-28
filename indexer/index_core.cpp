@@ -10,7 +10,7 @@ namespace diplomat::index {
 		return _root.get();
 	}
 
-	IndexFile *IndexCore::get_file(const std::filesystem::path& path)
+	IndexFile *IndexCore::add_file(const std::filesystem::path& path)
 	{
 		std::filesystem::path lookup_path = std::filesystem::weakly_canonical(path);
 		if(! _files.contains(lookup_path))
@@ -19,35 +19,34 @@ namespace diplomat::index {
 		return _files.at(lookup_path).get();
 	}
 
-	IndexFile *IndexCore::get_file(const std::string_view& path)
+	IndexFile *IndexCore::add_file(const std::string_view& path)
 	{
-		return get_file(std::filesystem::path(path));
+		return add_file(std::filesystem::path(path));
+	}
+
+	IndexFile *IndexCore::get_file(const std::filesystem::path& path)
+	{
+		std::filesystem::path lookup_path = std::filesystem::weakly_canonical(path);
+		if(! _files.contains(lookup_path))
+			return nullptr;
+
+		return _files.at(lookup_path).get();
 	}
 
 	IndexSymbol *IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range)
 	{
-		IndexFile* f = get_file(src_range.start.file);
+		IndexFile* f = add_file(src_range.start.file);
 		IndexSymbol* s = f->add_symbol(name,src_range);
 		return s;
 	}
 
-	// void IndexCore::process_references()
-	// {
-	// 	for(auto& [path, file] : _files)
-	// 	{
-	// 		{
-	// 			spdlog::info("Processing references for {}",path.generic_string());
-	// 			// Ensure that the buffer is destroyed each time
-	// 			slang::SourceManager curr_sm;
-	// 			auto stx = slang::syntax::SyntaxTree::fromFile(path.generic_string(),curr_sm);
-	// 			if(stx.has_value())
-	// 			{
-	// 				ReferenceVisitor ref_visitor(&curr_sm,this);
-	// 				stx.value()->root().visit(ref_visitor);
-	// 			}
-	// 		}
-	// 	}
-	// }
+	IndexScope* IndexCore::get_scope_by_position(const IndexLocation& pos)
+	{
+		if(! _files.contains(pos.file))
+			return nullptr;
+		else
+			return _files.at(pos.file)->lookup_scope_by_location(pos);
+	}
 
 
 	void to_json(nlohmann::json &j, const IndexCore &s)

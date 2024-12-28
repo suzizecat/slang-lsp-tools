@@ -114,6 +114,8 @@ namespace diplomat::index
 
         IndexScope* get_scope_for_range(const IndexRange& loc, bool deep = false);
 
+        IndexScope* get_scope_by_name(const std::string_view& name);
+
         std::string get_full_path() const;
         std::string get_concrete_path() const;
 

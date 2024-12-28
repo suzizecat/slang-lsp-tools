@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include "fmt/format.h"
 #include <spdlog/spdlog.h>
+#include <slang/ast/types/DeclaredType.h>
+#include <slang/parsing/Token.h>
 
 using namespace slang::ast;
 
@@ -51,35 +53,50 @@ namespace diplomat::index {
 				spdlog::info("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 			}
 			else
-				spdlog::info("Skiped symbol without def  {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				spdlog::info("Skipped symbol without def {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 		}
 		
 		visitDefault(node);
 	}
 
-	void IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const bool is_virtual )
+	void IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const std::string_view& scope_name, const bool is_virtual )
 	{
 		const Symbol& s = node.asSymbol();
-		spdlog::info("Handling of scope {} of kind {}",s.name, slang::ast::toString(s.kind));
-		// if(! s.name.empty())
+		spdlog::info("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
+		// if(! scope_name.empty())
 		// {
-			_open_scope(s.name, is_virtual);
+			_open_scope(scope_name, is_virtual);
 
-			const auto* inst = node.getContainingInstance();
+			//const auto* inst = node.getContainingInstance();
 			const slang::syntax::SyntaxNode* stx = s.getSyntax(); //inst ? inst->getSyntax() : nullptr;
 			if(stx)
 			{
-				_index->get_file(_sm->getFileName(stx->sourceRange().start()))->register_scope(_current_scope());
-				_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
+				IndexFile* containing_file = _index->add_file(_sm->getFileName(stx->sourceRange().start()));
+
+				if(s.kind == slang::ast::SymbolKind::CompilationUnit)
+				{
+					containing_file->set_syntax_root(stx);
+				}
+				else
+				{
+					containing_file->register_scope(_current_scope());
+					_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
+				}
 			}
 
 			visitDefault(node);
-			_close_scope(s.name);
+			_close_scope(scope_name);
+	}
+
+	void IndexVisitor::_default_scope_handle(const slang::ast::Scope& node, const bool is_virtual)
+	{
+		_default_scope_handle(node,node.asSymbol().name,is_virtual);
 	}
 
 	void IndexVisitor::handle(const slang::ast::Scope& node)
 	{
-		_default_scope_handle(node);
+		bool is_virtual = node.asSymbol().kind != slang::ast::SymbolKind::InstanceBody;
+		_default_scope_handle(node,is_virtual);
 	}
 
 
@@ -102,4 +119,34 @@ namespace diplomat::index {
 	{
 		_default_symbol_handle(node);
 	}
-}
+	
+	void IndexVisitor::handle(const slang::ast::ParameterSymbol& node)
+	{
+		_default_symbol_handle(node);
+	}
+
+	void IndexVisitor::handle(const slang::ast::InstanceSymbol& node)
+	{
+		using namespace slang::syntax;
+
+		// When running into an instance, add the declared type to the scope of the instance.
+		// This allows adding the module name to a scope related to its source file easily.
+		const SyntaxNode* mod = node.body.getSyntax();
+		if(mod)
+		{
+			_open_scope(node.name,false);
+			const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
+			IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm});
+			_current_scope()->add_symbol(new_symb);
+
+			spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
+			
+			_close_scope(node.name);
+		}
+		_default_symbol_handle(node);
+		_default_scope_handle(node.body,node.name,false);
+
+		//visitDefault(node);
+	}
+	
+} // namespace diplomat::index

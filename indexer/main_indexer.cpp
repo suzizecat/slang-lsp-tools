@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
     
     /*
     slsp::IndexVisitor indexer(compilation->getSourceManager());
+    
     /*/
     diplomat::index::IndexVisitor indexer(compilation->getSourceManager());
     // */
@@ -72,26 +73,25 @@ int main(int argc, char** argv) {
     spdlog::stopwatch sw;
 
     root_symb.visit(indexer);
-
+    /*
+    slsp::DiplomatIndex* index = indexer.get_index();
+    /*/
     std::unique_ptr<diplomat::index::IndexCore> index = std::move(indexer.get_index());
 
+    for(const auto& file : index->get_indexed_files())
     {
-        for(auto& path : index->get_files())
         {
+            spdlog::info("Processing references for {}",file->get_path().generic_string());
+
+            auto stx = file->get_syntax_root();
+            if(stx)
             {
-                spdlog::info("Processing references for {}",path.generic_string());
-                // Ensure that the buffer is destroyed each time
-                slang::SourceManager curr_sm;
-                auto stx = slang::syntax::SyntaxTree::fromFile(path.generic_string(),curr_sm);
-                if(stx.has_value())
-                {
-                    diplomat::index::ReferenceVisitor ref_visitor(&curr_sm,index.get());
-                    stx.value()->root().visit(ref_visitor);
-                }
+                diplomat::index::ReferenceVisitor ref_visitor(compilation->getSourceManager(),index.get());
+                stx->visit(ref_visitor);
             }
         }
     }
-
+    //*/
     spdlog::info("Analysis done in {:.6} !",sw);
 
     if(output_file)

@@ -29,7 +29,7 @@ function(create_component NAME)
         endif()
 
         if(NOT DEFINED COMP_EXE_INC)
-            set(COMP_EXE_LINK "")
+            set(COMP_EXE_INC "")
         endif()
         
         list(PREPEND COMP_EXE_LINK PRIVATE ${NAME}-lib)
