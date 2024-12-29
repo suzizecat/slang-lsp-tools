@@ -46,7 +46,7 @@ namespace diplomat::index {
 	{
 		if(! node.isScope() && _current_scope() && ! node.name.empty())
 		{
-			//IndexSymbol* new_symb = _current_scope()->add_symbol(std::string(node.name));
+			
 			const slang::syntax::SyntaxNode* stx = node.getSyntax();
 			if(stx)
 			{
@@ -69,7 +69,7 @@ namespace diplomat::index {
 					
 		std::string_view used_scope_name = scope_name;
 
-		const slang::syntax::SyntaxNode* stx = s.getSyntax(); //inst ? inst->getSyntax() : nullptr;
+		const slang::syntax::SyntaxNode* stx = s.getSyntax(); 
 		if(stx)
 		{
 			IndexFile* containing_file = _index->add_file(_sm->getFileName(stx->sourceRange().start()));
@@ -133,11 +133,6 @@ namespace diplomat::index {
 		_default_symbol_handle(node);
 	}
 
-	// void IndexVisitor::handle(const slang::ast::PortSymbol& node)
-	// {
-	// 	_default_symbol_handle(node);
-	// }
-
 	void IndexVisitor::handle(const slang::ast::VariableSymbol& node)
 	{
 		_default_symbol_handle(node);
@@ -159,6 +154,7 @@ namespace diplomat::index {
 
 		const SyntaxNode* mod = node.body.getSyntax();
 		
+		// Visit the scope before the next code block in order to setup the scope.
 		_default_symbol_handle(node);
 		_default_scope_handle(node.body,node.name,false);
 
@@ -180,7 +176,7 @@ namespace diplomat::index {
 			_close_scope(module_scope->get_name());
 		}
 
-		//visitDefault(node);
+
 	}
 	
 } // namespace diplomat::index

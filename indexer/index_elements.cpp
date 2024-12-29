@@ -67,10 +67,7 @@ std::strong_ordering IndexLocation::operator<=>(const IndexLocation& rhs) const
 IndexRange::IndexRange(const slang::SourceRange& range, const slang::SourceManager& sm) :
 	start(range.start(),sm),
 	end(range.end(),sm)
-{
-	// start = IndexLocation();
-	// end = IndexLocation();
-}
+{}
 
 IndexRange::IndexRange(const slang::syntax::SyntaxNode& node, const slang::SourceManager& sm) :
 	IndexRange(node.sourceRange(),sm)

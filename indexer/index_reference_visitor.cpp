@@ -52,13 +52,11 @@ namespace diplomat::index
 			return false;
 
 		IndexRange node_loc(loc,*_sm);
+		
 		// This is most probably a cross-reference.
 		// Hence, the reference is situated at @loc while the symbol is elsewhere.
 		IndexFile* ref_file = _index->get_file(node_loc.start.file);
-		// IndexFile* parent_file = _index->get_file(main_symb->get_source() ? main_symb->get_source()->start.file : "UNDEF");
-		// if(! parent_file)
-		// 	return false;
-
+		
 		ref_file->add_reference(main_symb,node_loc);
 
 		return true;

@@ -9,8 +9,7 @@
 #include <stack>
 #include "spdlog/spdlog.h"
 #include "spdlog/stopwatch.h"
-#include "diplomat_index.hpp"
-#include "visitor_index.hpp"
+
 #include "nlohmann/json.hpp"
 
 
@@ -63,25 +62,13 @@ int main(int argc, char** argv) {
 
     auto definitions = compilation->getDefinitions();
     
-    // if(compilation->isFinalized())
-    // {
-    //     std::cout << "Design has been compiled properly" << std::endl;
-    // }
-    
-    /*
-    slsp::IndexVisitor indexer(compilation->getSourceManager());
-    
-    /*/
-    diplomat::index::IndexVisitor indexer(compilation->getSourceManager());
-    // */
-    //root_symb.visit(vis);
 
+    diplomat::index::IndexVisitor indexer(compilation->getSourceManager());
+    
     spdlog::stopwatch sw;
 
     root_symb.visit(indexer);
-    /*
-    slsp::DiplomatIndex* index = indexer.get_index();
-    /*/
+   
     std::unique_ptr<diplomat::index::IndexCore> index = std::move(indexer.get_index());
 
     for(const auto& file : index->get_indexed_files())
@@ -97,7 +84,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    //*/
+
     spdlog::info("Analysis done in {:.6} !",sw);
 
     if(output_file)

@@ -1,8 +1,6 @@
 create_component(sv-indexer 
 LIB_SRC 
     PRIVATE indexer/index_elements.cpp
-    # PRIVATE indexer/diplomat_index.cpp
-    # PRIVATE indexer/visitor_index.cpp
     PRIVATE indexer/index_symbols.cpp
     PRIVATE indexer/index_file.cpp
     PRIVATE indexer/index_scope.cpp

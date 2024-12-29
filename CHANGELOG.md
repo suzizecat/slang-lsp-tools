@@ -1,4 +1,10 @@
-# Changelog
+# 0.3.0-dev
+
+## Changed
+
+ - Full rework of the indexer
+
+# 0.2.1
 
 ## Added
 
