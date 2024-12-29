@@ -110,6 +110,24 @@ namespace diplomat::index {
 
 	}
 
+	std::vector<const IndexSymbol*> IndexScope::get_visible_symbols() const
+	{
+		const IndexScope* lu_scope = this;
+		std::vector<const IndexSymbol*> ret;
+		do {
+			for(auto& symb : std::views::values(lu_scope->_content))
+			{
+				ret.push_back(symb);
+			}
+
+			if(lu_scope->get_parent_access())
+				lu_scope = lu_scope->_parent;
+		
+		} while (lu_scope->get_parent_access());
+
+		return ret;
+	}
+
 	IndexScope *IndexScope::get_scope_for_location(const IndexLocation &loc, bool deep)
 	{
 		if(deep)

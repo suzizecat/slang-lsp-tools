@@ -1,8 +1,12 @@
 # 0.3.0-dev
 
+## Added
+
+ - Added scope-aware completion.
+
 ## Changed
 
- - Full rework of the indexer
+ - Full rework of the indexer.
 
 # 0.2.1
 

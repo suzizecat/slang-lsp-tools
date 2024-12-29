@@ -43,9 +43,11 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::shared_ptr<DiplomatLSP> _this_shared;
 
+
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
         void _h_didOpenTextDocument(json params);
+        json _h_completion(slsp::types::CompletionParams params);
         json _h_formatting(json params);
         json _h_gotoDefinition(json params);
         json _h_references(json params);

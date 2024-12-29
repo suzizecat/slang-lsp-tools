@@ -47,6 +47,7 @@ namespace diplomat::index
 		};
 		
 		inline const std::optional<IndexRange>& get_source() const {return _source_range;};
+		inline const std::optional<IndexLocation> get_source_location() const {return _source_range ? _source_range->start : std::optional<IndexLocation>();};
 		inline const std::string& get_name() const {return _name;};
 		inline const std::unordered_set<IndexRange>& get_references() const {return _references_locations;};
 

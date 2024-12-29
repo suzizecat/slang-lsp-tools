@@ -77,7 +77,45 @@ void DiplomatLSP::_h_didOpenTextDocument(json _)
 {
 	DidOpenTextDocumentParams params =  _;
 	_save_client_uri(params.textDocument.uri);
-}   
+}
+
+json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
+{
+	CompletionList result;
+	result.isIncomplete = false;
+	_assert_index(true);
+
+	di::IndexLocation trigger_location = _lsp_to_index_location(params);
+	di::IndexScope* trigger_scope = _index->get_scope_by_position(trigger_location);
+
+	if(trigger_scope)
+	{
+		for(const di::IndexSymbol* symb : trigger_scope->get_visible_symbols() )
+		{
+			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
+				continue;
+
+			CompletionItem record;
+			record.label = symb->get_name();
+			result.items.push_back(record);
+		}
+	}
+	else
+	{
+		// Propose symbols from the whole file.
+		for(const auto& symb : _index->get_file(trigger_location.file)->get_symbols() )
+		{
+			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
+				continue;
+
+			CompletionItem record;
+			record.label = symb->get_name();
+			result.items.push_back(record);
+		}
+	}
+
+	return result;
+}
 
 json DiplomatLSP::_h_formatting(json _)
 {

@@ -154,6 +154,13 @@ namespace diplomat::index
         IndexSymbol* resolve_symbol(const std::string_view& path);
 
         /**
+         * @brief Get the visible symbols object from the current scope.
+         * This represent all symbols declared here and all symbols declared in parents.
+         * @return std::vector<const IndexSymbol*> the set of found symbols.
+         */
+        std::vector<const IndexSymbol*> get_visible_symbols() const;
+
+        /**
          * @brief Get the scope for position object
          * 
          * The scope should be the most specific scope for a given location
