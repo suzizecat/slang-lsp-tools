@@ -160,5 +160,13 @@ target_link_libraries(sv-tree
 PUBLIC slang::slang
 PRIVATE argparse::argparse)
 
+add_custom_target(full 
+DEPENDS 
+	sv-formatter-exe
+	sv-indexer-exe
+	sv-tree
+	sv-explorer-exe
+	slang-lsp)
+
 # target_include_directories(sv-explorer 
 # PRIVATE utils/ast_print)

@@ -53,13 +53,13 @@ std::strong_ordering IndexLocation::operator<=>(const IndexLocation& rhs) const
 {
 	if(rhs.file != file)
 		throw std::logic_error("Trying to compare position from different files");
-	if(rhs.line < line)
+	if(line < rhs.line)
 		return std::strong_ordering::less;
-	if(rhs.line > line)
+	if(line > rhs.line )
 		return std::strong_ordering::greater;
-	if(rhs.column < column)
+	if(column < rhs.column)
 		return std::strong_ordering::less;
-	if(rhs.column > column)
+	if(column > rhs.column)
 		return std::strong_ordering::greater;
 	return std::strong_ordering::equivalent;	
 }

@@ -1,5 +1,6 @@
 #include "include/index_symbols.hpp"
 #include "index_symbols.hpp"
+#include <spdlog/spdlog.h>
 
 namespace diplomat::index 
 {
@@ -29,6 +30,7 @@ namespace diplomat::index
 
 	void IndexSymbol::add_reference(IndexRange ref_location)
 	{
+		spdlog::debug("        Add reference to {} : {}",_name,ref_location.start.to_string());
 		_references_locations.insert(ref_location);
 	}
 

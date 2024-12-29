@@ -245,7 +245,7 @@ json DiplomatLSP::_h_gotoDefinition(json _)
 	} 
 	else
 	{
-		//log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a symbol from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+		log(slsp::types::MessageType::MessageType_Log, "Unable to get a symbol from position");
 		return {};
 	}
 	

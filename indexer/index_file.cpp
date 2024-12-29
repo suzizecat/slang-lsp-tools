@@ -64,7 +64,7 @@ namespace diplomat::index {
 		// Lookup method from https://stackoverflow.com/a/45426884
 		auto lu_result = _references.upper_bound(loc);
 		if(lu_result != _references.begin())
-			--lu_result;
+			lu_result--;
 		else
 			return nullptr;
 

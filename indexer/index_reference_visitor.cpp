@@ -11,11 +11,16 @@ namespace diplomat::index
 
 		IndexScope* ref_scope = parent_file->lookup_scope_by_range(node_loc);
 		if(! ref_scope)
+		{
+			spdlog::debug("        Reference dropped: missing scope");
 			return false;
-
+		}
 		IndexSymbol* main_symb = ref_scope->lookup_symbol(std::string(name));
 		if(! main_symb)
+		{
+			spdlog::debug("        Reference dropped: failed to find symbol {} from scope {}",name, ref_scope->get_full_path());
 			return false;
+		}
 
 		main_symb->add_reference(node_loc);
 		parent_file->add_reference(main_symb,node_loc);

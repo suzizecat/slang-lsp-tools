@@ -660,7 +660,7 @@ void DiplomatLSP::dump_index(json _)
     {
         fs::path opath = fs::absolute("./index_dump.json");
         std::ofstream ofile(opath);
-        ofile << std::setw(4) << _index->dump() << std::endl;
+        ofile << std::setw(4) << _index->dump().dump(4) << std::endl;
         show_message(MessageType_Info, "Index successfully dumped.");
         log(MessageType_Info, fmt::format("Index successfully dumped to {}.", opath.generic_string()));
         spdlog::info("Dumped internal index to {}",opath.generic_string());
