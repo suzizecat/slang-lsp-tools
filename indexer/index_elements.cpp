@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 
-
 namespace diplomat {
 	size_t hash_combine(size_t lhs, size_t rhs)
 	{
@@ -23,10 +22,18 @@ namespace diplomat::index
 	IndexLocation::IndexLocation() : line(0), column(0), file()
 	{}
 
+	IndexLocation::IndexLocation(const std::filesystem::path& file, std::size_t line,
+	                             std::size_t column) : 
+	line(line), 
+	column(column), 
+	file(std::filesystem::weakly_canonical(file))
+	{
+	}
+
 IndexLocation::IndexLocation(const slang::SourceLocation& loc, const slang::SourceManager& sm)
 {
 	slang::SourceLocation location = sm.getFullyOriginalLoc(loc);
-	file = sm.getFullPath(location.buffer());
+	file = std::filesystem::weakly_canonical(sm.getFullPath(location.buffer()));
 	line = sm.getLineNumber(location);
 	column = sm.getColumnNumber(location);
 }
@@ -34,6 +41,12 @@ IndexLocation::IndexLocation(const slang::SourceLocation& loc, const slang::Sour
 bool IndexLocation::operator==(const IndexLocation &rhs) const
 {
 	return rhs.line == line && rhs.column == column && rhs.file == file;
+}
+
+std::string index::IndexLocation::to_string() const
+{
+	return fmt::format("{}:{}:{}",file.generic_string(),line,column);
+;
 }
 
 std::strong_ordering IndexLocation::operator<=>(const IndexLocation& rhs) const
@@ -66,6 +79,14 @@ IndexRange::IndexRange(const slang::syntax::SyntaxNode& node, const slang::Sourc
 IndexRange::IndexRange(const slang::ast::Symbol& node, const slang::SourceManager& sm) :
 	IndexRange(*(node.getSyntax()),sm)
 {}
+
+index::IndexRange::IndexRange(const IndexLocation& base, std::size_t nchars, std::size_t nlines)
+{
+	start = base;
+	end = base;
+	end.column += nchars;
+	end.line += nlines;
+}
 
 bool IndexRange::contains(const IndexLocation& loc)
 {
@@ -109,7 +130,7 @@ bool IndexRange::operator==(const IndexRange &rhs) const
 
 void to_json(nlohmann::json &j, const IndexLocation &s)
 {
-	j = fmt::format("{}:{}:{}",s.file.generic_string(),s.line,s.column);
+	j = s.to_string();
 	// j = nlohmann::json{
 	// 	{"f",s.file.generic_string()},
 	// 	{"l",s.line},

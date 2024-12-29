@@ -63,6 +63,27 @@ namespace diplomat::index {
 		
 	}
 
+	IndexSymbol* IndexScope::resolve_symbol(const std::string_view& path)
+	{
+		std::size_t dot_pos = path.find('.');
+		// npos => not found
+		if(std::string::npos == dot_pos)
+			return lookup_symbol(std::string(path),true);
+		else
+		{
+			std::string_view direct_lu = path.substr(0,dot_pos);
+			IndexScope* next_scope;
+			if((next_scope = get_scope_by_name(direct_lu)) != nullptr)
+			{
+				std::string_view remaining_path = path.substr(dot_pos+1);
+				return next_scope->resolve_symbol(remaining_path);
+			}
+			else
+				return nullptr;
+		}
+
+	}
+
 	IndexScope *IndexScope::get_scope_for_location(const IndexLocation &loc, bool deep)
 	{
 		if(deep)

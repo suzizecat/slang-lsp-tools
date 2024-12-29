@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <ranges>
 
 #include <slang/syntax/SyntaxNode.h>
 namespace diplomat::index      
@@ -46,7 +47,11 @@ namespace diplomat::index
         IndexScope* lookup_scope_by_range(const IndexRange& loc);
         IndexScope* lookup_scope_by_location(const IndexLocation& loc);
 
-        void add_reference(IndexSymbol* symb, IndexRange& range );
+        IndexSymbol* lookup_symbol_by_location(const IndexLocation& loc);
+
+        void add_reference(IndexSymbol* symb, const IndexRange& range );
+        inline const std::map<IndexLocation, ReferenceRecord>& get_references() const {return _references;};
+        inline auto get_symbols() const {return std::views::values(_declarations);};
 
         inline void set_syntax_root(const slang::syntax::SyntaxNode* node ) {_syntax_root = node;};
         inline const slang::syntax::SyntaxNode* get_syntax_root() const {return _syntax_root.value_or(nullptr);};

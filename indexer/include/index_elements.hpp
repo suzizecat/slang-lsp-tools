@@ -81,11 +81,13 @@ namespace index
 		std::filesystem::path file;
 
 		IndexLocation(); // Required for easy JSON serialization
+		IndexLocation(const std::filesystem::path& file, std::size_t line, std::size_t column);
 		explicit IndexLocation(const slang::SourceLocation& loc, const slang::SourceManager& sm);
 
 		bool operator==(const IndexLocation& rhs) const;
 		std::strong_ordering operator<=>(const IndexLocation& rhs) const;
 
+		std::string to_string() const;
 
 	};
 
@@ -98,7 +100,9 @@ namespace index
 		IndexRange(const slang::SourceRange& range, const slang::SourceManager& sm);
 		IndexRange(const slang::syntax::SyntaxNode& node, const slang::SourceManager& sm);
 		IndexRange(const slang::ast::Symbol& node, const slang::SourceManager& sm);
+		IndexRange(const IndexLocation& base, std::size_t nchars, std::size_t nlines = 0);
 		
+
 		bool contains(const IndexLocation& loc);
 		bool contains(const IndexRange& loc);
 

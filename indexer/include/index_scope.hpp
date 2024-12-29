@@ -101,6 +101,8 @@ namespace diplomat::index
          */
         IndexSymbol* lookup_symbol(const std::string& name, bool strict = false);
 
+        IndexSymbol* resolve_symbol(const std::string_view& path);
+
         /**
          * @brief Get the scope for position object
          * 

@@ -1,11 +1,13 @@
 #pragma once
 
 #include "lsp.hpp"
+#include "index_core.hpp"
 #include "lsp_errors.hpp"
 #include "sv_document.hpp"
 #include "diagnostic_client.hpp"
 #include "diplomat_lsp_ws_settings.hpp"
-#include "diplomat_index.hpp"
+// #include "diplomat_index.hpp"
+
 
 #include "nlohmann/json.hpp"
 
@@ -102,7 +104,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
 
-        std::unique_ptr<slsp::DiplomatIndex> _index;
+        std::unique_ptr<diplomat::index::IndexCore> _index;
 
 
         bool _project_file_tree_valid;
@@ -119,6 +121,9 @@ class DiplomatLSP : public slsp::BaseLSP
         // Needs line-col -> offset which is a bit tricky to do
         // Needs filepath -> BufferID() which is tricky.
         // slang::SourceRange _lsp_to_slang_location(const slsp::types::Location& loc) const;
+
+        static diplomat::index::IndexLocation _lsp_to_index_location(const slsp::types::TextDocumentPositionParams& loc);
+        slsp::types::Location _index_range_to_lsp(const diplomat::index::IndexRange& loc) const;
 
         void _add_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_add);
         void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);

@@ -18,7 +18,8 @@
 #include "types/structs/RegistrationParams.hpp" 
 #include "types/structs/Registration.hpp" 
 
-#include "visitor_index.hpp"
+#include "index_visitor.hpp"
+#include "index_reference_visitor.hpp"
 
 // UNIX only header
 #include <wait.h>
@@ -206,10 +207,28 @@ void DiplomatLSP::_erase_diagnostics()
 
 }
 
+diplomat::index::IndexLocation DiplomatLSP::_lsp_to_index_location(const slsp::types::TextDocumentPositionParams& loc)
+{
+    fs::path source_path = fs::path("/" + uri(loc.textDocument.uri).get_path());
+	return diplomat::index::IndexLocation(source_path,loc.position.line +1, loc.position.character +1);
+}
+
+slsp::types::Location DiplomatLSP::_index_range_to_lsp(const diplomat::index::IndexRange& loc) const
+{
+    slsp::types::Location result;
+    result.range.start.line      = loc.start.line -1;
+    result.range.start.character = loc.start.column -1;
+    
+    result.range.end.line      = loc.end.line -1;
+    result.range.end.character = loc.end.column -1;
+    result.uri = get_file_uri(loc.start.file).to_string();
+    return result;
+}
+
 /**
  * @brief Add folders to Diplomat's workspace, provided by the LSP client.
  * Those folders will be scanned for source files.
- * 
+ *
  * @param to_add list of WorkspaceFolders, provided by a client, to be included in the workspace.
  */
 void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_add)
@@ -510,12 +529,29 @@ void DiplomatLSP::_compile()
     _emit_diagnostics();
 
     spdlog::info("Run indexer");
-    slsp::IndexVisitor idx_visit(_compilation->getSourceManager());
+    
+   diplomat::index::IndexVisitor idx_visit(_compilation->getSourceManager());
     try
     {
+        spdlog::info("Processing symbols and hierarchy");
         _compilation->getRoot().visit(idx_visit);
-        spdlog::info("Indexer visit done");
-        _index = std::move(idx_visit.extract_index());
+        _index = std::move(idx_visit.get_index());
+        spdlog::info("Processing references");
+
+        for(const auto& file : _index->get_indexed_files())
+        {
+            {
+                spdlog::info("Processing references for {}",file->get_path().generic_string());
+
+                auto stx = file->get_syntax_root();
+                if(stx)
+                {
+                    diplomat::index::ReferenceVisitor ref_visitor(_compilation->getSourceManager(),_index.get());
+                    stx->visit(ref_visitor);
+                }
+            }
+        }
+
         if(_broken_index_emitted)
         {
             log(MessageType_Info, "Index restored");

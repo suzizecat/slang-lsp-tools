@@ -33,6 +33,15 @@ namespace diplomat::index {
 		return _files.at(lookup_path).get();
 	}
 
+	const IndexFile* IndexCore::get_file(const std::filesystem::path& path) const
+	{
+		std::filesystem::path lookup_path = std::filesystem::weakly_canonical(path);
+		if(! _files.contains(lookup_path))
+			return nullptr;
+
+		return _files.at(lookup_path).get();
+	}
+
 	IndexSymbol *IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range)
 	{
 		IndexFile* f = add_file(src_range.start.file);
@@ -48,6 +57,11 @@ namespace diplomat::index {
 			return _files.at(pos.file)->lookup_scope_by_location(pos);
 	}
 
+	const IndexSymbol* IndexCore::get_symbol_by_position(const IndexLocation& pos)
+	{
+		IndexFile* ref_file = get_file(pos.file);
+		return ref_file->lookup_symbol_by_location(pos);
+	}
 
 	void to_json(nlohmann::json &j, const IndexCore &s)
 	{

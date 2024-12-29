@@ -101,9 +101,9 @@ lsp-server/diplomat/src/diplomat_lsp_binds.cpp
 lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
 lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
-lsp-server/diplomat/src/visitor_index.cpp
+#lsp-server/diplomat/src/visitor_index.cpp
 lsp-server/diplomat/src/diagnostic_client.cpp
-lsp-server/diplomat/src/diplomat_index.cpp
+#lsp-server/diplomat/src/diplomat_index.cpp
 )
 
 target_compile_definitions(slang-lsp PUBLIC DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\")
@@ -113,7 +113,8 @@ target_precompile_headers(slang-lsp PRIVATE ${SVLS_GEN_HEADERS})
 target_include_directories(slang-lsp 
 PRIVATE lsp-server/include
 PRIVATE lsp-server/diplomat/include
-PRIVATE $<TARGET_PROPERTY:sv-indexer-lib,INTERFACE_INCLUDE_DIRECTORIES>)
+#PRIVATE $<TARGET_PROPERTY:sv-indexer-lib,INTERFACE_INCLUDE_DIRECTORIES>
+)
 
 target_link_libraries(slang-lsp 
 PRIVATE argparse::argparse
@@ -124,7 +125,7 @@ PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
 PRIVATE sv-formatter-lib
 PRIVATE sv-explorer-lib
-# PRIVATE sv-indexer-lib
+PRIVATE sv-indexer-lib
 PUBLIC slang::slang
 )
 

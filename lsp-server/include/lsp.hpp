@@ -19,6 +19,9 @@
 #include <optional>
 #include <vector>
 
+// For adl_serializer<std::optional<T>>
+#include "index_elements.hpp"
+
 #include "types/enums/TraceValues.hpp"
 #include "types/enums/MessageType.hpp"
 #include "types/structs/ServerCapabilities.hpp"

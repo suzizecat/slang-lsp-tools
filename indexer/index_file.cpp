@@ -11,7 +11,12 @@ namespace diplomat::index {
 	{
 
 		if(! _declarations.contains(location))
+		{
 			_declarations.emplace(location,std::make_unique<IndexSymbol>(std::string(name),location));
+			
+			// Also add the definition in the reference table for lookup by position.
+			add_reference(_declarations.at(location).get(),location);
+		}
 		return _declarations.at(location).get();
 	}
 
@@ -42,7 +47,24 @@ namespace diplomat::index {
 		return nullptr;
 	}
 
-	void IndexFile::add_reference(IndexSymbol* symb, IndexRange& range)
+	IndexSymbol* IndexFile::lookup_symbol_by_location(const IndexLocation& loc)
+	{
+		// Lookup method from https://stackoverflow.com/a/45426884
+		auto lu_result = _references.upper_bound(loc);
+		if(lu_result != _references.begin())
+			--lu_result;
+		else
+			return nullptr;
+
+		if(lu_result->second.loc.contains(loc))
+		{
+			return lu_result->second.key;
+		}
+		else
+			return nullptr;
+	}
+
+	void IndexFile::add_reference(IndexSymbol* symb, const IndexRange& range)
 	{
 		assert(range.start.file == _filepath);
 		if(! _references.try_emplace(range.start,range,symb).second)

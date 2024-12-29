@@ -36,6 +36,7 @@
 using namespace slsp::types;
 
 namespace fs = std::filesystem;
+namespace di = diplomat::index;
 
 // trim from start (in place)
 inline void ltrim(std::string &s) {
@@ -232,99 +233,178 @@ json DiplomatLSP::_h_gotoDefinition(json _)
 	slsp::types::DefinitionParams params = _;
 	slsp::types::Location result;
 
-	fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+	const di::IndexLocation lu_location = _lsp_to_index_location(params);
+	const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
 
-	auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1 , params.position.character +1);
-	if (syntax)
+	if(lu_symb)
 	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
-		slang::SourceRange return_range = _index->get_definition(syntax->range());
-		spdlog::info("Found definition.");
 
-		return _slang_to_lsp_location(return_range);
-	}
+		log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookuped up definition for {}", lu_symb->get_name()));
+		// If Symbol has been looked up, it has a source, hence no check.
+		return _index_range_to_lsp(lu_symb->get_source().value());
+	} 
 	else
 	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-		spdlog::info("Definition not found.");
+		//log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a symbol from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
 		return {};
 	}
+	
+	
+	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1 , params.position.character +1);
+	// if (syntax)
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+	// 	slang::SourceRange return_range = _index->get_definition(syntax->range());
+	// 	spdlog::info("Found definition.");
+
+	// 	return _slang_to_lsp_location(return_range);
+	// }
+	// else
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	spdlog::info("Definition not found.");
+	// 	return {};
+	// }
 }
 
 
 json DiplomatLSP::_h_references(json _)
 {
+
+
 	if (!_assert_index())
 		return {};
+	
 	slsp::types::DefinitionParams params = _;
-	slsp::types::Location result;
 
-	fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+	const di::IndexLocation lu_location = _lsp_to_index_location(params);
+	const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
 
-	auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
-	if (syntax)
+	if(lu_symb)
 	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-		std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
-		spdlog::info("Found references.");
-
 		std::vector<Location> result;
-		for(const auto& range : return_range)
-			result.push_back(_slang_to_lsp_location(range));
-		
+		for(const auto& range : lu_symb->get_references())
+		{
+			result.push_back(_index_range_to_lsp(range));
+		}
+
 		return result;
 	}
-	else
-	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-		spdlog::info("References not found.");
-		return {};
-	}
+
+	return {};
+
+
+	// if (!_assert_index())
+	// 	return {};
+	// slsp::types::DefinitionParams params = _;
+	// slsp::types::Location result;
+
+	// fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+
+	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
+	// if (syntax)
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
+	// 	spdlog::info("Found references.");
+
+	// 	std::vector<Location> result;
+	// 	for(const auto& range : return_range)
+	// 		result.push_back(_slang_to_lsp_location(range));
+		
+	// 	return result;
+	// }
+	// else
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	spdlog::info("References not found.");
+	// 	return {};
+	// }
 }
 
 json DiplomatLSP::_h_rename(json _)
 {
-	_assert_index(true);
-	slsp::types::RenameParams params = _;
-	slsp::types::WorkspaceEdit result;
 
-	fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+		_assert_index(true);
+		
+		slsp::types::RenameParams params = _;
+		slsp::types::WorkspaceEdit result;
 
-	auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
-	if (syntax)
-	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+		const di::IndexLocation lu_location = _lsp_to_index_location(params);
+		const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
 
-		slang::SourceRange origin_sr = CONST_TOKNODE_SR(*syntax);
-		int origin_len = origin_sr.end() - origin_sr.start();
-
-		std::vector<slang::SourceRange> return_range = _index->get_references(origin_sr);
-		spdlog::info("Perform rename.");
-
-		std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
-
-		for(const auto& range : return_range)
+		if(lu_symb)
 		{
-			slsp::types::Location edit_change = _slang_to_lsp_location(range);
-			if (! edits.contains(edit_change.uri))
-				edits[edit_change.uri] = {};
 
-			edits.at(edit_change.uri).push_back(
+			std::size_t curr_name_len = lu_symb->get_name().size();
+			std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
+
+			std::vector<Location> result;
+			for(const auto& range : lu_symb->get_references())
+			{
+				slsp::types::Location edit_location = _index_range_to_lsp(range);
+				
+				if (! edits.contains(edit_location.uri))
+					edits[edit_location.uri] = {};
+
+				edits.at(edit_location.uri).push_back(
 				slsp::types::TextEdit{
-					edit_change.range,
-					fmt::format("{:{}s}",params.newName,origin_len)
+					edit_location.range,
+					fmt::format("{:{}s}",params.newName,curr_name_len)
 				}
 			);
+				
+			}
+
+			return result;
 		}
-		result.changes = edits;
-		return result;
-	}
-	else
-	{
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
-		spdlog::info("References not found.");
-		throw slsp::lsp_request_failed_exception("Selected area did not returned a significant syntax node.");
-	}
+
+		throw slsp::lsp_request_failed_exception("Selected area did not returned a significant symbol");
+		return {}; // To avoid missing return
+
+
+	
+	// _assert_index(true);
+	// slsp::types::RenameParams params = _;
+	// slsp::types::WorkspaceEdit result;
+
+	// fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
+
+	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
+	// if (syntax)
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+
+	// 	slang::SourceRange origin_sr = CONST_TOKNODE_SR(*syntax);
+	// 	int origin_len = origin_sr.end() - origin_sr.start();
+
+	// 	std::vector<slang::SourceRange> return_range = _index->get_references(origin_sr);
+	// 	spdlog::info("Perform rename.");
+
+	// 	std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
+
+	// 	for(const auto& range : return_range)
+	// 	{
+	// 		slsp::types::Location edit_change = _slang_to_lsp_location(range);
+	// 		if (! edits.contains(edit_change.uri))
+	// 			edits[edit_change.uri] = {};
+
+	// 		edits.at(edit_change.uri).push_back(
+	// 			slsp::types::TextEdit{
+	// 				edit_change.range,
+	// 				fmt::format("{:{}s}",params.newName,origin_len)
+	// 			}
+	// 		);
+	// 	}
+	// 	result.changes = edits;
+	// 	return result;
+	// }
+	// else
+	// {
+	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	spdlog::info("References not found.");
+	// 	throw slsp::lsp_request_failed_exception("Selected area did not returned a significant syntax node.");
+	// }
 }
 
 
@@ -465,30 +545,24 @@ json DiplomatLSP::_h_resolve_hier_path(json params)
 	// Params will be a list of hier paths to resolve.
 	json ret;
 	if(! _assert_index())
-	{
 		return ret;
-	}
+	
 	const auto& design_root = _compilation->getRoot();
 	for (const std::string& path: params)
 	{
 		spdlog::debug("Resolve path {}",path);
-		auto bracket_pos = path.find('[');
 
-		const slang::ast::Symbol* match = std::string::npos == bracket_pos ? design_root.lookupName(path) : design_root.lookupName(path.substr(0,bracket_pos));
-		if(match == nullptr)
+		di::IndexSymbol* lu_result = _index->get_root_scope()->resolve_symbol(path);
+
+		if(! lu_result)
 		{
 			spdlog::debug("Resolution yielded no result");
 			ret[path] = nullptr;
-			continue;
 		}
-
-		const slang::syntax::SyntaxNode* stx = match->getSyntax();
-		const slang::SourceRange target = _index->get_definition(stx->sourceRange());
-		
-		if (target == slang::SourceRange::NoLocation)
-			ret[path] = nullptr;
-		else 
-			ret[path] = _slang_to_lsp_location(target);
+		else
+		{
+			ret[path] = _index_range_to_lsp(lu_result->get_source().value());
+		}
 	}
 
 	return ret;
@@ -559,45 +633,67 @@ void DiplomatLSP::_h_update_configuration(json &params)
 json DiplomatLSP::_h_list_symbols(json& params)
 {
 	std::string path = params.at(0);
-	auto* compilation = get_compilation();
-	const slang::ast::Symbol* lookup_result = compilation->getRoot().lookupName(path);
-	const slang::ast::Scope* scope;
+	std::map<std::string,std::vector<slsp::types::Range>> ret;
+	
+	const di::IndexFile* lu_file = _index->get_file(path);
 
-	if( lookup_result->kind == slang::ast::SymbolKind::Instance )
-		lookup_result = &(lookup_result->as<slang::ast::InstanceSymbol>().body);
+	if(! lu_file)
+		return ret;
 
-	if(! lookup_result->isScope())
-		scope = lookup_result->getParentScope();
-	else
-		scope = &(lookup_result->as<slang::ast::Scope>());
+	const std::map<di::IndexLocation, di::ReferenceRecord>& refs = lu_file->get_references();
 
-	spdlog::info("Request design list of symbol for path {}", path);
-	const slang::ast::InstanceBodySymbol* target_instance_body = scope->getContainingInstance();
-
-	if (!target_instance_body)
-		throw slsp::lsp_request_failed_exception("Failed to lookup the required instance");
-
-	std::filesystem::path file_for_index_lookup = _module_to_file.at(std::string(target_instance_body->name));
-
-	std::unordered_map<std::string,std::vector<slsp::types::Range>> ret;
-	for (const slang::syntax::ConstTokenOrSyntax& tok : _index->get_symbols_tok_from_file(file_for_index_lookup))
+	for(const auto& symbol : lu_file->get_symbols())
 	{
-		std::string name = std::string(tok.isNode() ? tok.node()->getFirstToken().valueText() : tok.token().valueText());
-		trim(name);
-
-		if (!name.empty())
-		{
-			slsp::types::Range tok_range = _slang_to_lsp_location(tok.range()).range;
-
-			if (!ret.contains(name))
-				ret[name] = { tok_range };
-			else
-				ret[name].push_back(tok_range);
-			
-			
-			spdlog::debug("    Return {}", name);
-		}
+		ret[symbol->get_name()] = {};
 	}
+
+	for(const auto& [loc, refrec] : refs)
+	{
+		di::IndexRange ref_range(loc,refrec.key->get_name().size());
+		ret.at(refrec.key->get_name()).push_back(_index_range_to_lsp(ref_range).range);
+	}
+
+
+	
+	// auto* compilation = get_compilation();
+	// const slang::ast::Symbol* lookup_result = compilation->getRoot().lookupName(path);
+	// const slang::ast::Scope* scope;
+
+	// if( lookup_result->kind == slang::ast::SymbolKind::Instance )
+	// 	lookup_result = &(lookup_result->as<slang::ast::InstanceSymbol>().body);
+
+	// if(! lookup_result->isScope())
+	// 	scope = lookup_result->getParentScope();
+	// else
+	// 	scope = &(lookup_result->as<slang::ast::Scope>());
+
+	// spdlog::info("Request design list of symbol for path {}", path);
+	// const slang::ast::InstanceBodySymbol* target_instance_body = scope->getContainingInstance();
+
+	// if (!target_instance_body)
+	// 	throw slsp::lsp_request_failed_exception("Failed to lookup the required instance");
+
+	// std::filesystem::path file_for_index_lookup = _module_to_file.at(std::string(target_instance_body->name));
+
+	// std::unordered_map<std::string,std::vector<slsp::types::Range>> ret;
+	// for (const slang::syntax::ConstTokenOrSyntax& tok : _index->get_symbols_tok_from_file(file_for_index_lookup))
+	// {
+	// 	std::string name = std::string(tok.isNode() ? tok.node()->getFirstToken().valueText() : tok.token().valueText());
+	// 	trim(name);
+
+	// 	if (!name.empty())
+	// 	{
+	// 		slsp::types::Range tok_range = _slang_to_lsp_location(tok.range()).range;
+
+	// 		if (!ret.contains(name))
+	// 			ret[name] = { tok_range };
+	// 		else
+	// 			ret[name].push_back(tok_range);
+			
+			
+	// 		spdlog::debug("    Return {}", name);
+	// 	}
+	// }
 
 	return ret;
 }
