@@ -30,10 +30,12 @@ int main(int argc, char** argv) {
 
     std::optional<bool> showHelp;
     std::optional<bool> showVersion;
+    std::optional<bool> verbose;
     std::optional<std::string> output_file;
     driver.cmdLine.add("-h,--help", showHelp, "Display available options");
     driver.cmdLine.add("--version", showVersion, "Display version information and exit");
     driver.cmdLine.add("-o,--output",output_file, "Output file for the index");
+    driver.cmdLine.add("--verbose",verbose, "Enable verbose mode");
 
     if (!driver.parseCommandLine(argc, argv))
         return 1;
@@ -43,6 +45,10 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    if(verbose.value_or(false))
+    {
+        spdlog::set_level(spdlog::level::debug);
+    }
    
 
     if (!driver.processOptions())

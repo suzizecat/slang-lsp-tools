@@ -90,13 +90,13 @@ namespace diplomat::index {
 
 				if(duplicate) 
 				{
-					_open_scope(duplicate->get_name());
+					_open_scope(duplicate->get_name(),is_virtual);
 					used_scope_name = duplicate->get_name();
 					spdlog::info("Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
 				}
 				else
 				{
-					_open_scope(scope_name);
+					_open_scope(scope_name,is_virtual);
 					_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
 					
 					containing_file->register_scope(_current_scope());
