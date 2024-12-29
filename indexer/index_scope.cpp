@@ -1,6 +1,6 @@
 #include "index_scope.hpp"
-
-//#include "fmt/format.h"
+#include <ranges>
+#include "fmt/format.h"
 
 
 
@@ -16,22 +16,29 @@ struct std::hash<diplomat::index::IndexScope>
 
 namespace diplomat::index {
 
-    IndexScope::IndexScope(std::string name, bool is_virtual) : 
+
+	IndexScope::IndexScope(std::string name, bool is_virtual, bool anonymous) : 
     _name(name),
     _is_virtual(is_virtual),
-    _parent(nullptr)
+    _parent(nullptr),
+	_anonymous(anonymous),
+	_unnamed_count(0)
     {
     }
 
 	IndexScope* IndexScope::add_child(const std::string& name, const bool isvirtual)
 	{
-		if(_children.contains(name))
-			return _children.at(name).get();
+		std::string used_name = name;
+		if(name.empty())
+			used_name = fmt::format("unnamed{}",_unnamed_count++);
+
+		if(_children.contains(used_name))
+			return _children.at(used_name).get();
 		
-		std::unique_ptr<IndexScope> up = std::make_unique<IndexScope>(name, isvirtual);
+		std::unique_ptr<IndexScope> up = std::make_unique<IndexScope>(used_name, isvirtual, name.empty());
 		IndexScope* elt = up.get();
 		up->_parent = this;
-		_children[name] = std::move(up);
+		_children[used_name] = std::move(up);
 
 		// Once the hierarchical path is built, (re)compute the hash value.
 		elt->compute_hash_value();
@@ -122,38 +129,44 @@ namespace diplomat::index {
 
 	IndexScope *IndexScope::get_scope_for_range(const IndexRange &loc, bool deep)
 	{
+		// Preliminary check, for fast exact maching test
+		if(_source_range && loc == _source_range)
+			return this;
+
 		if(deep)
 		{
 			IndexScope* ret;
 			for(auto& [key, value] : _children)
 			{
-				ret = value->get_scope_for_range(loc);
+				ret = value->get_scope_for_range(loc,true);
 				if(ret != nullptr)
 					return ret;
 			}
-			
-			if( _source_range && _source_range.value().contains(loc))
-				return this;
-			else
-				return nullptr;
 		}
 		else
 		{
-			if(! _source_range || ! _source_range.value().contains(loc))
-				return nullptr;
-			else
+			for(auto& [key, value] : _children)
 			{
-				IndexScope* ret;
-				for(auto& [key, value] : _children)
-				{
-					ret = value->get_scope_for_range(loc);
-					if(ret != nullptr)
-						return ret;
-				}
-					
-				return this;
+				if(value->_source_range && value->_source_range.value().contains(loc))
+					return value.get();
 			}
 		}
+
+		// Finally, if the target range is not found in a child scope, check
+		// if it is included in self.
+		if( _source_range && _source_range.value().contains(loc))
+				return this;
+			else
+				return nullptr;
+	}
+
+	IndexScope* IndexScope::get_child_by_exact_range(const IndexRange& loc)
+	{
+		for(auto& child : std::views::values(_children))
+			if(child->get_source_range() && child->get_source_range().value() == loc)
+				return child.get();
+
+		return nullptr;
 	}
 
 	IndexScope* IndexScope::get_scope_by_name(const std::string_view& name)
@@ -192,6 +205,27 @@ namespace diplomat::index {
 			
 	}
 
+
+	void IndexScope::_build_concrete_children(std::set<IndexScope*>& ret_holder, bool is_root)
+	{
+		// If we are running the first iteration, we don't want to return ourself.
+		if(! is_root && ! _is_virtual )
+			ret_holder.insert(this);
+		else
+		{
+			for(auto& child : std::views::values(_children))
+				child->_build_concrete_children(ret_holder,false);
+		}
+	}
+
+
+	std::set<IndexScope*> IndexScope::get_concrete_children()
+	{
+		std::set<IndexScope*> ret;
+		_build_concrete_children(ret);
+		return ret;
+	}
+
 	size_t IndexScope::compute_hash_value()
 	{
 		_hash_value = std::hash<std::string>{}(get_full_path());
@@ -203,10 +237,13 @@ namespace diplomat::index {
 {
 
 	j = nlohmann::json{
+		#ifdef DIPLOMAT_DEBUG
+		{"_kind",s._kind},
+		#endif
 		{"name",s._name},
 		{"def",s._source_range},
 		{"virtual",s._is_virtual},
-		{"sub",s._children}
+		{"children",s._children}
 	};
 
 

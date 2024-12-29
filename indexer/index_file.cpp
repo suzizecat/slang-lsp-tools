@@ -7,17 +7,19 @@ namespace diplomat::index {
 		_filepath = std::filesystem::weakly_canonical(path);
 	}
 
-	IndexSymbol *IndexFile::add_symbol(const std::string_view &name, const IndexRange &location)
+	IndexSymbol *IndexFile::add_symbol(const std::string_view &name, const IndexRange &location, const std::string_view& kind)
 	{
 
-		if(! _declarations.contains(location))
+		auto [eltpair, inserted] = _declarations.emplace(location,std::make_unique<IndexSymbol>(std::string(name),location));
+		if(inserted)
 		{
-			_declarations.emplace(location,std::make_unique<IndexSymbol>(std::string(name),location));
-			
-			// Also add the definition in the reference table for lookup by position.
-			add_reference(_declarations.at(location).get(),location);
+			#ifdef DIPLOMAT_DEBUG
+			eltpair->second->set_kind(kind);
+			#endif
+			add_reference(eltpair->second.get(), eltpair->first);
 		}
-		return _declarations.at(location).get();
+
+		return eltpair->second.get();
 	}
 
 	void IndexFile::register_scope(IndexScope *_scope)
@@ -32,6 +34,16 @@ namespace diplomat::index {
 		{
 			if((ret = scope->get_scope_for_range(range)) != nullptr)
 				return ret;
+		}
+		return nullptr;
+	}
+
+	IndexScope* IndexFile::lookup_scope_by_exact_range(const IndexRange& loc)
+	{
+		for(auto&  scope : std::views::values(_scopes))
+		{
+			if(loc == scope->get_source_range())
+				return scope;
 		}
 		return nullptr;
 	}
@@ -69,7 +81,7 @@ namespace diplomat::index {
 		assert(range.start.file == _filepath);
 		if(! _references.try_emplace(range.start,range,symb).second)
 		{
-			spdlog::error("Failed to insert a reference to {}", symb->get_name());
+			spdlog::warn("Failed to insert a reference to {}", symb->get_name());
 		}
 
 	}

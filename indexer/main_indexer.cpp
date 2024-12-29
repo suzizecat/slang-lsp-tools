@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 
     auto compilation = driver.createCompilation();
         
-    driver.reportCompilation(*compilation, /* quiet */ false);
+    ok &= driver.reportCompilation(*compilation, /* quiet */ false);
     const ast::RootSymbol&  root_symb = compilation->getRoot();
 
     auto definitions = compilation->getDefinitions();

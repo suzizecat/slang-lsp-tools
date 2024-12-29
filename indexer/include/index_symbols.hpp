@@ -24,6 +24,10 @@ namespace diplomat::index
 		std::optional<IndexRange> _source_range;
 		std::unordered_set<IndexRange> _references_locations;
 
+		#ifdef DIPLOMAT_DEBUG
+		std::string_view _kind;
+		#endif
+
 	public : 
 		IndexSymbol() = default;
 		IndexSymbol(const std::string& name);
@@ -35,6 +39,12 @@ namespace diplomat::index
 
 		void add_reference(IndexRange ref_location);
 		void set_source(const IndexRange& new_source);
+
+		inline void set_kind(const std::string_view& kind) {
+			#ifdef DIPLOMAT_DEBUG
+			_kind = kind;
+			#endif
+		};
 		
 		inline const std::optional<IndexRange>& get_source() const {return _source_range;};
 		inline const std::string& get_name() const {return _name;};

@@ -42,6 +42,9 @@ namespace diplomat::index
 void diplomat::index::to_json(nlohmann::json &j, const IndexSymbol &s)
 {
 	j = nlohmann::json{
+		#ifdef DIPLOMAT_DEBUG
+		{"kind", s._kind},
+		#endif
 		{"id",s._name},
 		{"loc",s._source_range},
 		{"refs",s._references_locations}
@@ -51,6 +54,9 @@ void diplomat::index::to_json(nlohmann::json &j, const IndexSymbol &s)
 void diplomat::index::to_json(nlohmann::json &j, const IndexSymbol *&s)
 {
 		j = nlohmann::json{
+		#ifdef DIPLOMAT_DEBUG
+		{"kind", s->_kind},
+		#endif
 		{"id",s->_name},
 		{"loc",s->_source_range},
 		{"refs",s->_references_locations}

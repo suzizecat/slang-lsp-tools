@@ -33,6 +33,8 @@ endif()
 
 message(STATUS "Software version: " ${VERSION_STRING})
 
+add_compile_options("$<$<CONFIG:DEBUG>:-DDIPLOMAT_DEBUG>")
+
 
 # Use sockpp as a static lib
 option(SOCKPP_BUILD_SHARED "" OFF)

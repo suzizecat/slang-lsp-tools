@@ -13,7 +13,7 @@ assign o_out = toggle;
 generate
     genvar t;
 	for(genvar i = 0; i < K_NOUT; i++) begin : g_loop
-
+		logic test;
 		always_ff @(posedge i_clk or negedge i_rst_n) begin : p_ff_process
 			if(~i_rst_n) begin
 				toggle[i] <= 0;

@@ -42,9 +42,10 @@ namespace diplomat::index
         IndexFile(const std::filesystem::path& path);
         ~IndexFile() = default;
 
-        IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& location);
+        IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& location, const std::string_view& kind = "");
         void register_scope(IndexScope* _scope); 
         IndexScope* lookup_scope_by_range(const IndexRange& loc);
+        IndexScope* lookup_scope_by_exact_range(const IndexRange& loc);
         IndexScope* lookup_scope_by_location(const IndexLocation& loc);
 
         IndexSymbol* lookup_symbol_by_location(const IndexLocation& loc);

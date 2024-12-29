@@ -42,10 +42,10 @@ namespace diplomat::index {
 		return _files.at(lookup_path).get();
 	}
 
-	IndexSymbol *IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range)
+	IndexSymbol *IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind)
 	{
 		IndexFile* f = add_file(src_range.start.file);
-		IndexSymbol* s = f->add_symbol(name,src_range);
+		IndexSymbol* s = f->add_symbol(name,src_range,kind);
 		return s;
 	}
 

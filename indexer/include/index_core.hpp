@@ -40,7 +40,7 @@ namespace diplomat::index
 		IndexFile* get_file(const std::filesystem::path& path);
 		const IndexFile* get_file(const std::filesystem::path& path) const;
 
-		IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& src_range);
+		IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind = "");
 
 		inline nlohmann::json dump() const {return nlohmann::json(*this);} ;
 

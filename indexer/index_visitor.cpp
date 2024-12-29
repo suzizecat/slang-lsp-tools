@@ -34,7 +34,9 @@ namespace diplomat::index {
 		
 		if (curr_scope == nullptr)
 			throw std::logic_error(fmt::format("Attempting to close scope {} while no scope are open.",name));
-		else if(name != curr_scope->get_name())
+		else if(curr_scope->is_anonymous() && ! name.empty() && name != curr_scope->get_name())
+			throw std::logic_error(fmt::format("Attempting to close scope {} while current scope is anonymous ({})",name, _current_scope()->get_name()));
+		else if(! curr_scope->is_anonymous() && name != curr_scope->get_name())
 			throw std::logic_error(fmt::format("Attempting to close scope {} while current scope name is {}",name, _current_scope()->get_name()));
 		else
 			_scope_stack.pop();
@@ -48,7 +50,8 @@ namespace diplomat::index {
 			const slang::syntax::SyntaxNode* stx = node.getSyntax();
 			if(stx)
 			{
-				IndexSymbol* new_symb = _index->add_symbol(node.name,{stx->sourceRange(),*_sm});
+
+				IndexSymbol* new_symb = _index->add_symbol(node.name,{stx->sourceRange(),*_sm}, slang::ast::toString(node.kind));
 				_current_scope()->add_symbol(new_symb);
 				spdlog::info("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 			}
@@ -63,29 +66,55 @@ namespace diplomat::index {
 	{
 		const Symbol& s = node.asSymbol();
 		spdlog::info("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
-		// if(! scope_name.empty())
-		// {
-			_open_scope(scope_name, is_virtual);
+		
+		//_open_scope(scope_name, is_virtual);
+			
+		std::string_view used_scope_name = scope_name;
 
-			//const auto* inst = node.getContainingInstance();
-			const slang::syntax::SyntaxNode* stx = s.getSyntax(); //inst ? inst->getSyntax() : nullptr;
-			if(stx)
+		//const auto* inst = node.getContainingInstance();
+		const slang::syntax::SyntaxNode* stx = s.getSyntax(); //inst ? inst->getSyntax() : nullptr;
+		if(stx)
+		{
+			IndexFile* containing_file = _index->add_file(_sm->getFileName(stx->sourceRange().start()));
+			
+			if(s.kind == slang::ast::SymbolKind::CompilationUnit)
 			{
-				IndexFile* containing_file = _index->add_file(_sm->getFileName(stx->sourceRange().start()));
+				containing_file->set_syntax_root(stx);
+				// No need to go through the compilation unit anyway.
+				return;
+			}
+			else
+			{
+				IndexRange scope_range = IndexRange(stx->sourceRange(),*_sm);
+				IndexScope* duplicate = _current_scope()->get_child_by_exact_range(scope_range);
 
-				if(s.kind == slang::ast::SymbolKind::CompilationUnit)
+				if(duplicate) 
 				{
-					containing_file->set_syntax_root(stx);
+					_open_scope(duplicate->get_name());
+					used_scope_name = duplicate->get_name();
+					spdlog::info("Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
 				}
 				else
 				{
-					containing_file->register_scope(_current_scope());
+					_open_scope(scope_name);
 					_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
-				}
-			}
+					
+					containing_file->register_scope(_current_scope());
 
-			visitDefault(node);
-			_close_scope(scope_name);
+					#ifdef DIPLOMAT_DEBUG
+					_current_scope()->set_kind(slang::ast::toString(node.asSymbol().kind));
+					#endif
+				}
+
+			}
+		}
+		else
+		{
+			_open_scope(scope_name);
+		}
+
+		visitDefault(node);
+		_close_scope(used_scope_name);
 	}
 
 	void IndexVisitor::_default_scope_handle(const slang::ast::Scope& node, const bool is_virtual)
@@ -136,7 +165,7 @@ namespace diplomat::index {
 		{
 			_open_scope(node.name,false);
 			const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
-			IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm});
+			IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
 			_current_scope()->add_symbol(new_symb);
 
 			spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
