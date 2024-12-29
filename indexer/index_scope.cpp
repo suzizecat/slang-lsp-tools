@@ -46,6 +46,25 @@ namespace diplomat::index {
 		return elt;
 	}
 
+	IndexScope* IndexScope::add_child_alias(const std::string& ref, const std::string& alias)
+	{
+		IndexScope* ref_scope = nullptr;
+		if(_children.contains(ref))
+			ref_scope = _children.at(ref).get();
+		else if(_child_aliases.contains(ref))
+			ref_scope = _child_aliases.at(alias);
+		else
+			throw std::out_of_range(fmt::format("Scope {}.{} not found for aliasing to {}",get_full_path(),ref,alias));
+
+		auto emplace_ret = _child_aliases.try_emplace(alias,ref_scope); 
+		if(emplace_ret.second || emplace_ret.first->second == ref_scope)
+			return ref_scope;
+		else
+			throw std::out_of_range(fmt::format("Failed to create alias {} : Alias scope {}.{} already exists toward {}.",
+			alias,get_full_path(),alias,emplace_ret.first->second->get_name()));
+		
+	}
+
 	void IndexScope::add_symbol(IndexSymbol* symb)
 	{
 		_content[symb->get_name()] = symb;
@@ -174,6 +193,8 @@ namespace diplomat::index {
 		std::string strname(name);
 		if(_children.contains(strname))
 			return _children.at(strname).get();
+		else if (_child_aliases.contains(strname))
+			return _child_aliases.at(strname);
 			
 		return nullptr;
 	}
@@ -246,6 +267,14 @@ namespace diplomat::index {
 		{"children",s._children}
 	};
 
+	nlohmann::json aliases;
+
+	for(auto& [key, value] : s._child_aliases)
+	{
+		aliases[key] = value->get_name();
+	}
+
+	j["children_aliases"] = aliases;
 
 	nlohmann::json content;
 

@@ -22,7 +22,6 @@ namespace diplomat::index
 			return false;
 		}
 
-		main_symb->add_reference(node_loc);
 		parent_file->add_reference(main_symb,node_loc);
 
 		return true;
@@ -60,7 +59,6 @@ namespace diplomat::index
 		// if(! parent_file)
 		// 	return false;
 
-		main_symb->add_reference(node_loc);
 		ref_file->add_reference(main_symb,node_loc);
 
 		return true;
@@ -76,6 +74,7 @@ namespace diplomat::index
 		}
 		else
 		{
+			spdlog::debug("Entering hier-instance declaration for {}",node.decl->name.rawText());
 			_select_instance_scope(IndexLocation(node.sourceRange().start(),*_sm),node.decl->name.rawText());
 			
 			const slang::syntax::HierarchyInstantiationSyntax& root_instantiation_stx = node.parent->as<slang::syntax::HierarchyInstantiationSyntax>();
@@ -94,6 +93,7 @@ namespace diplomat::index
 
 	void ReferenceVisitor::handle(const slang::syntax::NamedPortConnectionSyntax& node)
 	{
+
 		_add_reference_to_symbol(node.name.range(),node.name.rawText());
 		visitDefault(node);
 	}

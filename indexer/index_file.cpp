@@ -80,10 +80,9 @@ namespace diplomat::index {
 	{
 		assert(range.start.file == _filepath);
 		if(! _references.try_emplace(range.start,range,symb).second)
-		{
-			spdlog::warn("Failed to insert a reference to {}", symb->get_name());
-		}
-
+			spdlog::warn("    Failed to insert a reference to {}", symb->get_name());
+		else
+			symb->add_reference(range);
 	}
 
 	void to_json(nlohmann::json &j, const IndexFile &s)

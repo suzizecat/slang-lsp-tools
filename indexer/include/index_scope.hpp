@@ -51,6 +51,14 @@ namespace diplomat::index
         std::string _name;
         IndexScope* _parent;
         std::unordered_map<std::string, std::unique_ptr<IndexScope> > _children;
+        
+        /**
+         * @brief When two sub scope are refering to the same piece of code,
+         * the duplicate will be added to this table instead of creating a full
+         * scope, thus easing the process of lookups 
+         * 
+         */
+        std::unordered_map<std::string, IndexScope*> _child_aliases;
 
         /**
          * @brief Range that cover the scope declaration and content
@@ -110,6 +118,16 @@ namespace diplomat::index
          * @return std::shared_ptr<IndexScope> the shared pointer to manipulate said scope.
          */
         IndexScope* add_child(const std::string& name, const bool is_virtual = false);
+
+        /**
+         * @brief Add an alias for the specified child, then return the actual scope if OK,
+         * nullptr otherwise.
+         * 
+         * @param ref Reference child
+         * @param alias Name of the alias
+         * @return IndexScope* reference child if the alias is in place, nullptr otherwise
+         */
+        IndexScope* add_child_alias(const std::string& ref, const std::string& alias);
 
         /** 
          * @brief Add a symbol to the scope.

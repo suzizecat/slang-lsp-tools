@@ -339,7 +339,6 @@ json DiplomatLSP::_h_rename(json _)
 			std::size_t curr_name_len = lu_symb->get_name().size();
 			std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
 
-			std::vector<Location> result;
 			for(const auto& range : lu_symb->get_references())
 			{
 				slsp::types::Location edit_location = _index_range_to_lsp(range);
@@ -355,7 +354,7 @@ json DiplomatLSP::_h_rename(json _)
 			);
 				
 			}
-
+			result.changes = edits;
 			return result;
 		}
 

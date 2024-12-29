@@ -66,12 +66,9 @@ namespace diplomat::index {
 	{
 		const Symbol& s = node.asSymbol();
 		spdlog::info("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
-		
-		//_open_scope(scope_name, is_virtual);
-			
+					
 		std::string_view used_scope_name = scope_name;
 
-		//const auto* inst = node.getContainingInstance();
 		const slang::syntax::SyntaxNode* stx = s.getSyntax(); //inst ? inst->getSyntax() : nullptr;
 		if(stx)
 		{
@@ -90,9 +87,11 @@ namespace diplomat::index {
 
 				if(duplicate) 
 				{
+					_current_scope()->add_child_alias(duplicate->get_name(),std::string(scope_name));
 					_open_scope(duplicate->get_name(),is_virtual);
+
 					used_scope_name = duplicate->get_name();
-					spdlog::info("Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
+					spdlog::info("    Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
 				}
 				else
 				{
@@ -158,22 +157,28 @@ namespace diplomat::index {
 	{
 		using namespace slang::syntax;
 
+		const SyntaxNode* mod = node.body.getSyntax();
+		
+		_default_symbol_handle(node);
+		_default_scope_handle(node.body,node.name,false);
+
 		// When running into an instance, add the declared type to the scope of the instance.
 		// This allows adding the module name to a scope related to its source file easily.
-		const SyntaxNode* mod = node.body.getSyntax();
 		if(mod)
 		{
-			_open_scope(node.name,false);
+			// Using get_scope_by_name will resolve any duplicated scope.
+			IndexScope* module_scope = _current_scope()->get_scope_by_name(node.name);
+
+			// Manual insertion of the module name as a symbol to the target scope...
+			_open_scope(module_scope->get_name(),false);
 			const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
 			IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
 			_current_scope()->add_symbol(new_symb);
 
 			spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
 			
-			_close_scope(node.name);
+			_close_scope(module_scope->get_name());
 		}
-		_default_symbol_handle(node);
-		_default_scope_handle(node.body,node.name,false);
 
 		//visitDefault(node);
 	}
