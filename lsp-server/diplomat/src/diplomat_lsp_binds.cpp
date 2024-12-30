@@ -90,7 +90,7 @@ json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
 
 	if(trigger_scope)
 	{
-		spdlog::info("Required completion on valid scope");
+		//spdlog::info("Required completion on valid scope");
 		for(const di::IndexSymbol* symb : trigger_scope->get_visible_symbols() )
 		{
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
@@ -106,8 +106,12 @@ json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
 	{
 		// Propose symbols from the whole file.
 
-		spdlog::info("Required completion on full file");
-		for(const auto& symb : _index->get_file(trigger_location.file)->get_symbols() )
+		//spdlog::info("Required completion on full file");
+		di::IndexFile* trigger_file = _index->get_file(trigger_location.file);
+		// This file is not known by the indexer.
+		if(! trigger_file)
+			return result; 
+		for(const auto& symb : trigger_file->get_symbols() )
 		{
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
 				continue;

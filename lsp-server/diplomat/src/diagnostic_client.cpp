@@ -153,8 +153,9 @@ namespace slsp
         }
         else
         {
-
-            std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
+            std::filesystem::path buffer_path = sourceManager->getFullPath(to_report.location.buffer());
+            if(!buffer_path.empty())
+                buffer_path = std::filesystem::weakly_canonical(buffer_path);
             
             SVDocument* doc = nullptr;
             if (_documents.contains(buffer_path.generic_string()))

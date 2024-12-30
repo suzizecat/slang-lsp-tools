@@ -60,6 +60,8 @@ namespace diplomat::index {
 	const IndexSymbol* IndexCore::get_symbol_by_position(const IndexLocation& pos)
 	{
 		IndexFile* ref_file = get_file(pos.file);
+		if(! ref_file)
+			return nullptr;
 		return ref_file->lookup_symbol_by_location(pos);
 	}
 

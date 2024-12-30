@@ -33,12 +33,14 @@ namespace diplomat::index
 	{
 		IndexScope* curr_scope = _index->get_scope_by_position(curr_scope_loc);
 		if(! curr_scope)
+		{
 			_instance_scope = nullptr;
-
-		IndexScope* new_scope = curr_scope->get_scope_by_name(next_scope);
-
-		_instance_scope = new_scope ? new_scope : curr_scope; 
-		
+		}
+		else
+		{
+			IndexScope* new_scope = curr_scope->get_scope_by_name(next_scope);
+			_instance_scope = new_scope ? new_scope : curr_scope; 
+		}
 	}
 
 	bool ReferenceVisitor::_add_reference_to_symbol(const slang::SourceRange& loc,
