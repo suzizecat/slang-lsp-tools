@@ -5,7 +5,7 @@ namespace diplomat::index
 	bool ReferenceVisitor::_add_reference_from_stx(const slang::SourceRange & loc,
 	                                               const std::string_view& name)
 	{
-		spdlog::info("    Found reference for name {}", name);
+		spdlog::debug("    Found reference for name {}", name);
 		IndexRange node_loc(loc,*_sm);
 		IndexFile* parent_file = _index->add_file(node_loc.start.file);
 

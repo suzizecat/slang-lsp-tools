@@ -114,6 +114,7 @@ namespace diplomat::index {
 	{
 		const IndexScope* lu_scope = this;
 		std::vector<const IndexSymbol*> ret;
+		bool keep_going = false;
 		do {
 			for(auto& symb : std::views::values(lu_scope->_content))
 			{
@@ -121,9 +122,16 @@ namespace diplomat::index {
 			}
 
 			if(lu_scope->get_parent_access())
+			{		
 				lu_scope = lu_scope->_parent;
+				keep_going = true;
+			}
+			else
+			{
+				keep_going = false;
+			}
 		
-		} while (lu_scope->get_parent_access());
+		} while (keep_going);
 
 		return ret;
 	}

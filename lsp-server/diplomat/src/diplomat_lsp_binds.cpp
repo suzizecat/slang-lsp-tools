@@ -90,6 +90,7 @@ json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
 
 	if(trigger_scope)
 	{
+		spdlog::info("Required completion on valid scope");
 		for(const di::IndexSymbol* symb : trigger_scope->get_visible_symbols() )
 		{
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
@@ -97,12 +98,15 @@ json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
 
 			CompletionItem record;
 			record.label = symb->get_name();
+			record.kind = CompletionItemKind::CompletionItemKind_Variable;
 			result.items.push_back(record);
 		}
 	}
 	else
 	{
 		// Propose symbols from the whole file.
+
+		spdlog::info("Required completion on full file");
 		for(const auto& symb : _index->get_file(trigger_location.file)->get_symbols() )
 		{
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
@@ -110,9 +114,12 @@ json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
 
 			CompletionItem record;
 			record.label = symb->get_name();
+			record.kind = CompletionItemKind::CompletionItemKind_Variable;
 			result.items.push_back(record);
 		}
 	}
+
+	spdlog::info("    Returned {} propositions",result.items.size());
 
 	return result;
 }
