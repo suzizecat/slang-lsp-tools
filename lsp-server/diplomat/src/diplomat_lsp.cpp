@@ -156,7 +156,7 @@ void DiplomatLSP::_bind_methods()
     
     bind_request("diplomat-server.resolve-paths", LSP_MEMBER_BIND(DiplomatLSP,_h_resolve_hier_path));
     bind_request("diplomat-server.get-hierarchy", LSP_MEMBER_BIND(DiplomatLSP,_h_get_design_hierarchy));
-    bind_request("displomat-server.list-symbols", LSP_MEMBER_BIND(DiplomatLSP,_h_list_symbols));
+    bind_request("diplomat-server.list-symbols", LSP_MEMBER_BIND(DiplomatLSP,_h_list_symbols));
 
     bind_notification("$/setTraceNotification", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));

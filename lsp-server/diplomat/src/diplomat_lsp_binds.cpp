@@ -686,7 +686,10 @@ json DiplomatLSP::_h_list_symbols(json& params)
 	const di::IndexFile* lu_file = _index->get_file(path);
 
 	if(! lu_file)
+	{
+		spdlog::warn("Unable to list symbols for file {}: file not found in index.",path);
 		return ret;
+	}
 
 	const std::map<di::IndexLocation, di::ReferenceRecord>& refs = lu_file->get_references();
 
@@ -742,6 +745,8 @@ json DiplomatLSP::_h_list_symbols(json& params)
 	// 		spdlog::debug("    Return {}", name);
 	// 	}
 	// }
+	
+	spdlog::debug("{}",json(ret).dump(4));
 
 	return ret;
 }
