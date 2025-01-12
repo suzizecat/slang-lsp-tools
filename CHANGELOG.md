@@ -11,6 +11,7 @@
  - Full rework of the indexer.
  - Updated CMakeLists.txt to generate proper semver version strings
  - Show versions upon start of LSP and indexer (standalone)
+ - Reduced log level in the indexer (use of trace)
 
 ## Fixed
 

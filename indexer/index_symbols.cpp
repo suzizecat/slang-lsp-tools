@@ -30,7 +30,7 @@ namespace diplomat::index
 
 	void IndexSymbol::add_reference(IndexRange ref_location)
 	{
-		spdlog::debug("        Add reference to {} : {}",_name,ref_location.start.to_string());
+		spdlog::trace("        Add reference to {} : {}",_name,ref_location.start.to_string());
 		_references_locations.insert(ref_location);
 	}
 

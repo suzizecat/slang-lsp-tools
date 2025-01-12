@@ -5,20 +5,20 @@ namespace diplomat::index
 	bool ReferenceVisitor::_add_reference_from_stx(const slang::SourceRange & loc,
 	                                               const std::string_view& name)
 	{
-		spdlog::debug("    Found reference for name {}", name);
+		spdlog::trace("    Found reference for name {}", name);
 		IndexRange node_loc(loc,*_sm);
 		IndexFile* parent_file = _index->add_file(node_loc.start.file);
 
 		IndexScope* ref_scope = parent_file->lookup_scope_by_range(node_loc);
 		if(! ref_scope)
 		{
-			spdlog::debug("        Reference dropped: missing scope");
+			spdlog::trace("        Reference dropped: missing scope");
 			return false;
 		}
 		IndexSymbol* main_symb = ref_scope->lookup_symbol(std::string(name));
 		if(! main_symb)
 		{
-			spdlog::debug("        Reference dropped: failed to find symbol {} from scope {}",name, ref_scope->get_full_path());
+			spdlog::trace("        Reference dropped: failed to find symbol {} from scope {}",name, ref_scope->get_full_path());
 			return false;
 		}
 

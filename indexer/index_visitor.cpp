@@ -53,10 +53,10 @@ namespace diplomat::index {
 
 				IndexSymbol* new_symb = _index->add_symbol(node.name,{stx->sourceRange(),*_sm}, slang::ast::toString(node.kind));
 				_current_scope()->add_symbol(new_symb);
-				spdlog::info("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				spdlog::debug("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 			}
 			else
-				spdlog::info("Skipped symbol without def {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				spdlog::debug("Skipped symbol without def {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 		}
 		
 		visitDefault(node);
