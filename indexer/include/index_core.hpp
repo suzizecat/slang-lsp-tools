@@ -52,6 +52,14 @@ namespace diplomat::index
 
 		const IndexSymbol* get_symbol_by_position(const IndexLocation& pos) ;
 
+		/**
+		 * @brief Get a scope by its fully qualified path (starting from the root)
+		 * 
+		 * @param path to evaluate
+		 * @return IndexScope* if found, nullptr otherwise.
+		 */
+		IndexScope* lookup_scope(const std::string_view& path);
+
 		IndexCore() = default;
 		~IndexCore() = default;
 	};

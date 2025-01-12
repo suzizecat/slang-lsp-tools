@@ -683,12 +683,20 @@ void DiplomatLSP::_h_update_configuration(json &params)
 	send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
 }
 
+
 json DiplomatLSP::_h_list_symbols(json& params)
 {
 	std::string path = params.at(0);
 	std::map<std::string,std::vector<slsp::types::Range>> ret;
 	
-	const di::IndexFile* lu_file = _index->get_file(path);
+	const di::IndexScope* lu_scope = _index->lookup_scope(path);
+	
+	if(! lu_scope)
+	{
+		spdlog::warn("Unable to list symbols for scope {}: Scope not found.",path);
+		return ret;
+	}
+	const di::IndexFile* lu_file = _index->get_file(lu_scope->get_source_range().value_or(di::IndexRange()).start.file);// _index->get_file(path);
 
 	if(! lu_file)
 	{
@@ -709,49 +717,7 @@ json DiplomatLSP::_h_list_symbols(json& params)
 		ret.at(refrec.key->get_name()).push_back(_index_range_to_lsp(ref_range).range);
 	}
 
-
-	
-	// auto* compilation = get_compilation();
-	// const slang::ast::Symbol* lookup_result = compilation->getRoot().lookupName(path);
-	// const slang::ast::Scope* scope;
-
-	// if( lookup_result->kind == slang::ast::SymbolKind::Instance )
-	// 	lookup_result = &(lookup_result->as<slang::ast::InstanceSymbol>().body);
-
-	// if(! lookup_result->isScope())
-	// 	scope = lookup_result->getParentScope();
-	// else
-	// 	scope = &(lookup_result->as<slang::ast::Scope>());
-
-	// spdlog::info("Request design list of symbol for path {}", path);
-	// const slang::ast::InstanceBodySymbol* target_instance_body = scope->getContainingInstance();
-
-	// if (!target_instance_body)
-	// 	throw slsp::lsp_request_failed_exception("Failed to lookup the required instance");
-
-	// std::filesystem::path file_for_index_lookup = _module_to_file.at(std::string(target_instance_body->name));
-
-	// std::unordered_map<std::string,std::vector<slsp::types::Range>> ret;
-	// for (const slang::syntax::ConstTokenOrSyntax& tok : _index->get_symbols_tok_from_file(file_for_index_lookup))
-	// {
-	// 	std::string name = std::string(tok.isNode() ? tok.node()->getFirstToken().valueText() : tok.token().valueText());
-	// 	trim(name);
-
-	// 	if (!name.empty())
-	// 	{
-	// 		slsp::types::Range tok_range = _slang_to_lsp_location(tok.range()).range;
-
-	// 		if (!ret.contains(name))
-	// 			ret[name] = { tok_range };
-	// 		else
-	// 			ret[name].push_back(tok_range);
-			
-			
-	// 		spdlog::debug("    Return {}", name);
-	// 	}
-	// }
-	
-	spdlog::debug("{}",json(ret).dump(4));
+	// spdlog::debug("{}",json(ret).dump(4));
 
 	return ret;
 }

@@ -65,6 +65,11 @@ namespace diplomat::index {
 		return ref_file->lookup_symbol_by_location(pos);
 	}
 
+	IndexScope* IndexCore::lookup_scope(const std::string_view& path)
+	{
+		return _root->resolve_scope(path);
+	}
+
 	void to_json(nlohmann::json &j, const IndexCore &s)
 	{
 

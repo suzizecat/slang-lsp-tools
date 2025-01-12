@@ -154,6 +154,16 @@ namespace diplomat::index
         IndexSymbol* resolve_symbol(const std::string_view& path);
 
         /**
+         * @brief Retrieve a sub scope based upon its fully qualified name, relative to the 
+         * current scope.
+         * 
+         * @param path relative to the current scope
+         * @return IndexScope* if found, nullptr otherwise. 
+         */
+        IndexScope* resolve_scope(const std::string_view& path);
+
+
+        /**
          * @brief Get the visible symbols object from the current scope.
          * This represent all symbols declared here and all symbols declared in parents.
          * @return std::vector<const IndexSymbol*> the set of found symbols.
