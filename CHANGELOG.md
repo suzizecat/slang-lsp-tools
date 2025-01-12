@@ -7,6 +7,7 @@
 ## Changed
 
  - Full rework of the indexer.
+ - Updated CMakeLists.txt to generate proper semver version strings
 
 # 0.2.1
 

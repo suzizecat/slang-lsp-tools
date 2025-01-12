@@ -15,13 +15,15 @@ endif()
 set(VERSION_STRING "undefined")
 
 if("${DIPLOMAT_VERSION}" STREQUAL "auto")
-	execute_process(COMMAND git describe --tags RESULT_VARIABLE GIT_OK OUTPUT_VARIABLE VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+	execute_process(COMMAND git describe --tags --abbrev=0 RESULT_VARIABLE GIT_OK OUTPUT_VARIABLE VERSION_STRING_BASE OUTPUT_STRIP_TRAILING_WHITESPACE)
+	execute_process(COMMAND git describe --tags --dirty RESULT_VARIABLE GIT_OK OUTPUT_VARIABLE GIT_VERSION_FULL OUTPUT_STRIP_TRAILING_WHITESPACE)
+	string(REPLACE "${VERSION_STRING_BASE}-" "${VERSION_STRING_BASE}+" VERSION_STRING ${GIT_VERSION_FULL})
 	
 	# message(STATUS "Git returned ${GIT_OK} ${VERSION_STRING}")
 	if ("${GIT_OK}" EQUAL "0")
 
 		message(STATUS "Use automatic version string from GIT")
-		set(VERSION_STRING "${VERSION_STRING}-custom")
+		set(VERSION_STRING "${VERSION_STRING}.custom")
 	else()
 		message(WARNING "Failed to retrieve version using git. Use -DDIPLOMAT_VERSION to manually set a version string")
 		set(VERSION_STRING "undefined")
@@ -31,7 +33,7 @@ else()
     set(VERSION_STRING ${DIPLOMAT_VERSION})
 endif()
 
-message(STATUS "Software version: " ${VERSION_STRING})
+message(STATUS "Diplomat software version: " ${VERSION_STRING})
 
 add_compile_options("$<$<CONFIG:DEBUG>:-DDIPLOMAT_DEBUG>")
 
