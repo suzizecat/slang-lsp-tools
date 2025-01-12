@@ -128,6 +128,7 @@ int main(int argc, char** argv) {
         in_port_t port = prog.get<in_port_t>("--port");
         sockpp::initialize();
         slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);
+        spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
         spdlog::info("Await client on port {}...",port);
         itf.await_client();
         
@@ -164,7 +165,7 @@ int main(int argc, char** argv) {
             fwd_sink->set_target_lsp(&lsp);
             spdlog::default_logger()->sinks().push_back(fwd_sink);
         }
-
+        spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
         runner(lsp);
     }
     return 0;

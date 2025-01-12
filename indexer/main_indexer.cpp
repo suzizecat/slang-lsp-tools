@@ -17,6 +17,10 @@
 #include "index_reference_visitor.hpp"
 #include "index_core.hpp"
 
+#ifndef DIPLOMAT_VERSION_STRING
+#define DIPLOMAT_VERSION_STRING "custom-build"
+#endif
+
 using json = nlohmann::json;
 
 using namespace slang;
@@ -41,6 +45,12 @@ int main(int argc, char** argv) {
 
     if (showHelp == true) {
         printf("%s\n", driver.cmdLine.getHelpText("slang SystemVerilog compiler").c_str());
+        return 0;
+    }
+
+    if (showVersion)
+    {
+        std::cout << fmt::format("Diplomat Indexer version {}",DIPLOMAT_VERSION_STRING) << std::endl;
         return 0;
     }
 

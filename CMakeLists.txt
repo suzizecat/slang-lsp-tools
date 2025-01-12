@@ -36,6 +36,7 @@ endif()
 message(STATUS "Diplomat software version: " ${VERSION_STRING})
 
 add_compile_options("$<$<CONFIG:DEBUG>:-DDIPLOMAT_DEBUG>")
+add_compile_options("-DDIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\"")
 
 
 # Use sockpp as a static lib
@@ -110,7 +111,7 @@ lsp-server/diplomat/src/diagnostic_client.cpp
 #lsp-server/diplomat/src/diplomat_index.cpp
 )
 
-target_compile_definitions(slang-lsp PUBLIC DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\")
+
 
 target_precompile_headers(slang-lsp PRIVATE ${SVLS_GEN_HEADERS})
 

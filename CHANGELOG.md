@@ -3,11 +3,13 @@
 ## Added
 
  - Added scope-aware completion.
-
+ - Added `--version` management for sv-indexer (same version as LSP)
+ 
 ## Changed
 
  - Full rework of the indexer.
  - Updated CMakeLists.txt to generate proper semver version strings
+ - Show versions upon start of LSP and indexer (standalone)
 
 # 0.2.1
 
