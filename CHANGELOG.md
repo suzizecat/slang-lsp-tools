@@ -11,6 +11,10 @@
  - Updated CMakeLists.txt to generate proper semver version strings
  - Show versions upon start of LSP and indexer (standalone)
 
+## Fixed
+
+ - Avoid spurious errors in log due to unknown command `textDocument/didClose`
+
 # 0.2.1
 
 ## Added

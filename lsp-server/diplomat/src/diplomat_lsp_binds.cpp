@@ -79,7 +79,12 @@ void DiplomatLSP::_h_didOpenTextDocument(json _)
 	_save_client_uri(params.textDocument.uri);
 }
 
-json DiplomatLSP::_h_completion(slsp::types::CompletionParams params)
+void DiplomatLSP::_h_didCloseTextDocument(DidCloseTextDocumentParams _)
+{
+	/* Actually nothing to do, only bind to avoid errors*/
+}
+
+json DiplomatLSP::_h_completion(CompletionParams params)
 {
 	CompletionList result;
 	result.isIncomplete = false;

@@ -167,6 +167,7 @@ void DiplomatLSP::_bind_methods()
         
     bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP, _h_shutdown));
 
+    bind_notification("textDocument/didClose", LSP_MEMBER_BIND(DiplomatLSP, _h_didCloseTextDocument));
     bind_notification("textDocument/didOpen", LSP_MEMBER_BIND(DiplomatLSP, _h_didOpenTextDocument));
     bind_notification("textDocument/didSave", LSP_MEMBER_BIND(DiplomatLSP, _h_didSaveTextDocument));
     bind_request("textDocument/completion", LSP_MEMBER_BIND(DiplomatLSP, _h_completion));
