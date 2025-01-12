@@ -32,6 +32,9 @@ jobs:
     - name: Build Formatter
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target sv-formatter-exe -j `nproc`
+    - name: Build Indexer
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target sv-indexer-exe -j `nproc`
     
     - name: Upload artifacts - main app
       uses: actions/upload-artifact@v4
@@ -41,6 +44,7 @@ jobs:
         path: |
           ${{github.workspace}}/build/slang-lsp
           ${{github.workspace}}/build/sv-formatter
+          ${{github.workspace}}/build/sv-indexer
         overwrite: true
         if-no-files-found: error
         # Is a binary
@@ -110,6 +114,7 @@ jobs:
         run: | 
           mv ${{github.workspace}}/slang-lsp ${{github.workspace}}/slang-lsp.${{ github.ref_name }}
           mv ${{github.workspace}}/sv-formatter ${{github.workspace}}/sv-formatter.${{ github.ref_name }}
+          mv ${{github.workspace}}/sv-indexer ${{github.workspace}}/sv-indexer.${{ github.ref_name }}
         
       - name: Create main release from tag
         if: ${{ success() && steps.semver.outputs.release ==  github.ref_name}}
@@ -121,6 +126,7 @@ jobs:
           files: |
             slang-lsp.${{ github.ref_name }}
             sv-formatter.${{ github.ref_name }}
+            sv-indexer.${{ github.ref_name }}
 
       - name: Create dev release from tag
         if: ${{ success() && steps.semver.outputs.release !=  github.ref_name }}
@@ -133,6 +139,7 @@ jobs:
           files: |
             slang-lsp.${{ github.ref_name }}
             sv-formatter.${{ github.ref_name }}
+            sv-indexer.${{ github.ref_name }}
 
       - uses: actions/checkout@v4
         if: ${{ success() }}
