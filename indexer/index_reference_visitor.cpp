@@ -13,11 +13,41 @@ namespace diplomat::index
 		if(! ref_scope)
 		{
 			spdlog::trace("        Reference dropped: missing scope");
+			parent_file->_add_failed_ref(fmt::format("{} at {}",name,node_loc.start.to_string()));
 			return false;
 		}
-		IndexSymbol* main_symb = ref_scope->lookup_symbol(std::string(name));
+
+		std::string symb_name(name);
+		IndexSymbol* main_symb = ref_scope->lookup_symbol(symb_name);
 		if(! main_symb)
 		{
+			const auto* additionnal_scopes = parent_file->get_additionnal_scopes();
+			for(auto& [path, scope] : *additionnal_scopes )
+			{
+				IndexScope* studied_scope = scope;
+				if(studied_scope == nullptr)
+				{
+					studied_scope = _index->lookup_scope(path);
+					if(studied_scope)
+						parent_file->record_additionnal_lookup_scope(path,studied_scope);
+					else
+						parent_file->invalidate_additionnal_lookup_scope(path);
+				}
+
+				if(studied_scope)	
+				{
+					spdlog::trace("         Trying additionnal lookup in {}",studied_scope->get_name());
+					main_symb = studied_scope->lookup_symbol(symb_name);
+				}
+
+				if(main_symb)
+					break;
+			}
+		}
+
+		if(! main_symb)
+		{
+			parent_file->_add_failed_ref(fmt::format("{} at {}",name,node_loc.start.to_string()));
 			spdlog::trace("        Reference dropped: failed to find symbol {} from scope {}",name, ref_scope->get_full_path());
 			return false;
 		}

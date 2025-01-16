@@ -38,6 +38,23 @@ namespace diplomat::index
         // In order to lookup a reference, use upper_bound -1 and check the range
         std::map<IndexLocation, ReferenceRecord> _references;
 
+        /**
+         * @brief This container holds the list of additional scopes that should be looked up
+         * for reference resolution.
+         * 
+         * If the IndexScope* is nullptr, the system should try to resolve it, as it is lazily
+         * built through the AST.
+         * 
+         * The key is the path from the root element of the AST of the scope.
+         * 
+         */
+        std::map<std::string, IndexScope*> _additional_lookup_scopes;
+
+        #ifdef DIPLOMAT_DEBUG
+            std::vector<std::string> _failed_references;
+        #endif
+
+
     public:
         IndexFile(const std::filesystem::path& path);
         ~IndexFile() = default;
@@ -58,6 +75,20 @@ namespace diplomat::index
         inline const slang::syntax::SyntaxNode* get_syntax_root() const {return _syntax_root.value_or(nullptr);};
 
         inline const std::filesystem::path& get_path() const {return _filepath;} ;
+
+        void record_additionnal_lookup_scope(const std::string& path, IndexScope* target = nullptr);
+        void invalidate_additionnal_lookup_scope(const std::string& path);
+
+        inline const std::map<std::string, IndexScope*>* get_additionnal_scopes() const {return &_additional_lookup_scopes;} ;
+
+
+        #ifdef DIPLOMAT_DEBUG
+        inline void _add_failed_ref(const std::string & ref_text) {_failed_references.push_back(ref_text);};
+        inline std::size_t _get_nb_failed_refs() const {return _failed_references.size();};
+        #else
+        constexpr  void _add_failed_ref(const std::string & ref_text) {};
+        constexpr  std::size_t _get_nb_failed_refs() const {return 0;};
+        #endif
     };
 
     void to_json(nlohmann::json& j, const IndexFile& s);

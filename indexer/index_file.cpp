@@ -80,9 +80,25 @@ namespace diplomat::index {
 	{
 		assert(range.start.file == _filepath);
 		if(! _references.try_emplace(range.start,range,symb).second)
+		{
 			spdlog::warn("    Failed to insert a reference to {}", symb->get_name());
+			#ifdef DIPLOMAT_DEBUG
+			_add_failed_ref(fmt::format("{} at {}",symb->get_name(),range.start.to_string()));
+			#endif
+		}
 		else
 			symb->add_reference(range);
+	}
+
+	void IndexFile::record_additionnal_lookup_scope(const std::string& path, IndexScope* target)
+	{
+		spdlog::debug("Recording additionnal lookup scope {}.",path);
+		_additional_lookup_scopes[path] = target;
+	}
+
+	void IndexFile::invalidate_additionnal_lookup_scope(const std::string& path)
+	{
+		_additional_lookup_scopes.erase(path);
 	}
 
 	void to_json(nlohmann::json &j, const IndexFile &s)
@@ -104,6 +120,17 @@ namespace diplomat::index {
 		{
 			j["symbols"].push_back(value);
 		}
+
+		
+
+		#ifdef DIPLOMAT_DEBUG
+		if(s._failed_references.size() > 0)
+		{
+		j["reffailed"] = s._failed_references;
+		
+		spdlog::info("Dumped {} failed refs for file {}",s._failed_references.size(),s.get_path().generic_string());
+		}
+		#endif
 
 	}
 }

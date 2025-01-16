@@ -99,6 +99,14 @@ namespace diplomat::index
         void _build_concrete_children(std::set<IndexScope*>& ret_holder, bool is_root = true);
 
 
+        /**
+         * @brief Generate an unnamedX id based upon the unnamed count and return it.
+         * This will increate the unnamed_count.
+         * 
+         * @return std::string the new identifier.
+         */
+        std::string _get_unnamed_id();
+
     public:
         IndexScope() = default;
         IndexScope(std::string name, bool isvirtual = false, bool anonymous = false);

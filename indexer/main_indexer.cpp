@@ -34,11 +34,13 @@ int main(int argc, char** argv) {
     std::optional<bool> showHelp;
     std::optional<bool> showVersion;
     std::optional<bool> verbose;
+    std::optional<bool> trace;
     std::optional<std::string> output_file;
     driver.cmdLine.add("-h,--help", showHelp, "Display available options");
     driver.cmdLine.add("--version", showVersion, "Display version information and exit");
     driver.cmdLine.add("-o,--output",output_file, "Output file for the index");
     driver.cmdLine.add("--verbose",verbose, "Enable verbose mode");
+    driver.cmdLine.add("--trace",trace, "Enable verbosier mode");
 
     if (!driver.parseCommandLine(argc, argv))
         return 1;
@@ -58,6 +60,12 @@ int main(int argc, char** argv) {
     {
         spdlog::set_level(spdlog::level::debug);
     }
+
+    if(trace.value_or(false))
+    {
+        spdlog::set_level(spdlog::level::trace);
+    }
+   
    
 
     if (!driver.processOptions())
@@ -74,7 +82,7 @@ int main(int argc, char** argv) {
     
 
     diplomat::index::IndexVisitor indexer(compilation->getSourceManager());
-    
+    size_t failed_refs = 0;
     spdlog::stopwatch sw;
 
     root_symb.visit(indexer);
@@ -92,10 +100,16 @@ int main(int argc, char** argv) {
                 diplomat::index::ReferenceVisitor ref_visitor(compilation->getSourceManager(),index.get());
                 stx->visit(ref_visitor);
             }
+
+            
         }
     }
 
     spdlog::info("Analysis done in {:.6} !",sw);
+
+    // Need to re-run because the files are filled out of order dur to the use of the syntax node.
+    for(const auto& file : index->get_indexed_files())
+        failed_refs += file->_get_nb_failed_refs();
 
     if(output_file)
     {
@@ -108,5 +122,7 @@ int main(int argc, char** argv) {
     }
     else
         std::cout << index->dump().dump(4);   
+    
+    spdlog::info("Got {} failed references total.",failed_refs);
     return ok ? 0 : 3;
 }

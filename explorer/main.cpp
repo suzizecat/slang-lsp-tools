@@ -160,13 +160,21 @@ void print_symbols(const ast::Scope& scope, int level = 0)
 
         if(symb.isScope())
         {
-            std::cout << "spanning in ";
             auto* stx_node = symb.getSyntax();
-            const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
-            slang::SourceRange pos = stx_node->sourceRange();
-            std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
-            std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
-            std::cout << std::endl;
+            if(stx_node != nullptr)
+            {
+                std::cout << "spanning in ";
+                const slang::SourceManager* sm = scope.getCompilation().getSourceManager();
+                slang::SourceRange pos = stx_node->sourceRange();
+                std::cout << sm->getFileName(pos.start()) << ":" << sm->getLineNumber(pos.start()) << ":" << sm->getColumnNumber(pos.start());
+                std::cout                                 << ":" << sm->getLineNumber(pos.end()) << ":" << sm->getColumnNumber(pos.end());
+                std::cout << std::endl;
+            }
+            else
+            {
+                std::cout << "without source span" << std::endl;
+            }
+
             print_symbols(symb.as<ast::Scope>(),level +1);
         }
         else if (symb.kind == ast::SymbolKind::Instance)

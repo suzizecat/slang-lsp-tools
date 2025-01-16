@@ -47,7 +47,9 @@ namespace diplomat::index {
 			void handle(const slang::ast::VariableSymbol& node);
 			void handle(const slang::ast::GenvarSymbol& node);
 			void handle(const slang::ast::ParameterSymbol& node);
+			void handle(const slang::ast::TransparentMemberSymbol& node);
 			void handle(const slang::ast::InstanceSymbol& node);
+			void handle(const slang::ast::WildcardImportSymbol& node);
 
 			inline std::unique_ptr<IndexCore> get_index() {return std::move(_index);};
 	};
