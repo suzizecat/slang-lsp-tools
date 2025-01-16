@@ -77,6 +77,7 @@ namespace diplomat::index {
 			if(s.kind == slang::ast::SymbolKind::CompilationUnit)
 			{
 				containing_file->set_syntax_root(stx);
+				visitDefault(node);
 				// No need to go through the compilation unit anyway.
 				return;
 			}
@@ -148,6 +149,12 @@ namespace diplomat::index {
 		_default_symbol_handle(node);
 	}
 
+	void IndexVisitor::handle(const slang::ast::TransparentMemberSymbol& node)
+	{
+		_default_symbol_handle(node.wrapped);
+	}
+
+
 	void IndexVisitor::handle(const slang::ast::InstanceSymbol& node)
 	{
 		using namespace slang::syntax;
@@ -178,5 +185,21 @@ namespace diplomat::index {
 
 
 	}
-	
+
+	void IndexVisitor::handle(const slang::ast::WildcardImportSymbol& node)
+	{
+
+		const slang::syntax::SyntaxNode* stx = node.getSyntax();
+		if(stx)
+		{
+			IndexRange import_source = IndexRange(stx->sourceRange(),*_sm);
+			IndexFile* containing_file = _index->add_file(import_source.start.file);
+
+
+			containing_file->record_additionnal_lookup_scope(std::string(node.packageName));
+		}
+
+		visitDefault(node);
+	}
+
 } // namespace diplomat::index

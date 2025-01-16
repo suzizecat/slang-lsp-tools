@@ -2,7 +2,7 @@
 #include <ranges>
 #include "fmt/format.h"
 
-
+#include <spdlog/spdlog.h>
 
 // Custom specialization of std::hash can be injected in namespace std.
 template<>
@@ -30,7 +30,7 @@ namespace diplomat::index {
 	{
 		std::string used_name = name;
 		if(name.empty())
-			used_name = fmt::format("unnamed{}",_unnamed_count++);
+			used_name = _get_unnamed_id();
 
 		if(_children.contains(used_name))
 			return _children.at(used_name).get();
@@ -48,6 +48,7 @@ namespace diplomat::index {
 
 	IndexScope* IndexScope::add_child_alias(const std::string& ref, const std::string& alias)
 	{
+
 		IndexScope* ref_scope = nullptr;
 		if(_children.contains(ref))
 			ref_scope = _children.at(ref).get();
@@ -56,12 +57,20 @@ namespace diplomat::index {
 		else
 			throw std::out_of_range(fmt::format("Scope {}.{} not found for aliasing to {}",get_full_path(),ref,alias));
 
-		auto emplace_ret = _child_aliases.try_emplace(alias,ref_scope); 
+
+		if(alias.empty())
+		{
+			spdlog::trace("Alias name is empty, forcing the aliasing.");
+		}
+
+		auto emplace_ret = _child_aliases.try_emplace(alias.empty() ? _get_unnamed_id() : alias,ref_scope); 
 		if(emplace_ret.second || emplace_ret.first->second == ref_scope)
 			return ref_scope;
 		else
-			throw std::out_of_range(fmt::format("Failed to create alias {} : Alias scope {}.{} already exists toward {}.",
-			alias,get_full_path(),alias,emplace_ret.first->second->get_name()));
+		{
+			throw std::out_of_range(fmt::format("Failed to create alias '{}' : Alias scope {}.{} already exists toward {}. Failure location is {}",
+			alias,get_full_path(),alias,emplace_ret.first->second->get_name(), ref_scope->get_source_range()->start.to_string()));
+		}
 		
 	}
 
@@ -285,6 +294,11 @@ namespace diplomat::index {
 		}
 	}
 
+	std::string IndexScope::_get_unnamed_id()
+	{
+		
+		return fmt::format("unnamed{}",_unnamed_count++);
+	}
 
 	std::set<IndexScope*> IndexScope::get_concrete_children()
 	{
