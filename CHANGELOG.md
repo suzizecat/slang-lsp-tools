@@ -2,6 +2,7 @@
 
 ## Added
 
+ - Added references to genvar
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
  - Added `--version` management for sv-indexer (same version as LSP)
@@ -17,6 +18,10 @@
 
  - Avoid spurious errors in log due to unknown command `textDocument/didClose`
  - Fixed `diplomat-server.list-symbols` to handle design path as an input (#17)
+
+## Dependencies
+
+ - Slang to v8.0
 
 # 0.2.1
 
