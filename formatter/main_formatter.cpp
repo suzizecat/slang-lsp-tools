@@ -13,6 +13,7 @@
 #include "slang/syntax/SyntaxPrinter.h"
 #include "spacing_manager.hpp"
 #include "format_DataDeclaration.hpp"
+#include "format_StatementExpansion.hpp"
 
 #ifndef DIPLOMAT_VERSION_STRING
 #define DIPLOMAT_VERSION_STRING "custom-build"
@@ -57,8 +58,10 @@ int main(int argc, char** argv) {
     
     idt.add_level();
     
+    StatementExpansionPhaseVisitor phase_stmt_expansion(&idt);
     DataDeclarationSyntaxVisitor fmter(&idt);
-    std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(st);
+    std::shared_ptr<slang::syntax::SyntaxTree> phase1 = phase_stmt_expansion.transform(st);
+    std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(phase1);
     if(debug)
     {
         std::cout << "POST - FORMAT AST ################" << std::endl << std::endl;

@@ -4,6 +4,7 @@
 #include <numeric>
 #include <memory>
 
+
 inline size_t sum_dim_vector(const std::vector<size_t>& vec, const unsigned int start = 0)
 {
         return std::reduce(
@@ -22,3 +23,4 @@ inline size_t sum_dim_vector(const std::vector<std::pair<size_t,size_t>>& vec, c
         );
 
 }
+

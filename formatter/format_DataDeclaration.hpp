@@ -50,18 +50,23 @@ class DataDeclarationSyntaxVisitor : public slang::syntax::SyntaxRewriter<DataDe
 
         SpacingManager* _idt;
 
-        slang::syntax::SyntaxNode* _format_any(const slang::syntax::SyntaxNode* node);
-
+        void _store_format(const slang::syntax::DataDeclarationSyntax& node);
+        void _store_format(const slang::syntax::ImplicitAnsiPortSyntax& node);
+        void _store_format(const slang::syntax::ContinuousAssignSyntax& node);
+        void _read_type(const slang::syntax::DataDeclarationSyntax& node);
+        void _read_type(const slang::syntax::ImplicitAnsiPortSyntax &node);
+        
         slang::syntax::DataDeclarationSyntax* _format(const slang::syntax::DataDeclarationSyntax& decl);
         slang::syntax::ImplicitAnsiPortSyntax* _format(const slang::syntax::ImplicitAnsiPortSyntax& decl);
         slang::syntax::HierarchyInstantiationSyntax* _format(const slang::syntax::HierarchyInstantiationSyntax& decl);
+        slang::syntax::ContinuousAssignSyntax* _format(const slang::syntax::ContinuousAssignSyntax& decl);
+        
+        slang::syntax::SyntaxNode* _format_any(const slang::syntax::SyntaxNode* node);
+
+        
         size_t _format_data_type_syntax(slang::syntax::DataTypeSyntax* stx, bool first_element, size_t first_alignement_size);
         void _split_bloc(const slang::syntax::SyntaxNode& node);
         void _read_type_len(const slang::syntax::DataTypeSyntax* type);
-        void _store_format(const slang::syntax::DataDeclarationSyntax& node);
-        void _store_format(const slang::syntax::ImplicitAnsiPortSyntax& node);
-        void _read_type(const slang::syntax::DataDeclarationSyntax& node);
-        void _read_type(const slang::syntax::ImplicitAnsiPortSyntax &node);
         void _switch_bloc_type(const slang::syntax::SyntaxNode &node, bool force = false);
         void _switch_bloc_type(const slang::syntax::SyntaxNode *node, bool force = false);
 
@@ -84,4 +89,4 @@ void  dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::
 void  dimension_syntax_to_vector(const slang::syntax::SyntaxList<slang::syntax::ElementSelectSyntax> dimensions, std::vector<std::pair<size_t,size_t>>& target_vector);
 void  tokens_to_vector(const std::span<const slang::parsing::Token> toks, std::vector<size_t>& target_vector);
 
-
+size_t expression_length(const slang::syntax::ExpressionSyntax* node);

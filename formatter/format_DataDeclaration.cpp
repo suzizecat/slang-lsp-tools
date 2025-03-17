@@ -135,7 +135,7 @@ void DataDeclarationSyntaxVisitor::handle(const ContinuousAssignSyntax &node)
 {
 	_split_bloc(node);
 	_switch_bloc_type(node);
-	//_store_format(node);
+	_store_format(node);
 }
 
 /**
@@ -188,7 +188,9 @@ slang::syntax::SyntaxNode* DataDeclarationSyntaxVisitor::_format_any(const slang
 	case SyntaxKind::ImplicitAnsiPort:
 		return _format(node->as<ImplicitAnsiPortSyntax>());
 		break;
-	
+	case SyntaxKind::ContinuousAssign:
+		return _format(node->as<ContinuousAssignSyntax>());
+		break;
 	default:
 		return nullptr;
 		break;
@@ -515,6 +517,38 @@ HierarchyInstantiationSyntax* DataDeclarationSyntaxVisitor::_format(const Hierar
 	return work;
 }
 
+ContinuousAssignSyntax* DataDeclarationSyntaxVisitor::_format(const ContinuousAssignSyntax& decl)
+{
+	ContinuousAssignSyntax* work = deepClone(decl,_mem);
+	work->assign = _idt->indent(work->assign);
+
+	bool first_element = true;
+
+	for(auto* binding : work->assignments)
+	{
+		BinaryExpressionSyntax& stx = binding->as<BinaryExpressionSyntax>(); 
+		int left_size = expression_length(stx.left);
+		
+		if(first_element)
+		{
+			first_element = false;
+			Token* stmt_start = binding->getFirstTokenPtr();
+			*stmt_start = _idt->replace_spacing(*stmt_start,1);
+		}
+		else
+		{
+			Token* stmt_start = binding->getFirstTokenPtr();
+			*stmt_start = _idt->indent(*stmt_start,7);
+		}
+
+		stx.operatorToken = _idt->replace_spacing(stx.operatorToken,1+ _var_name_size - left_size);
+		
+	}
+
+
+	return work;
+}
+
 /**
  * @brief Analyze the node and compute the internal values
  * 
@@ -549,6 +583,25 @@ void DataDeclarationSyntaxVisitor::_store_format(const ImplicitAnsiPortSyntax &n
 	_var_name_size = std::max(node.declarator->name.rawText().length(),_var_name_size);
 	dimension_syntax_to_vector(node.declarator->dimensions,_array_sizes);
 
+	
+	_to_format.push_back(&node);
+}
+
+/**
+ * @brief Analyze the node and compute the internal values
+ * 
+ * @param node Node to analyze
+ */
+void DataDeclarationSyntaxVisitor::_store_format(const ContinuousAssignSyntax &node)
+{
+	// Avoid splitting amongst different ports
+	_switch_bloc_type(node);
+	// _read_type(node);
+	
+	for (const auto& expr : node.assignments)
+	{
+		_var_name_size = std::max(expression_length(expr->as<BinaryExpressionSyntax>().left) ,_var_name_size);
+	}
 	
 	_to_format.push_back(&node);
 }
@@ -684,6 +737,15 @@ void  tokens_to_vector(const std::span<const Token> tokens, std::vector<size_t>&
 		target_vector[index] = std::max(target_vector[index],tok.rawText().length());
 		index ++;
 	}
+}
+
+size_t expression_length(const slang::syntax::ExpressionSyntax* node)
+{
+	const Token first_tok = node->getFirstToken();
+	// Compute the potential spacing (and comments) in front of the first token and remove it.
+	size_t delta_start = first_tok.toString().length() - first_tok.rawText().length();
+	return node->toString().length() - delta_start;
+
 }
 
 /**

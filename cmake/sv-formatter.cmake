@@ -1,5 +1,6 @@
 create_component(sv-formatter 
 LIB_SRC 
+    PRIVATE formatter/format_StatementExpansion.cpp
     PRIVATE formatter/format_DataDeclaration.cpp
     PRIVATE formatter/spacing_manager.cpp
 LIB_INC

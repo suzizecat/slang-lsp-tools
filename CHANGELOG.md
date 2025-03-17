@@ -6,6 +6,7 @@
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
  - Added `--version` management for sv-indexer (same version as LSP)
+ - Added statement expension formatter (to split multi-statements).
  
 ## Changed
 

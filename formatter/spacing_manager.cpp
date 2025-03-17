@@ -32,6 +32,14 @@ slang::parsing::Token SpacingManager::remove_spacing(const slang::parsing::Token
 	return replace_spacing(tok, 0);
 }
 
+
+/**
+ * @brief Replace the indentation of the provided token as if it was at the begining of the line. 
+ * 
+ * @param tok Token to indent
+ * @param additional_spacing Additionnal spacing to provide, in number of spaces (for alignement purposes)
+ * @return slang::parsing::Token Token with replaced indentation.
+ */
 slang::parsing::Token SpacingManager::indent(const slang::parsing::Token& tok, int additional_spacing)
 {
 
@@ -154,6 +162,47 @@ Token SpacingManager::replace_comment_spacing(const Token& tok, int spaces)
 	}
 
 	return found_comment ?  tok.withTrivia(_mem,{first_space,nb_trivia}) : tok;
+}
+
+/**
+ * @brief Ensure a single trailing newline (to ensure that a token is on a direct
+ * next line with regards to the previous one.)
+ * 
+ * If comments are used, they may invalidate the computation.
+ * @param tok 
+ * @return slang::parsing::Token 
+ */
+slang::parsing::Token SpacingManager::remove_extra_newlines(const slang::parsing::Token& tok, bool clear_all = false)
+{
+	slang::SmallVector<Trivia> kept_trivia;
+	slang::byte* newline = _mem.allocate(1, alignof(char));
+	*newline = (slang::byte)'\n';
+	Trivia newline_trivia(TriviaKind::EndOfLine,std::string_view((char*)newline,1));
+
+	bool started_record = false;
+	if(! clear_all)
+	{
+	for(Trivia t : tok.trivia())
+	{
+		if(! started_record)
+		{
+			if(t.kind == TriviaKind::EndOfLine || t.kind == TriviaKind::Whitespace)
+				continue;
+			else
+			{
+				started_record = true;
+				kept_trivia.push_back(newline_trivia);
+			}
+		}
+		kept_trivia.push_back(t.clone(_mem));
+	}
+}
+
+	// Ensures at least one newline. 
+	if(! started_record)
+		kept_trivia.push_back(newline_trivia);
+
+	return tok.withTrivia(_mem,kept_trivia.copy(_mem));
 }
 
 unsigned int SpacingManager::align_dimension(SyntaxList<VariableDimensionSyntax>& dimensions,const std::vector<std::pair<size_t,size_t>>& sizes_refs, const int first_alignment)

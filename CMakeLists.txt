@@ -62,8 +62,6 @@ include(cmake/create-component.cmake)
 include(cmake/lsp-datastructures.cmake)
 
 
-
-
 # add_subdirectory(lib-diplomat-index)
 ###########################################################
 # SV-FORMATTER 
