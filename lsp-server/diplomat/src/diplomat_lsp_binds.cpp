@@ -26,12 +26,14 @@
 #include "format_DataDeclaration.hpp"
 #include "spacing_manager.hpp"
 // UNIX only header
-#include <wait.h>
+#include <sys/wait.h>
 #include <fstream>
 
 #include "uri.hh"
 
 #include "hier_visitor.h"
+
+#include "signal.h"
 
 using namespace slsp::types;
 
