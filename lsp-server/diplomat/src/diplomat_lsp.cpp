@@ -22,7 +22,7 @@
 #include "index_reference_visitor.hpp"
 
 // UNIX only header
-#include <wait.h>
+#include <sys/wait.h>
 #include <fstream>
 
 #include "uri.hh"

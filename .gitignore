@@ -41,3 +41,7 @@ lsp-server/include/types/
 __pycache__/
 **/LSPGen/meta/
 **/LSPGen/out/
+
+# CMake Cache
+CMakeCache.txt
+cmake.check_cache
