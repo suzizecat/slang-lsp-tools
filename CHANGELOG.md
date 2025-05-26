@@ -2,6 +2,7 @@
 
 ## Added
 
+ - Added support for Mac OS compilation [@threonyl #20]
  - Added references to genvar
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
