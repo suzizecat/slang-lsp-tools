@@ -41,9 +41,6 @@ class DiplomatLSP : public slsp::BaseLSP
 {
     protected:
 
-        std::shared_ptr<DiplomatLSP> _this_shared;
-
-
         void _h_didChangeWorkspaceFolders(json params);
         void _h_didSaveTextDocument(json params);
         void _h_didOpenTextDocument(json params);
@@ -114,7 +111,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         bool _watch_client_pid;
         bool _broken_index_emitted;
-        std::thread _pid_watcher;
+        std::jthread _pid_watcher;
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
         std::unique_ptr<slang::SourceLibrary> _default_source_lib;

@@ -90,9 +90,12 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
                     std::this_thread::sleep_for(100ms);
                     spdlog::error("Ignored ill-formed JSON input : {}", std::string(e.what()));
                     ret.clear();
-                    char* buf = new char(_in.rdbuf()->in_avail());
+                    char* buf = new char(_in.rdbuf()->in_avail() + 1);
+                    memset(buf,0,_in.rdbuf()->in_avail() + 1);
                     _in.readsome(buf, _in.rdbuf()->in_avail());
+                    spdlog::error("Flushed input buffer data is: {}",buf);
                     delete buf;
+                    spdlog::error("Server should have recovered.");
                     //_in.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
                 }
             }
@@ -182,8 +185,15 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
 
     void RPCPipeTransport::abort()
     {
-        spdlog::info("Closing the RPC medium through 'abort' call.");
+        spdlog::warn("Closing the RPC medium through 'abort' call.");
         _aborted = true;
+        _data_available.notify_all();
+    }
+
+    void RPCPipeTransport::close()
+    {
+        spdlog::info("Closing the RPC medium through 'close' call.");
+        _closed = true;
         _data_available.notify_all();
     }
 

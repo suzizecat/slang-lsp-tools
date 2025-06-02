@@ -83,6 +83,10 @@ int main(int argc, char** argv) {
         .help("Use a TCP connection")
         .default_value(false)
         .implicit_value(true);
+    prog.add_argument("--allow-reboot")
+        .help("When using a TCP connection, allow reboot of the server")
+        .default_value(false)
+        .implicit_value(true);
      prog.add_argument("--forward-log")
         .help("Forward the logs to the client")
         .default_value(false)
@@ -123,27 +127,42 @@ int main(int argc, char** argv) {
 
     if(prog.get<bool>("--tcp"))
     {
-
-        
-        in_port_t port = prog.get<in_port_t>("--port");
-        sockpp::initialize();
-        slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);
-        spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
-        spdlog::info("Await client on port {}...",port);
-        itf.await_client();
-        
-        std::istream tcp_input(&itf);
-        std::ostream tcp_output(&itf);
-
-        DiplomatLSP lsp(tcp_input,tcp_output);
-
-        if(prog.get<bool>("--forward-log"))
+        while(true)
         {
-            fwd_sink->set_target_lsp(&lsp);
-            spdlog::default_logger()->sinks().push_back(fwd_sink);
+            {
+                in_port_t port = prog.get<in_port_t>("--port");
+                sockpp::initialize();
+                slsp::TCPInterfaceServer itf = slsp::TCPInterfaceServer(port);
+                spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
+                spdlog::info("Await client on port {}...",port);
+                itf.await_client();
+                
+                std::istream tcp_input(&itf);
+                std::ostream tcp_output(&itf);
+
+                DiplomatLSP lsp(tcp_input,tcp_output);
+
+                if(prog.get<bool>("--forward-log"))
+                {
+                    fwd_sink->set_target_lsp(&lsp);
+                    spdlog::default_logger()->sinks().push_back(fwd_sink);
+                }
+                
+                runner(lsp);
+            }
+            
+            if(prog.get<bool>("--allow-reboot"))
+            {
+                spdlog::info("Diplomat Language Server stopped in TCP mode is allowed to reboot...");
+                spdlog::info("LSP will reboot, use Ctrl-C to exit.");
+            }
+            else
+            {
+                spdlog::info("Diplomat Language Server stopped in TCP but --allow-reboot was not provided.");
+                spdlog::info("Shutting down, bye!");
+                break;
+            }
         }
-        
-        runner(lsp);
     }
     else
     {

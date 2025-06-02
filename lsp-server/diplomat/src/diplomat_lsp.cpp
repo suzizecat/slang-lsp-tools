@@ -65,7 +65,6 @@ bool DiplomatLSP::_assert_index(bool always_throw)
  * @param watch_client_pid If set, should exit/kill the server when the watced PID stop running.
  */
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
-_this_shared(this),
 _sm(new slang::SourceManager()),
 _diagnostic_client(new slsp::LSPDiagnosticClient(_documents,_sm.get())),
 _watch_client_pid(watch_client_pid),
