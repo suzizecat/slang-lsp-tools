@@ -77,6 +77,7 @@ void DiplomatLSP::_h_didSaveTextDocument(DidSaveTextDocumentParams param)
 void DiplomatLSP::_h_didOpenTextDocument(json _)
 {
 	DidOpenTextDocumentParams params =  _;
+
 	_save_client_uri(params.textDocument.uri);
 }
 
@@ -671,7 +672,7 @@ json DiplomatLSP::_h_get_design_hierarchy(json _)
 		return ret;
 	}
 	const slang::ast::RootSymbol& design_root = _compilation->getRoot();
-	HierVisitor hier_visitor(false,&_doc_path_to_client_uri);
+	HierVisitor hier_visitor(false,_cache.get_uri_bindings());
 
 	design_root.visit(hier_visitor);
 

@@ -69,10 +69,6 @@ void runner(slsp::BaseLSP& lsp)
 {
     slsp::perform_default_binds(lsp);
     
-    // lsp.bind_notification("hello", say_hello);
-    // lsp.bind_notification("diplomat-server.full-index", test_function);
-    // lsp.bind_request("add", adder);
-    //lsp.bind_request("initialize", initialize);
     lsp.run();
     spdlog::info("Clean exit.");
 }

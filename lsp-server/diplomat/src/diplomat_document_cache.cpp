@@ -16,6 +16,9 @@ void DiplomatDocumentCache::record_file(const fs::path& fpath,
     _ws_files.emplace(fpath);
 }
 
+/**
+ * This function does not requires a canonical path and will not record the file if not recorded.
+ */
 uri DiplomatDocumentCache::get_uri(const std::filesystem::path& fpath) const
 {
     fs::path stdpath = _standardize_path(fpath);
@@ -69,6 +72,23 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 
 }
 
+
+/**
+ * This function will add a mapping between the standardized path that
+ * matches \p client_uri and \p client_uri itself.
+ * This will not attemps to actually match the URI to a recorded file.
+ * 
+ * @note this function is assuming a properly constructed URI that will target an
+ * accessible file.
+ */
+fs::path DiplomatDocumentCache::record_uri(const uri& client_uri)
+{
+    fs::path tgt_path = _standardize_path(fs::path(client_uri.get_path()));
+    _doc_path_to_client_uri.insert_or_assign(tgt_path,client_uri);
+    //_doc_path_to_client_uri[tgt_path] = uri(client_uri);
+
+    return tgt_path;
+}
 
 void DiplomatDocumentCache::remove_file(const std::filesystem::path& fpath)
 {

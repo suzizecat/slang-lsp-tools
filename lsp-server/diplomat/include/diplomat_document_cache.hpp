@@ -72,6 +72,18 @@ namespace diplomat::cache
              */
             uri get_uri(const std::filesystem::path& fpath) const;
 
+            /**
+             * @brief Get a constant pointer to the uri bindings object
+             * 
+             * This is to transmit to external component that would require 
+             * this mapping while avoiding the dependency to diplomat.
+             * 
+             * @warning if possible, prefers using {@link get_uri} instead.
+             * 
+             * @return const std::unordered_map<std::filesystem::path, uri>* const 
+             */
+            inline const std::unordered_map<std::filesystem::path, uri>* get_uri_bindings() const
+            {return &_doc_path_to_client_uri;};
 
             /**
              * @brief Process the given file, 
@@ -86,6 +98,16 @@ namespace diplomat::cache
             void process_file(const std::filesystem::path& fpath, bool in_prj = false);
 
             /**
+             * @brief Attempt to match an URI with a recorded file in order to fill 
+             * {@link _doc_path_to_client_uri} .
+             * 
+             * @param client_uri The URI sent by the client.
+             * @return the bound absolute path
+             */
+            std::filesystem::path record_uri(const uri& client_uri);
+    
+
+            /**
              * @brief Cleanly removes a file from the cache, thus removing all references
              * in all sub-containers.
              * 
@@ -93,5 +115,6 @@ namespace diplomat::cache
              */
             void remove_file(const std::filesystem::path& fpath);
     };
+
 
 };

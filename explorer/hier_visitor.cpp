@@ -4,7 +4,7 @@
 using json = nlohmann::json;
 namespace ast = slang::ast;
 
- HierVisitor::HierVisitor(bool output_io, const std::unordered_map<std::filesystem::path, std::string>* path_to_uri) : _output_io(output_io), _doc_path_to_uri(path_to_uri)
+ HierVisitor::HierVisitor(bool output_io, const std::unordered_map<std::filesystem::path, uri>* path_to_uri) : _output_io(output_io), _doc_path_to_uri(path_to_uri)
  {
 	_hierarchy = json::array();
  }
@@ -32,7 +32,7 @@ void HierVisitor::handle(const slang::ast::InstanceSymbol &node)
 
 	if (_doc_path_to_uri != nullptr && _doc_path_to_uri->contains(filepath))
 	{
-		_hierarchy[_pointer / "file"] = _doc_path_to_uri->at(filepath);	
+		_hierarchy[_pointer / "file"] = _doc_path_to_uri->at(filepath).to_string();	
 	}
 	else
 	{

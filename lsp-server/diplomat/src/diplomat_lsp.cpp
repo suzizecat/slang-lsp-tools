@@ -115,7 +115,7 @@ slsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRan
     result.range.end.line      = _sm->getLineNumber(sr.end()) -1;
     result.range.end.character = _sm->getColumnNumber(sr.end()) -1;
     //result.uri = fmt::format("file://{}", fs::canonical(_sm->getFullPath(sr.start().buffer())).generic_string());
-    result.uri = get_file_uri(_sm->getFullPath(sr.start().buffer())).to_string();
+    result.uri = _cache.get_uri(_sm->getFullPath(sr.start().buffer())).to_string();
     return result;
 }
 
@@ -229,7 +229,7 @@ slsp::types::Location DiplomatLSP::_index_range_to_lsp(const diplomat::index::In
     
     result.range.end.line      = loc.end.line -1;
     result.range.end.character = loc.end.column -1;
-    result.uri = get_file_uri(loc.start.file).to_string();
+    result.uri = _cache.get_uri(loc.start.file).to_string();
     return result;
 }
 
@@ -606,26 +606,33 @@ void DiplomatLSP::_save_client_uri(const std::string& client_uri)
 {
     spdlog::debug("Register raw URI {}.",client_uri);
     
-    fs::path orig_path = fs::path("/" + uri(client_uri).get_path());
-    if(! fs::exists(orig_path))
-        return;
+    fs::path canon_path = _cache.record_uri(uri(client_uri));
 
-    fs::path canon_path = fs::canonical(orig_path);
+    // fs::path orig_path = fs::path("/" + uri(client_uri).get_path());
+    // if(! fs::exists(orig_path))
+    //     return;
+
+    // fs::path canon_path = fs::canonical(orig_path);
+
     std::string abspath = canon_path.generic_string();
+    if(! fs::exists(abspath))
+        return;
     
-    _doc_path_to_client_uri[canon_path] = client_uri;
-    if(_documents.contains(canon_path))
+     if(_diagnostic_client != nullptr)
     {
-        _documents.at(canon_path)->doc_uri = client_uri;
-
-        if(_diagnostic_client != nullptr)
+        if(_diagnostic_client->remap_diagnostic_uri(fmt::format("file://{}",abspath),client_uri))
         {
-            if(_diagnostic_client->remap_diagnostic_uri(fmt::format("file://{}",abspath),client_uri))
-            {
-                _emit_diagnostics();
-            }
+            _emit_diagnostics();
         }
     }
+
+    // _doc_path_to_client_uri[canon_path] = client_uri;
+    // if(_documents.contains(canon_path))
+    // {
+    //     _documents.at(canon_path)->doc_uri = client_uri;
+
+       
+    // }
 }
 
 /**
@@ -651,8 +658,10 @@ SVDocument* DiplomatLSP::_read_document(fs::path path)
     SVDocument* ret = _documents.at(canon_path).get();
 
     // Rebind the file path if an URI is already registered.
-    if(_doc_path_to_client_uri.contains(canon_path))
-        ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
+    ret->doc_uri = _cache.get_uri(path).to_string();
+
+    // if(_doc_path_to_client_uri.contains(canon_path))
+    //     ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
 
     return ret;
 }
@@ -692,18 +701,5 @@ void DiplomatLSP::dump_index(json _)
         show_message(MessageType_Info, "Index successfully dumped.");
         log(MessageType_Info, fmt::format("Index successfully dumped to {}.", opath.generic_string()));
         spdlog::info("Dumped internal index to {}",opath.generic_string());
-    }
-}
-
-uri DiplomatLSP::get_file_uri(const std::filesystem::path& path) const
-{
-    fs::path lu_path = fs::weakly_canonical(path);
-    if(_doc_path_to_client_uri.contains(lu_path))
-    {
-        return uri(_doc_path_to_client_uri.at(lu_path));
-    }
-    else
-    {
-        return uri(fmt::format("file://{}",lu_path.generic_string()));
     }
 }

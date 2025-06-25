@@ -91,9 +91,10 @@ class DiplomatLSP : public slsp::BaseLSP
         std::unique_ptr<slang::SourceManager> _sm;
 
         diplomat::cache::DiplomatDocumentCache _cache;
+        // TODO : Delete following set of internal variable (replaced by cache)
         std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>> _documents;
         std::unordered_map<std::filesystem::path, std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > > _blackboxes; // By file path
-        std::unordered_map<std::filesystem::path, std::string> _doc_path_to_client_uri;
+        // std::unordered_map<std::filesystem::path, std::string> _doc_path_to_client_uri;
         std::unordered_map<std::string, std::filesystem::path > _module_to_file;
         std::unordered_set<std::filesystem::path> _project_tree_files;
         std::unordered_set<std::string> _project_tree_modules;
@@ -160,8 +161,6 @@ class DiplomatLSP : public slsp::BaseLSP
         void dump_index(json params);
 
         void set_top_level(const std::string& new_top);
-
-        uri get_file_uri(const std::filesystem::path& path) const;
 
         inline void set_watch_client_pid(bool new_value) {_watch_client_pid = new_value;};
 
