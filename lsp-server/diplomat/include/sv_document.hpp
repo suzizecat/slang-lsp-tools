@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <memory>
+#include <unordered_map>
 
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
@@ -33,12 +34,12 @@ struct SVDocument
 
     std::optional<std::string> doc_uri;
 
-    std::unique_ptr<ModuleBlackBox> extract_blackbox();
+    std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > extract_blackbox();
 
     protected:
-    std::unique_ptr<ModuleBlackBox> _bb;
-    slang::BufferID _buff_id;
-    std::optional<std::vector<unsigned int> > _line_size_cache;
-    const ModuleBlackBox* _compute_module_bb();
-    void _update_line_cache();
+        std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > _bb;
+        slang::BufferID _buff_id;
+        std::optional<std::vector<unsigned int> > _line_size_cache;
+        const std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> >* _compute_module_bb();
+        void _update_line_cache();
 };

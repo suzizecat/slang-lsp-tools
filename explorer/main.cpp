@@ -3,7 +3,6 @@
 #include "slang/ast/Compilation.h"
 #include "slang/ast/Scope.h"
 #include "slang/ast/Symbol.h"
-#include "slang/ast/Statements.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
 #include "slang/ast/symbols/BlockSymbols.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"

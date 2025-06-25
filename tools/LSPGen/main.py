@@ -3,7 +3,7 @@ if __name__ == "__main__":
 	import argparse
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("input",type=str,help="Meta-model JSON file to process")
+	parser.add_argument("input",type=str,help="Meta-model JSON file to process",nargs="+")
 	parser.add_argument("--output","-o",type=str,default="out", help="Output root directory")
 	parser.add_argument("--force","-f",action="store_true", help="Overwrite output")
 
@@ -74,10 +74,14 @@ if __name__ == "__main__":
 
 	reader.add_or_resolution(["TextDocumentSyncOptions","TextDocumentSyncKind"],"TextDocumentSyncOptions")
 
-	print(f"Read input file:", os.path.abspath(args.input))
+	for in_file in args.input :
+		print(f"Read input file:", os.path.abspath(in_file))
+		reader.read(in_file)
+		reader.process()
+
+
 	print(f"Write target   :", os.path.abspath(args.output))
 	print(f"Overwrite      :", args.force)
-	reader.read(args.input)
-	reader.process()
+	
 	reader.write_files(args.output,args.force)
 

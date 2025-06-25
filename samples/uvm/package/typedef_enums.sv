@@ -4,6 +4,7 @@ module typedef_enum();
 
 uvm_verbosity v;
 initial begin
+    calc_parity();
  v = UVM_HIGH;
 end
 

@@ -42,7 +42,29 @@ namespace diplomat::index {
 			_scope_stack.pop();
 	}
 
-	void IndexVisitor::_default_symbol_handle(const slang::ast::Symbol &node)
+	void IndexVisitor::_add_symbols_from_name_syntax(const slang::syntax::NameSyntax* node)
+	{
+		using namespace slang::syntax;
+		switch (node->kind)
+		{
+		case SyntaxKind::IdentifierName:
+			{
+				const IdentifierNameSyntax& stx = node->as<IdentifierNameSyntax>();
+				IndexSymbol* new_symb = _index->add_symbol(stx.identifier.rawText(),{stx.identifier.range(),*_sm});
+				_current_scope()->add_symbol(new_symb);
+			}	
+			break;
+		
+		case SyntaxKind::EmptyIdentifierName:
+			// Do nothing
+			break;
+		default:
+			spdlog::error("Symbol NameSyntax of kind {} is not handled just yet.", toString(node->kind));
+			break;
+		}
+	}
+
+	void IndexVisitor::_default_symbol_handle(const slang::ast::Symbol& node)
 	{
 		if(! node.isScope() && _current_scope() && ! node.name.empty())
 		{
@@ -64,6 +86,7 @@ namespace diplomat::index {
 
 	void IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const std::string_view& scope_name, const bool is_virtual )
 	{
+		using namespace slang;
 		const Symbol& s = node.asSymbol();
 		spdlog::info("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
 					
@@ -78,14 +101,25 @@ namespace diplomat::index {
 			{
 				containing_file->set_syntax_root(stx);
 				visitDefault(node);
-				// No need to go through the compilation unit anyway.
 				return;
 			}
+			// else if(s.kind == slang::ast::SymbolKind::Subroutine)
+			// {
+			// 	const syntax::FunctionPrototypeSyntax* stxproto = stx->as<syntax::FunctionDeclarationSyntax>().prototype;
+			// 	const ast::SubroutineSymbol& subrout = s.as<ast::SubroutineSymbol>();
+			// 	const ast::MethodPrototypeSymbol* proto = subrout.getPrototype();
+			// 	if(! proto)
+			// 	{
+			// 		spdlog::warn("Subroutine without prototype");
+			// 		return;
+			// 	}
+
+
+			// }
 			else
 			{
 				IndexRange scope_range = IndexRange(stx->sourceRange(),*_sm);
 				IndexScope* duplicate = _current_scope()->get_child_by_exact_range(scope_range);
-
 				if(duplicate) 
 				{
 					_current_scope()->add_child_alias(duplicate->get_name(),std::string(scope_name));
@@ -113,6 +147,7 @@ namespace diplomat::index {
 			_open_scope(scope_name);
 		}
 
+		//_default_symbol_handle(s);
 		visitDefault(node);
 		_close_scope(used_scope_name);
 	}
@@ -181,6 +216,31 @@ namespace diplomat::index {
 			spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
 			
 			_close_scope(module_scope->get_name());
+		}
+
+
+	}
+
+	void IndexVisitor::handle(const slang::ast::SubroutineSymbol& node)
+	{
+		using namespace slang;
+		_default_scope_handle(node,node.name,true); // Virtual to be checked...
+
+
+		const syntax::SyntaxNode* stx = node.getSyntax();
+		if(stx && stx->kind == syntax::SyntaxKind::FunctionDeclaration)
+		{
+			// // Using get_scope_by_name will resolve any duplicated scope.
+			// IndexScope* module_scope = _current_scope()->get_scope_by_name(node.name);
+
+			// // Manual insertion of the module name as a symbol to the target scope...
+			// _open_scope(module_scope->get_name(),false);
+
+			const syntax::FunctionPrototypeSyntax* stxproto = stx->as<syntax::FunctionDeclarationSyntax>().prototype;
+			_add_symbols_from_name_syntax(stxproto->name);
+
+			// _close_scope(module_scope->get_name());
+
 		}
 
 

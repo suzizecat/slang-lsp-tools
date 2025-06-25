@@ -66,6 +66,7 @@ include(cmake/lsp-datastructures.cmake)
 ###########################################################
 # SV-FORMATTER 
 ###########################################################
+include(cmake/sv-tree.cmake)
 include(cmake/sv-formatter.cmake)
 include(cmake/sv-explorer.cmake)
 include(cmake/sv-indexer.cmake)
@@ -102,6 +103,7 @@ lsp-server/include/types/src/structs_json_bindings.cpp
 lsp-server/diplomat/src/diplomat_lsp.cpp
 lsp-server/diplomat/src/diplomat_lsp_binds.cpp
 lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
+lsp-server/diplomat/src/diplomat_document_cache.cpp
 lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
 #lsp-server/diplomat/src/visitor_index.cpp
@@ -148,24 +150,24 @@ target_include_directories(lsp-test-client
 PRIVATE lsp-server/include)
 
 
-add_executable(sv-tree
-utils/ast-printer/ast_print.cpp
-utils/ast-printer/ast_print_main.cpp
-)
+# add_executable(sv-tree
+# utils/ast-printer/ast_print.cpp
+# utils/ast-printer/ast_print_main.cpp
+# )
 
-target_include_directories(sv-tree 
-PRIVATE utils/ast-printer
-)
+# target_include_directories(sv-tree 
+# PRIVATE utils/ast-printer
+# )
 
-target_link_libraries(sv-tree
-PUBLIC slang::slang
-PRIVATE argparse::argparse)
+# target_link_libraries(sv-tree
+# PUBLIC slang::slang
+# PRIVATE argparse::argparse)
 
 add_custom_target(full 
 DEPENDS 
 	sv-formatter-exe
 	sv-indexer-exe
-	sv-tree
+	sv-tree-exe
 	sv-explorer-exe
 	slang-lsp)
 

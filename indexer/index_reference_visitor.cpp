@@ -5,8 +5,8 @@ namespace diplomat::index
 	bool ReferenceVisitor::_add_reference_from_stx(const slang::SourceRange & loc,
 	                                               const std::string_view& name)
 	{
-		spdlog::trace("    Found reference for name {}", name);
 		IndexRange node_loc(loc,*_sm);
+		spdlog::trace("    Found reference for name {} at {}", name, node_loc.start.to_string());
 		IndexFile* parent_file = _index->add_file(node_loc.start.file);
 
 		IndexScope* ref_scope = parent_file->lookup_scope_by_range(node_loc);
@@ -94,6 +94,32 @@ namespace diplomat::index
 		return true;
 
 		
+	}
+
+
+	void ReferenceVisitor::handle(const slang::syntax::ModuleDeclarationSyntax& node)
+	{
+		if(! node.header)
+		{
+			_instance_scope = nullptr;
+		}
+		else
+		{
+			spdlog::debug("Entering hier-instance declaration for {}",node.header->name.rawText());
+			_select_instance_scope(IndexLocation(node.sourceRange().start(),*_sm),node.header->name.rawText());
+			
+			// const slang::syntax::HierarchyInstantiationSyntax& root_instantiation_stx = node.parent->as<slang::syntax::HierarchyInstantiationSyntax>();
+			// _add_reference_to_symbol(node.decl->name.range(), root_instantiation_stx.type.rawText());
+			
+			// // Manually visit the parameters in order to associate the parameter reference to the 
+			// // proper definition in the instance scope. 
+			// // Could be avoided multiple times, but most of the time, no loss.
+			// if(root_instantiation_stx.parameters)
+			// 	visitDefault(*(root_instantiation_stx.parameters));
+			
+			visitDefault(node);
+			_instance_scope = nullptr;
+		}
 	}
 
 	void ReferenceVisitor::handle(const slang::syntax::HierarchicalInstanceSyntax& node)

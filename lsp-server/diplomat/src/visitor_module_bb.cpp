@@ -3,6 +3,7 @@
 #include "slang/parsing/Token.h"
 #include "slang/parsing/TokenKind.h"
 #include <iostream>
+#include <bit>
 #include "spdlog/spdlog.h"
 
 
@@ -63,9 +64,11 @@ void from_json(const json& j, ModuleBlackBox& p)
 
 VisitorModuleBlackBox::VisitorModuleBlackBox(bool only_modules, const slang::SourceManager* sm) : 
 	_only_modules(true), 
-	_sm(sm), 
-	bb(new ModuleBlackBox())
+	_bb(new ModuleBlackBox()),
+	_sm(sm),
+	read_bb(new std::unordered_map<std::string, std::unique_ptr<ModuleBlackBox> >()) 
 {
+
 }
 
 void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_sm)
@@ -73,16 +76,24 @@ void VisitorModuleBlackBox::set_source_manager(const slang::SourceManager* new_s
 	_sm = new_sm;
 }
 
+void VisitorModuleBlackBox::handle(const slang::syntax::ModuleDeclarationSyntax& node)
+{
+	_bb.reset(new ModuleBlackBox());
+	visitDefault(node);
+	// Save the new BB in the output buffer.
+	read_bb->emplace(_bb->module_name, std::move(_bb));
+}
+
 void VisitorModuleBlackBox::handle(const slang::syntax::ModuleHeaderSyntax& node)
 {
-	bb->module_name = node.name.valueText();
+	_bb->module_name = node.name.valueText();
 
 	visitDefault(node);
 }
 
 void VisitorModuleBlackBox::handle(const HierarchyInstantiationSyntax& node)
 {
-	bb->deps.insert(std::string(node.type.rawText()));
+	_bb->deps.insert(std::string(node.type.rawText()));
 }
 
 
@@ -90,13 +101,13 @@ void VisitorModuleBlackBox::handle(const AnsiPortListSyntax& node)
 {
 	visitDefault(node);
 
-	if(bb->ports.size() > 0)
+	if(_bb->ports.size() > 0)
 	{
 		for(const slang::parsing::Trivia t : node.getLastToken().trivia())
 		{
 			if(t.getRawText().starts_with("//"))
 			{
-				bb->ports.back().comment = std::string(t.getRawText());
+				_bb->ports.back().comment = std::string(t.getRawText());
 			}
 		}
 	}
@@ -112,8 +123,8 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 
 	// std::cout << "    Name      : " << declarator->name.valueText() << std::endl;
 	mport.name = declarator->name.valueText();
-	// bb->ports hold the list of ports of the module I'm analyzing
-	if(bb->ports.size() > 0)
+	// _bb->ports hold the list of ports of the module I'm analyzing
+	if(_bb->ports.size() > 0)
 	{
 		for(const slang::parsing::Trivia t : port.header->getFirstToken().trivia())
 		{
@@ -121,7 +132,7 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 			// in particular by checking the line number with the port declaration.
 			if(t.getRawText().starts_with("//"))
 			{
-				bb->ports.back().comment = std::string(t.getRawText());
+				_bb->ports.back().comment = std::string(t.getRawText());
 				break;
 			}
 		}
@@ -203,7 +214,7 @@ void VisitorModuleBlackBox::handle(const ImplicitAnsiPortSyntax& port)
 	}
 
 	//data["ports"].push_back(json_def);
-	bb->ports.push_back(mport);
+	_bb->ports.push_back(mport);
 
 }
 
@@ -241,7 +252,14 @@ void VisitorModuleBlackBox::handle(const ParameterDeclarationSyntax& node)
 			mparam.default_value = init_expr;
 		}
 		
-		bb->parameters.push_back(mparam);
+		_bb->parameters.push_back(mparam);
 
 	}
+}
+
+std::size_t bb_signature(const ModuleBlackBox& bb)
+{
+	return bb_signature(bb.module_name, 
+		bb.parameters | std::views::transform([](const ModuleParam& p){return p.name;}), 
+		bb.ports | std::views::transform([](const ModulePort& p){return p.name;}));
 }

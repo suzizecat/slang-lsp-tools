@@ -70,7 +70,8 @@ _diagnostic_client(new slsp::LSPDiagnosticClient(_documents,_sm.get())),
 _watch_client_pid(watch_client_pid),
 _project_tree_files{},
 _project_tree_modules{},
-_project_file_tree_valid(false)
+_project_file_tree_valid(false),
+_broken_index_emitted(true)
 {
     
     TextDocumentSyncOptions sync;
@@ -153,6 +154,8 @@ void DiplomatLSP::_bind_methods()
     bind_request("diplomat-server.pull-config", LSP_MEMBER_BIND(DiplomatLSP,_h_pull_config));
     bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_module_top));
     
+    bind_notification("diplomat-server.prj.set-project",LSP_MEMBER_BIND(DiplomatLSP,_h_set_project));
+
     bind_request("diplomat-server.resolve-paths", LSP_MEMBER_BIND(DiplomatLSP,_h_resolve_hier_path));
     bind_request("diplomat-server.get-hierarchy", LSP_MEMBER_BIND(DiplomatLSP,_h_get_design_hierarchy));
     bind_request("diplomat-server.list-symbols", LSP_MEMBER_BIND(DiplomatLSP,_h_list_symbols));
@@ -272,6 +275,7 @@ void DiplomatLSP::_read_workspace_modules()
     namespace fs = fs;
     _documents.clear();
     _blackboxes.clear();
+    _module_to_file.clear();
     
     _sm.reset(new slang::SourceManager());
     for(auto& path : _settings.includes.user)
@@ -281,7 +285,6 @@ void DiplomatLSP::_read_workspace_modules()
 
     fs::path p;
     SVDocument* doc;
-    std::unique_ptr<ModuleBlackBox> bb;
 
     for (const fs::path& root : _settings.workspace_dirs)
     {
@@ -331,8 +334,25 @@ void DiplomatLSP::_read_workspace_modules()
             {
                 spdlog::debug("Read SV file {}", p.generic_string());
                 doc = _read_document(p);
-                _blackboxes[p] = doc->extract_blackbox();
-                _module_to_file[_blackboxes[p]->module_name] = p.generic_string();
+                _blackboxes.emplace(p,doc->extract_blackbox());
+
+                for(auto& name : std::views::keys(*(_blackboxes.at(p))))
+                {
+                    // If module to file already have a reference,
+                    // try to select the one where the filename match the module name.
+                    if(_module_to_file.contains(name))
+                    {
+                        if(p.has_stem() && p.stem().generic_string() == name)
+                            _module_to_file[name] = p;
+                        else
+                            spdlog::warn("Ignored file {} for module {} as the filename does not match the module and we already have a reference.",
+                            p.generic_string(),name);
+                    }
+                    else
+                    {
+                        _module_to_file[name] = p;
+                    }
+                }
             }
         }
     }
@@ -366,7 +386,9 @@ void DiplomatLSP::_read_filetree_modules()
         spdlog::debug("Read SV file from project tree {}", file.generic_string());
         doc = _read_document(file);
         _blackboxes[file] = doc->extract_blackbox();
-        _module_to_file[_blackboxes[file]->module_name] = file.generic_string();
+
+        for(auto& module_name : std::views::keys(*(_blackboxes.at(file))))
+            _module_to_file[module_name] = file.generic_string();
     }
 }
 
@@ -400,7 +422,7 @@ const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) co
 {
     try
     {
-        return _blackboxes.at(_module_to_file.at(module)).get();
+        return _blackboxes.at(_module_to_file.at(module))->at(module).get();
     }
     catch(const std::out_of_range& e)
     {
@@ -412,10 +434,11 @@ const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) co
 /**
  * @brief Rebuild the project module and file trees
  */
-void DiplomatLSP::_compute_project_tree()
+void DiplomatLSP::_compute_project_tree(bool keep_tree)
 {
     spdlog::info("Rebuild project file tree");
-    _clear_project_tree();
+    if(! keep_tree)
+        _clear_project_tree();
     // A top level shall be set beforehand.
     if(! _settings.top_level)
         return;

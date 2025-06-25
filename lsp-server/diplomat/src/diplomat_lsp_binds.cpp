@@ -68,9 +68,8 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
 	_add_workspace_folders(params.event.added);
 }
 
-void DiplomatLSP::_h_didSaveTextDocument(json _)
+void DiplomatLSP::_h_didSaveTextDocument(DidSaveTextDocumentParams param)
 {
-	DidSaveTextDocumentParams param = _ ;
 	_read_document(fs::path("/" + uri(param.textDocument.uri).get_path()));
 	_compile();
 }
@@ -135,9 +134,8 @@ json DiplomatLSP::_h_completion(CompletionParams params)
 	return result;
 }
 
-json DiplomatLSP::_h_formatting(json _)
+json DiplomatLSP::_h_formatting(DocumentFormattingParams params)
 {
-	DocumentFormattingParams params =  _;
 	std::string filepath = "/" + uri(params.textDocument.uri).get_path();
 	spdlog::info("Request to format the file {}",filepath);
 	slang::SourceManager sm;
@@ -171,53 +169,52 @@ void DiplomatLSP::_h_exit(json params)
 	exit();
 }
 
-json DiplomatLSP::_h_initialize(json params)
+json DiplomatLSP::_h_initialize(InitializeParams params)
 {
 	using namespace std::chrono_literals;
-	InitializeParams p = params.template get<InitializeParams>();
 	bool got_workspace = false;
-	_client_capabilities = p.capabilities;
-	if(p.capabilities.workspace && p.capabilities.workspace.value().workspaceFolders.value_or(false))
+	_client_capabilities = params.capabilities;
+	if(params.capabilities.workspace && params.capabilities.workspace.value().workspaceFolders.value_or(false))
 	{
-		if (p.workspaceFolders)
+		if (params.workspaceFolders)
 		{
-			_add_workspace_folders(p.workspaceFolders.value());
+			_add_workspace_folders(params.workspaceFolders.value());
 			got_workspace = true;
 		}
 	}
 
 	if (!got_workspace)
 	{
-		if (p.rootUri)
+		if (params.rootUri)
 		{
-			spdlog::info("Add root directory from URI: {}", p.rootUri.value());
-			//_root_dirs.push_back(fs::path(uri(p.rootUri.value()).get_path()));
-			_settings.workspace_dirs.emplace(fs::path(uri(p.rootUri.value()).get_path()));
+			spdlog::info("Add root directory from URI: {}", params.rootUri.value());
+			//_root_dirs.push_back(fs::path(uri(params.rootUri.value()).get_path()));
+			_settings.workspace_dirs.emplace(fs::path(uri(params.rootUri.value()).get_path()));
 		}
-		else if(p.rootPath)
+		else if(params.rootPath)
 		{
-			spdlog::info("Add root directory from path: {}", p.rootPath.value());
-			//_root_dirs.push_back(fs::path(p.rootPath.value()));
-			_settings.workspace_dirs.emplace(fs::path(p.rootPath.value()));
+			spdlog::info("Add root directory from path: {}", params.rootPath.value());
+			//_root_dirs.push_back(fs::path(params.rootPath.value()));
+			_settings.workspace_dirs.emplace(fs::path(params.rootPath.value()));
 			
 		}
 		
 	}
 
-	if (p.processId && _watch_client_pid)
+	if (params.processId && _watch_client_pid)
 	{
 	
-		spdlog::info("Watching client PID {}", p.processId.value());
-		_pid_watcher = std::thread(
-			[this](int pid) {
-				while(kill(pid,0) == 0)
+		spdlog::info("Watching client PID {}", params.processId.value());
+		_pid_watcher = std::jthread(
+			[this](std::stop_token stop_token, int pid) {
+				while(! stop_token.stop_requested() && kill(pid,0) == 0)
 				{
-					std::this_thread::sleep_for(1ms);
+					std::this_thread::sleep_for(100ms);
 				}
 				spdlog::warn("Client process {} exited, stopping the server.", pid);
-				this->_rpc.abort();
+				this->_rpc.close();
 			},
-			p.processId.value()
+			params.processId.value()
 		);
 	}
 
@@ -281,12 +278,11 @@ json DiplomatLSP::_h_shutdown(json params)
 }
 
 
-json DiplomatLSP::_h_gotoDefinition(json _)
+json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
 {
 	if (!_assert_index())
 		return {};
 	
-	slsp::types::DefinitionParams params = _;
 	slsp::types::Location result;
 
 	const di::IndexLocation lu_location = _lsp_to_index_location(params);
@@ -473,6 +469,37 @@ json DiplomatLSP::_h_rename(json _)
 // 	out << j.dump(4);
 // }
 
+
+/**
+ * @brief This command setup the active project, it will provide the whole
+ * list of files, the associated top level module and so on.
+ * 
+ * Calling this method is equivalement to setting the active project and updating the source list.
+ * 
+ * @param json structure matching a list with only a single element in it, being 
+ * the image of diplomat-vscode/exchange_types.ts:DiplomatProject
+ */
+void DiplomatLSP::_h_set_project(json _)
+{
+	spdlog::debug("Set Project requested : {}",_.dump(1));
+	DiplomatProject params = _.front();
+	_clear_project_tree();
+
+	for(const std::string& filepath : params.sourceList)
+	{	
+		_project_tree_files.emplace(filepath);
+	}
+
+	// We assume that the project file tree is valid.
+	_project_file_tree_valid = true;
+
+	if (params.topLevel && params.topLevel->module)
+		set_top_level(params.topLevel->module.value());
+	else
+		_compile();
+}
+
+
 /**
  * @brief Pushing configuration, from client to server.
  * 
@@ -524,14 +551,12 @@ json DiplomatLSP::_h_get_modules(json params)
 
 json DiplomatLSP::_h_get_module_bbox(json _)
 {
-
-
 	json params = _[0];
 	const std::string target_file = params.at("file").template get<std::string>();
 	spdlog::info("Return information for file {}",target_file );
 	fs::path lookup_path = fs::canonical(target_file);
 	
-	ModuleBlackBox* bb = _blackboxes.at(lookup_path).get();
+	auto* bb = _blackboxes.at(lookup_path).get();
 	return *bb;
 }
 
@@ -544,8 +569,16 @@ void DiplomatLSP::_h_set_module_top(json params)
 	}
 
 	spdlog::info("Set top file {}", p.generic_string());
-	ModuleBlackBox* bb = _blackboxes.at(p).get();
-	_settings.top_level = bb->module_name;
+
+	const std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > * module_map;
+	module_map = _blackboxes.at(p).get();
+
+	if(module_map->size() > 1)
+	{
+		spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
+	}
+	_settings.top_level =  std::views::keys(*module_map).front();
+
 
 	_compute_project_tree();
 	_compile();

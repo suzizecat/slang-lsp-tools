@@ -21,7 +21,14 @@
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
 
-// Allows serializing and deserializing contents behind a std::optional.
+// 
+/**
+ * @brief Allows serializing and deserializing contents behind a std::optional.
+ * 
+ * @tparam T final type to handle.
+ * @deprecated this should be supported natively by nlohmann::json since 3.11.4 
+ * see https://github.com/nlohmann/json/issues/1749
+ */
 template <typename T>
 struct adl_serializer<std::optional<T>> {
 	static void to_json(json& j, const std::optional<T>& opt) {

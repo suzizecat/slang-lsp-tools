@@ -1,6 +1,7 @@
 #pragma once
 #include "index_core.hpp"
 #include <slang/syntax/SyntaxVisitor.h>
+#include <slang/syntax/AllSyntax.h>
 #include <slang/ast/ASTVisitor.h>
 
 #include <string>
@@ -31,6 +32,14 @@ namespace diplomat::index {
 			//void _close_scope(const std::string& name);
 			void _close_scope(const std::string_view& name);
 
+			/**
+			 * @brief This function will take care of managing all "NameSyntax" derivatives from which
+			 * we may want create one (or multiple) symbols
+			 * 
+			 * @param node Node to use as a symbol token
+			 */
+			void _add_symbols_from_name_syntax(const slang::syntax::NameSyntax* node);
+
 			void _default_symbol_handle(const slang::ast::Symbol& node);
 			void _default_scope_handle(const slang::ast::Scope& node, const std::string_view& scope_name, const bool is_virtual = false);
 			void _default_scope_handle(const slang::ast::Scope& node, const bool is_virtual = false);
@@ -49,6 +58,7 @@ namespace diplomat::index {
 			void handle(const slang::ast::ParameterSymbol& node);
 			void handle(const slang::ast::TransparentMemberSymbol& node);
 			void handle(const slang::ast::InstanceSymbol& node);
+			void handle(const slang::ast::SubroutineSymbol& node);
 			void handle(const slang::ast::WildcardImportSymbol& node);
 
 			inline std::unique_ptr<IndexCore> get_index() {return std::move(_index);};

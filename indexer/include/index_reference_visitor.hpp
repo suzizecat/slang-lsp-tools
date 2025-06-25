@@ -42,6 +42,7 @@ namespace diplomat::index
 			void handle(const slang::syntax::IdentifierNameSyntax& node);
 			void handle(const slang::syntax::IdentifierSelectNameSyntax& node);
 			// void handle(const slang::syntax::ElementSelectSyntax& node);
+			void handle(const slang::syntax::ModuleDeclarationSyntax& node);
 			void handle(const slang::syntax::HierarchicalInstanceSyntax& node);
 			void handle(const slang::syntax::NamedPortConnectionSyntax& node);
 			void handle(const slang::syntax::NamedParamAssignmentSyntax& node);

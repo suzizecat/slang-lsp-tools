@@ -81,10 +81,7 @@ namespace diplomat::index {
 		assert(range.start.file == _filepath);
 		if(! _references.try_emplace(range.start,range,symb).second)
 		{
-			spdlog::warn("    Failed to insert a reference to {}", symb->get_name());
-			#ifdef DIPLOMAT_DEBUG
-			_add_failed_ref(fmt::format("{} at {}",symb->get_name(),range.start.to_string()));
-			#endif
+			spdlog::debug("    Duplicate reference to {}", symb->get_name());
 		}
 		else
 			symb->add_reference(range);

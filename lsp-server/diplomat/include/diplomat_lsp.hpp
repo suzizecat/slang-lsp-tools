@@ -6,6 +6,7 @@
 #include "sv_document.hpp"
 #include "diagnostic_client.hpp"
 #include "diplomat_lsp_ws_settings.hpp"
+#include "diplomat_document_cache.hpp"
 // #include "diplomat_index.hpp"
 
 
@@ -15,6 +16,7 @@
 #include "types/structs/WorkspaceFolder.hpp"
 #include "types/structs/PublishDiagnosticsParams.hpp"
 #include "types/structs/ClientCapabilities.hpp" 
+#include "types/structs/DiplomatProject.hpp" 
 
 
 #include "slang/ast/Compilation.h"
@@ -30,6 +32,7 @@
 #include <filesystem>
 #include <thread>
 
+#include <ranges>
 
 
 using json = nlohmann::json;
@@ -42,19 +45,21 @@ class DiplomatLSP : public slsp::BaseLSP
     protected:
 
         void _h_didChangeWorkspaceFolders(json params);
-        void _h_didSaveTextDocument(json params);
+        void _h_didSaveTextDocument(slsp::types::DidSaveTextDocumentParams params);
         void _h_didOpenTextDocument(json params);
         void _h_didCloseTextDocument(slsp::types::DidCloseTextDocumentParams params);
         json _h_completion(slsp::types::CompletionParams params);
-        json _h_formatting(json params);
-        json _h_gotoDefinition(json params);
+        json _h_formatting(slsp::types::DocumentFormattingParams params);
+        json _h_gotoDefinition(slsp::types::DefinitionParams params);
         json _h_references(json params);
         json _h_rename(json params);
         void _h_exit(json params);
-        json _h_initialize(json params);
+        json _h_initialize(slsp::types::InitializeParams params);
         void _h_initialized(json params);
         void _h_setTrace(json params);
         json _h_shutdown(json params);
+
+        void _h_set_project(json params);
 
         void _h_push_config(json params);
         json _h_pull_config(json params);
@@ -85,22 +90,22 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slang::SourceManager> _sm;
 
+        diplomat::cache::DiplomatDocumentCache _cache;
         std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>> _documents;
-        std::unordered_map<std::filesystem::path, std::unique_ptr<ModuleBlackBox>> _blackboxes; // By file path
+        std::unordered_map<std::filesystem::path, std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > > _blackboxes; // By file path
         std::unordered_map<std::filesystem::path, std::string> _doc_path_to_client_uri;
         std::unordered_map<std::string, std::filesystem::path > _module_to_file;
+        std::unordered_set<std::filesystem::path> _project_tree_files;
+        std::unordered_set<std::string> _project_tree_modules;
 
 
-        //std::vector< std::filesystem::path> _root_dirs;
-
-
-        // std::unordered_set< std::filesystem::path> _excluded_paths;
+        std::vector< std::filesystem::path> _root_dirs;
+        std::unordered_set< std::filesystem::path> _excluded_paths;
+        
         std::unordered_set<std::string> _accepted_extensions;
         std::filesystem::path _settings_path;
         slsp::DiplomatLSPWorkspaceSettings _settings;
 
-        std::unordered_set<std::filesystem::path> _project_tree_files;
-        std::unordered_set<std::string> _project_tree_modules;
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
 
@@ -136,12 +141,13 @@ class DiplomatLSP : public slsp::BaseLSP
 
         bool _assert_index(bool always_throw = false);
 
-        void _compute_project_tree();
+        void _compute_project_tree(bool keep_tree = true);
         void _clear_project_tree();
         void _add_module_to_project_tree(const std::string& mod);
 
         const SVDocument* _document_from_module(const std::string& module) const;
         const ModuleBlackBox* _bb_from_module(const std::string& module) const;
+        const std::vector<ModuleBlackBox> _bb_from_file(const std::string& fpath) const;
 
     public:
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout, bool watch_client_pid = true);

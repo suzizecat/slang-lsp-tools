@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     if(debug)
     {
         std::cout << slang::syntax::SyntaxPrinter::printFile(*st) << std::endl << std::endl;
-         print_tokens(&(st->root()));
+         print_slang_cst(&(st->root()));
     }
     
     slang::BumpAllocator mem;
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     if(debug)
     {
         std::cout << "POST - FORMAT AST ################" << std::endl << std::endl;
-        print_tokens(&(formatted->root()));
+        print_slang_cst(&(formatted->root()));
     }
 
     std::cout << slang::syntax::SyntaxPrinter::printFile(*formatted) << std::endl << std::endl;

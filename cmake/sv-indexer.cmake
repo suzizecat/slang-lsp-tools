@@ -16,4 +16,6 @@ LIB_LINK
     spdlog::spdlog
 EXE_SRC
     PRIVATE indexer/main_indexer.cpp
+EXE_LINK
+    PRIVATE sv-tree-lib
  )

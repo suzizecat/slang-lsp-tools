@@ -61,18 +61,18 @@ slsp::types::Range SVDocument::range_from_slang(const slang::SourceRange& range)
     return slsp::types::Range{position_from_slang(range.start()),position_from_slang(range.end())};
 }
 
-std::unique_ptr<ModuleBlackBox> SVDocument::extract_blackbox()
+std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > SVDocument::extract_blackbox()
 {
     _compute_module_bb();
     return std::move(_bb);
 }
 
-const ModuleBlackBox* SVDocument::_compute_module_bb()
+const std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> >* SVDocument::_compute_module_bb()
 {
     VisitorModuleBlackBox visitor;
     st->root().visit(visitor);
 
-    _bb = std::move(visitor.bb);
+    _bb = std::move(visitor.read_bb);
     return _bb.get();
 }
 

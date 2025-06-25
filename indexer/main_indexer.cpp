@@ -9,10 +9,11 @@
 #include <stack>
 #include "spdlog/spdlog.h"
 #include "spdlog/stopwatch.h"
+#include <filesystem>
 
 #include "nlohmann/json.hpp"
 
-
+#include "ast_print.hpp"
 #include "index_visitor.hpp"
 #include "index_reference_visitor.hpp"
 #include "index_core.hpp"
@@ -35,12 +36,14 @@ int main(int argc, char** argv) {
     std::optional<bool> showVersion;
     std::optional<bool> verbose;
     std::optional<bool> trace;
+    std::optional<std::string> cst_dump_file;
     std::optional<std::string> output_file;
     driver.cmdLine.add("-h,--help", showHelp, "Display available options");
     driver.cmdLine.add("--version", showVersion, "Display version information and exit");
     driver.cmdLine.add("-o,--output",output_file, "Output file for the index");
     driver.cmdLine.add("--verbose",verbose, "Enable verbose mode");
     driver.cmdLine.add("--trace",trace, "Enable verbosier mode");
+    driver.cmdLine.add("--cst",cst_dump_file, "Dump the CST of the provided file, if found");
 
     if (!driver.parseCommandLine(argc, argv))
         return 1;
@@ -65,6 +68,9 @@ int main(int argc, char** argv) {
     {
         spdlog::set_level(spdlog::level::trace);
     }
+   
+    // spdlog::set_pattern("[%Y-%m-%d %T.%e] [%^%-5!l%$] %v");
+    spdlog::set_pattern("[%^%-5!l%$] %v");
    
    
 
@@ -99,6 +105,15 @@ int main(int argc, char** argv) {
             {
                 diplomat::index::ReferenceVisitor ref_visitor(compilation->getSourceManager(),index.get());
                 stx->visit(ref_visitor);
+            }
+
+            if(cst_dump_file)
+            {
+                if(file->get_path() == std::filesystem::weakly_canonical(cst_dump_file.value()))
+                {
+                    print_slang_cst(stx);
+                    return 0;
+                }
             }
 
             

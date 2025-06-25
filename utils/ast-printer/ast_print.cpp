@@ -18,7 +18,7 @@ void print_tree_elt(const std::string_view elt_title,const std::string_view elt_
         std::cout << fmt::format("{:.<70s}: {}",title,elt_value) << std::endl;
 }
 
-void print_tokens(const syntax::SyntaxNode* node, int level)
+void print_slang_cst(const syntax::SyntaxNode* node, int level)
 {
     const syntax::SyntaxNode* next;
     print_tree_elt(syntax::toString(node->kind),"",level,">");
@@ -26,7 +26,7 @@ void print_tokens(const syntax::SyntaxNode* node, int level)
     {
         if((next = node->childNode(i)) != nullptr)
         {
-            print_tokens(next,level +1);
+            print_slang_cst(next,level +1);
         } else
         {
             parsing::Token t = node->childToken(i);
@@ -44,7 +44,7 @@ void print_tokens(const syntax::SyntaxNode* node, int level)
                                 print_tree_elt(slang::parsing::toString(trivia.kind),"",level+2,"~");
                             if((next = trivia.syntax())!= nullptr)
                             {
-                                print_tokens(next,level+2);
+                                print_slang_cst(next,level+2);
                             }
                             for (parsing::Token triv_tok : trivia.getSkippedTokens())
                             {

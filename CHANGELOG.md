@@ -7,7 +7,12 @@
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
  - Added `--version` management for sv-indexer (same version as LSP)
+<<<<<<< HEAD
  - Added statement expension formatter (to split multi-statements).
+=======
+ - Added Doxygen setup
+ - Added new workspace elements (blackboxes) caching backend
+>>>>>>> 49dbbdf (Stable-ish commit before moving to new document caching method.)
  
 ## Changed
 
@@ -15,7 +20,8 @@
  - Updated CMakeLists.txt to generate proper semver version strings
  - Show versions upon start of LSP and indexer (standalone)
  - Reduced log level in the indexer (use of trace)
- - Properly handle stop and reboot in TCP mode using --keep-alive (still some instability)
+ - Try to handle stop and reboot in TCP mode using --keep-alive (still some instability)
+ - Move sv-tree as a cmake "module"
 
 ## Fixed
 

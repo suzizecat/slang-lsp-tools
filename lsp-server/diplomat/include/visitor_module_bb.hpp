@@ -6,10 +6,14 @@
 
 #include <string>
 #include <string_view>
-#include <vector>
+#include <unordered_map>
 #include <unordered_set>
+#include <concepts>
+#include <ranges>
 
 using json = nlohmann::json; 
+
+
 
 struct ModuleParam
 {
@@ -31,12 +35,34 @@ struct ModulePort
 };
 
 struct ModuleBlackBox
-{
+{  
     std::string module_name;
     std::vector<ModuleParam> parameters;
     std::vector<ModulePort> ports;
-    std::unordered_set<std::string> deps;
+    std::unordered_set<std::string> deps;    
 };
+
+
+    // Defines the concept of a range... made of strings...
+    template <typename R>
+    concept StringRange = std::ranges::range<R> && std::same_as<std::ranges::range_value_t<R>, std::string>;
+
+    // Use the concept to allow "ranges" of strings as parameters.
+    // Given a moduleBB, this should allow to detect if we have an equivalence in definition.
+    template<StringRange Rparams, StringRange Rports>
+    std::size_t bb_signature(const std::string& name, const Rparams& params, const Rports& ports)
+    {
+        using namespace std;
+        size_t h = hash<string>{}(name);
+        for(const auto& param : params)
+            h ^= rotr(hash<string>{}(param),1);
+        for(const auto& port : ports)
+            h ^= rotr(hash<string>{}(port),2);
+
+        return h;
+    }
+    
+    std::size_t bb_signature(const ModuleBlackBox& bb);
 
     void to_json(json& j, const ModuleParam& p);
     void to_json(json& j, const ModulePort& p);
@@ -51,10 +77,12 @@ class VisitorModuleBlackBox : public slang::syntax::SyntaxVisitor<VisitorModuleB
 
 protected:
         bool _only_modules;
+        std::unique_ptr<ModuleBlackBox> _bb;
         const slang::SourceManager* _sm;
 
 public:
         explicit VisitorModuleBlackBox(bool only_modules = false, const slang::SourceManager* sm = nullptr);
+        void handle(const slang::syntax::ModuleDeclarationSyntax &node);
         void handle(const slang::syntax::ModuleHeaderSyntax &node);
         void handle(const slang::syntax::AnsiPortListSyntax &port);
         void handle(const slang::syntax::ImplicitAnsiPortSyntax &port);
@@ -64,5 +92,6 @@ public:
         void set_source_manager(const slang::SourceManager *new_sm);
 
 		// std::string module_name;
-		std::unique_ptr<ModuleBlackBox> bb;
+        
+		std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox>>> read_bb;
 };

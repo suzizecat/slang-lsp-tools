@@ -1,6 +1,6 @@
 
 #include "ast_print.hpp"
-
+#include "argparse/argparse.hpp" 
 #include "slang/text/SourceManager.h"
 
 using namespace slang;
@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     slang::SourceManager sm;
     auto st = slang::syntax::SyntaxTree::fromFile(prog.get<std::string>("file"),sm).value();
 
-    print_tokens(&(st->root()));
+    print_slang_cst(&(st->root()));
 
     return 0;
 }

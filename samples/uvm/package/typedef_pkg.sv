@@ -1,3 +1,5 @@
+
+`include "typedef_include.svh"
 package td_pkg;
 
 typedef enum
@@ -18,8 +20,8 @@ typedef enum
     // Create function and task defintions that can be reused
     // Note that it will be a 'static' method if the keyword 'automatic' is not used
 	function int calc_parity ();
-      $display ("Called from somewhere");
-   	endfunction
+      $display("Toto"); //`PRINT("Called !");
+  endfunction
 
 
 endpackage

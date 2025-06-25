@@ -127,9 +127,9 @@ namespace slsp{
 
     json BaseLSP::_execute_command_handler(json& p)
     {
+        const types::ExecuteCommandParams params = p;
         try
         {
-            const types::ExecuteCommandParams params = p;
             json args = params.arguments.value_or(json());
             json ret = invoke(params.command, args).value_or(json());
             spdlog::trace("Invocation return is {}",ret.dump(1));
@@ -141,7 +141,7 @@ namespace slsp{
         {
             // If any unhandled exception raises during a call to an execute command, 
             // Just rethrow as an unknown error.
-            spdlog::error("Got unknown error : {}",e.what());
+            spdlog::error("Got unknown error during the handling of {}: {}",params.command, e.what());
             throw lsp_unknown_error(e.what());
         }        
     }
