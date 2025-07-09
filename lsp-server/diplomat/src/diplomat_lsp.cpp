@@ -1,4 +1,5 @@
 #include "diplomat_lsp.hpp"
+#include "slang/syntax/SyntaxTree.h"
 #include "spdlog/spdlog.h"
 
 #include <chrono>
@@ -66,10 +67,10 @@ bool DiplomatLSP::_assert_index(bool always_throw)
  */
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _sm(new slang::SourceManager()),
-_diagnostic_client(new slsp::LSPDiagnosticClient(_documents,_sm.get())),
+_diagnostic_client(new slsp::LSPDiagnosticClient(_cache,_sm.get())),
 _watch_client_pid(watch_client_pid),
-_project_tree_files{},
-_project_tree_modules{},
+// _project_tree_files{},
+// _project_tree_modules{},
 _project_file_tree_valid(false),
 _broken_index_emitted(true)
 {
@@ -273,9 +274,9 @@ void DiplomatLSP::_read_workspace_modules()
 {
     log(MessageType_Info, "Reading workspace");
     namespace fs = fs;
-    _documents.clear();
-    _blackboxes.clear();
-    _module_to_file.clear();
+    // _documents.clear();
+    // _blackboxes.clear();
+    // _module_to_file.clear();
     
     _sm.reset(new slang::SourceManager());
     for(auto& path : _settings.includes.user)
@@ -284,7 +285,6 @@ void DiplomatLSP::_read_workspace_modules()
         _sm->addUserDirectories(path);
 
     fs::path p;
-    SVDocument* doc;
 
     for (const fs::path& root : _settings.workspace_dirs)
     {
@@ -332,27 +332,28 @@ void DiplomatLSP::_read_workspace_modules()
 
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
-                spdlog::debug("Read SV file {}", p.generic_string());
-                doc = _read_document(p);
-                _blackboxes.emplace(p,doc->extract_blackbox());
+                _cache.process_file(p);
+                // spdlog::debug("Read SV file {}", p.generic_string());
+                // doc = _read_document(p);
+                // _blackboxes.emplace(p,doc->extract_blackbox());
 
-                for(auto& name : std::views::keys(*(_blackboxes.at(p))))
-                {
-                    // If module to file already have a reference,
-                    // try to select the one where the filename match the module name.
-                    if(_module_to_file.contains(name))
-                    {
-                        if(p.has_stem() && p.stem().generic_string() == name)
-                            _module_to_file[name] = p;
-                        else
-                            spdlog::warn("Ignored file {} for module {} as the filename does not match the module and we already have a reference.",
-                            p.generic_string(),name);
-                    }
-                    else
-                    {
-                        _module_to_file[name] = p;
-                    }
-                }
+                // for(auto& name : std::views::keys(*(_blackboxes.at(p))))
+                // {
+                //     // If module to file already have a reference,
+                //     // try to select the one where the filename match the module name.
+                //     if(_module_to_file.contains(name))
+                //     {
+                //         if(p.has_stem() && p.stem().generic_string() == name)
+                //             _module_to_file[name] = p;
+                //         else
+                //             spdlog::warn("Ignored file {} for module {} as the filename does not match the module and we already have a reference.",
+                //             p.generic_string(),name);
+                //     }
+                //     else
+                //     {
+                //         _module_to_file[name] = p;
+                //     }
+                // }
             }
         }
     }
@@ -368,10 +369,6 @@ void DiplomatLSP::_read_workspace_modules()
 void DiplomatLSP::_read_filetree_modules()
 {
     log(MessageType_Info, "Reading filetree");
-    namespace fs = fs;
-    // Explicitely do NOT clear the blackbox list in order to keep what was done on 
-    // global pass and attempts to relink later.
-    _documents.clear();
     
     _sm.reset(new slang::SourceManager());
     for(auto& path : _settings.includes.user)
@@ -379,17 +376,17 @@ void DiplomatLSP::_read_filetree_modules()
     for(auto& path : _settings.includes.system)
         _sm->addUserDirectories(path);
 
+    _cache.refresh(true);
+    // SVDocument* doc;
+    // for (const fs::path& file : _project_tree_files)
+    // {                
+    //     spdlog::debug("Read SV file from project tree {}", file.generic_string());
+    //     doc = _read_document(file);
+    //     _blackboxes[file] = doc->extract_blackbox();
 
-    SVDocument* doc;
-    for (const fs::path& file : _project_tree_files)
-    {                
-        spdlog::debug("Read SV file from project tree {}", file.generic_string());
-        doc = _read_document(file);
-        _blackboxes[file] = doc->extract_blackbox();
-
-        for(auto& module_name : std::views::keys(*(_blackboxes.at(file))))
-            _module_to_file[module_name] = file.generic_string();
-    }
+    //     for(auto& module_name : std::views::keys(*(_blackboxes.at(file))))
+    //         _module_to_file[module_name] = file.generic_string();
+    // }
 }
 
 
@@ -399,18 +396,18 @@ void DiplomatLSP::_read_filetree_modules()
  * @param module name to lookup.
  * @return const SVDocument* Pointer to the SVDocument found if any, nullptr otherwise.
  */
-const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) const
-{
-    try
-    {
-        return _documents.at(_module_to_file.at(module)).get();
-    }
-    catch(const std::out_of_range& e)
-    {
-        spdlog::warn("No document found when looking up the module {}",module);
-        return nullptr;
-    }
-}
+// const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) const
+// {
+//     try
+//     {
+//         return _documents.at(_module_to_file.at(module)).get();
+//     }
+//     catch(const std::out_of_range& e)
+//     {
+//         spdlog::warn("No document found when looking up the module {}",module);
+//         return nullptr;
+//     }
+// }
 
 /**
  * @brief Retrive the blackbox definition associated to a module name if any.
@@ -420,15 +417,13 @@ const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) 
  */
 const ModuleBlackBox* DiplomatLSP::_bb_from_module(const std::string& module) const
 {
-    try
-    {
-        return _blackboxes.at(_module_to_file.at(module))->at(module).get();
-    }
-    catch(const std::out_of_range& e)
-    {
+    const ModuleBlackBox* ret = _cache.get_bb_by_module(module);
+    
+    if(! ret)
         spdlog::warn("No document found when looking up the module {}",module);
-        return nullptr;
-    }
+    
+    return ret;
+
 }
 
 /**
@@ -452,8 +447,8 @@ void DiplomatLSP::_compute_project_tree(bool keep_tree)
 void DiplomatLSP::_clear_project_tree() 
 {
     _project_file_tree_valid = false;
-    _project_tree_files.clear(); 
-    _project_tree_modules.clear();
+    // _project_tree_files.clear(); 
+    // _project_tree_modules.clear();
 }
 
 /**
@@ -468,20 +463,17 @@ void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
     // Select the SVDocument from the module name to retrieve its dependencies.
     const ModuleBlackBox* bb = _bb_from_module(mod);
 
-    // No problem with re-inserting as _project_tree_modules is a set.
-    _project_tree_modules.insert(mod);
-
     // Current document could be nullptr if the required module has not been found.
     // In this case it is just skipped. 
     if(bb != nullptr)
     {
-        _project_tree_files.insert(_module_to_file.at(mod));
 
-        for(const std::string_view& _ : bb->deps)
+        // No problem with re-inserting, moreover, this will also insert all modules of the file.
+        _cache.record_file(_cache.get_file_from_module(bb),true);
+
+        for(const std::string& dep : bb->deps)
         {
-            // Convert string view to string to not depend on the buffer.
-            std::string dep(_);
-            if(!_project_tree_modules.contains(dep))
+            if(!_cache.got_module_in_project(dep))
             {
                 _add_module_to_project_tree(dep);
             }
@@ -505,7 +497,8 @@ void DiplomatLSP::_compile()
     // As per slang limitation, it is needed to recreate the diagnostic engine
     // because the source manager will be deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuilt.
-    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_documents,_sm.get(),_diagnostic_client.get()));
+    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
+
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
     
@@ -527,22 +520,31 @@ void DiplomatLSP::_compile()
     // Regenerate compilation object to allow for a "recompilation".
     _compilation.reset(new slang::ast::Compilation(bag));
 
+    _sm.reset(new slang::SourceManager());
+
     if(_settings.top_level)
     {
-        // Always rebuild the project tree.
-        _compute_project_tree();
+        // If the filetree has not been provided
+        // Try to auto-compute it.
+        if(! _project_file_tree_valid)
+            _compute_project_tree();
+
         spdlog::info("Add syntax trees from project file tree");
-        for (const auto& file : _project_tree_files)
+        for (const auto& file : _cache.get_files_prj())
         {
-            _compilation->addSyntaxTree(_documents.at(file)->st);
+            auto st = slang::syntax::SyntaxTree::fromFile(file.generic_string(),*_sm);
+            if(st.has_value())
+                _compilation->addSyntaxTree(st.value());
         }
     }
     else
     {
         spdlog::info("Add syntax trees from workspace");    
-        for (const auto& [key, value] : _documents)
+        for (const auto& file : _cache.get_files_ws())
         {
-            _compilation->addSyntaxTree(value->st);
+             auto st = slang::syntax::SyntaxTree::fromFile(file.generic_string(),*_sm);
+            if(st.has_value())
+                _compilation->addSyntaxTree(st.value());
         }
     }
 
@@ -641,30 +643,30 @@ void DiplomatLSP::_save_client_uri(const std::string& client_uri)
  * @param path path of the file to read
  * @return SVDocument* Representation of the file read.
  */
-SVDocument* DiplomatLSP::_read_document(fs::path path)
-{
-    std::string canon_path = fs::canonical(path);
-    if (_documents.contains(canon_path))
-    {
-        // Delete previous SVDocument and build it anew.
-        _documents.at(canon_path).reset(new SVDocument(canon_path,_sm.get()));
-    }
-    else 
-    {
-        // Create a brand new object.
-        _documents[canon_path] = std::make_unique<SVDocument>(canon_path,_sm.get());
-    }
+// SVDocument* DiplomatLSP::_read_document(fs::path path)
+// {
+//     std::string canon_path = fs::canonical(path);
+//     if (_documents.contains(canon_path))
+//     {
+//         // Delete previous SVDocument and build it anew.
+//         _documents.at(canon_path).reset(new SVDocument(canon_path,_sm.get()));
+//     }
+//     else 
+//     {
+//         // Create a brand new object.
+//         _documents[canon_path] = std::make_unique<SVDocument>(canon_path,_sm.get());
+//     }
 
-    SVDocument* ret = _documents.at(canon_path).get();
+//     SVDocument* ret = _documents.at(canon_path).get();
 
-    // Rebind the file path if an URI is already registered.
-    ret->doc_uri = _cache.get_uri(path).to_string();
+//     // Rebind the file path if an URI is already registered.
+//     ret->doc_uri = _cache.get_uri(path).to_string();
 
-    // if(_doc_path_to_client_uri.contains(canon_path))
-    //     ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
+//     // if(_doc_path_to_client_uri.contains(canon_path))
+//     //     ret->doc_uri = _doc_path_to_client_uri.at(canon_path);
 
-    return ret;
-}
+//     return ret;
+// }
 
 
 /**

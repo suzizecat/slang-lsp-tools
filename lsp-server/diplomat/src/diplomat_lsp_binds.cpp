@@ -32,6 +32,7 @@
 #include "uri.hh"
 
 #include "hier_visitor.h"
+#include "visitor_module_bb.hpp"
 
 #include "signal.h"
 
@@ -70,7 +71,7 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
 
 void DiplomatLSP::_h_didSaveTextDocument(DidSaveTextDocumentParams param)
 {
-	_read_document(fs::path("/" + uri(param.textDocument.uri).get_path()));
+	_cache.process_file(fs::path("/" + uri(param.textDocument.uri).get_path()));
 	_compile();
 }
 
@@ -488,7 +489,7 @@ void DiplomatLSP::_h_set_project(json _)
 
 	for(const std::string& filepath : params.sourceList)
 	{	
-		_project_tree_files.emplace(filepath);
+		_cache.process_file(filepath,true);
 	}
 
 	// We assume that the project file tree is valid.
@@ -542,9 +543,11 @@ json DiplomatLSP::_h_get_modules(json params)
 	_read_workspace_modules();
 	json ret = json::array();
 
-	for (const auto& [name, path] : _module_to_file)
+	for (const auto& [path, bb_list] : _cache.get_modules())
 	{
-		ret.push_back({ {"name", name},{"file", path.generic_string()} });
+		for(const auto& name : bb_list 
+			| std::views::transform([](const ModuleBlackBox* p){return p->module_name;}))
+			ret.push_back({ {"name", name},{"file", path.generic_string()} });
 	}
 	return ret;
 }
@@ -555,10 +558,15 @@ json DiplomatLSP::_h_get_module_bbox(json _)
 	json params = _[0];
 	const std::string target_file = params.at("file").template get<std::string>();
 	spdlog::info("Return information for file {}",target_file );
-	fs::path lookup_path = fs::canonical(target_file);
 	
-	auto* bb = _blackboxes.at(lookup_path).get();
-	return *bb;
+	auto* bb_list = _cache.get_bb_by_file(target_file);// _blackboxes.at(lookup_path).get();
+	if(bb_list)
+	{
+		return *bb_list;
+	}
+		
+	else
+		return json::array({});
 }
 
 void DiplomatLSP::_h_set_module_top(json params)
@@ -571,16 +579,19 @@ void DiplomatLSP::_h_set_module_top(json params)
 
 	spdlog::info("Set top file {}", p.generic_string());
 
-	const std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > * module_map;
-	module_map = _blackboxes.at(p).get();
-
-	if(module_map->size() > 1)
+	const auto* bb_list = 	_cache.get_bb_by_file(p);
+	if(! bb_list)
 	{
-		spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
+		spdlog::error("Lookup failed: File not found in the cache.");
 	}
-	_settings.top_level =  std::views::keys(*module_map).front();
-
-
+	else {
+		if(bb_list->size() > 1)
+		{
+			spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
+		}
+		_settings.top_level = bb_list->front()->module_name;
+	}
+	
 	_compute_project_tree();
 	_compile();
 }

@@ -104,7 +104,7 @@ lsp-server/diplomat/src/diplomat_lsp.cpp
 lsp-server/diplomat/src/diplomat_lsp_binds.cpp
 lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
 lsp-server/diplomat/src/diplomat_document_cache.cpp
-lsp-server/diplomat/src/sv_document.cpp
+#lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
 #lsp-server/diplomat/src/visitor_index.cpp
 lsp-server/diplomat/src/diagnostic_client.cpp

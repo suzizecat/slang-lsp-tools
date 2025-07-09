@@ -2,37 +2,25 @@
 
 #include "lsp.hpp"
 #include "index_core.hpp"
-#include "lsp_errors.hpp"
-#include "sv_document.hpp"
 #include "diagnostic_client.hpp"
 #include "diplomat_lsp_ws_settings.hpp"
 #include "diplomat_document_cache.hpp"
 // #include "diplomat_index.hpp"
 
 
-#include "nlohmann/json.hpp"
-
-#include "types/structs/ServerCapabilities.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
-#include "types/structs/PublishDiagnosticsParams.hpp"
 #include "types/structs/ClientCapabilities.hpp" 
-#include "types/structs/DiplomatProject.hpp" 
 
 
 #include "slang/ast/Compilation.h"
-#include "slang/diagnostics/DiagnosticClient.h"
 #include "slang/diagnostics/DiagnosticEngine.h"
-
-#include "uri.hh"
 
 #include <iostream>
 #include <unordered_set>
-#include <unordered_map>
 #include <memory>
 #include <filesystem>
 #include <thread>
 
-#include <ranges>
 
 
 using json = nlohmann::json;
@@ -86,20 +74,12 @@ class DiplomatLSP : public slsp::BaseLSP
         void _emit_diagnostics();
         void _erase_diagnostics();
 
-        SVDocument* _read_document(std::filesystem::path path);
+        // SVDocument* _read_document(std::filesystem::path path);
 
         std::unique_ptr<slang::SourceManager> _sm;
 
         diplomat::cache::DiplomatDocumentCache _cache;
-        // TODO : Delete following set of internal variable (replaced by cache)
-        std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>> _documents;
-        std::unordered_map<std::filesystem::path, std::unique_ptr<std::unordered_map<std::string,std::unique_ptr<ModuleBlackBox> > > > _blackboxes; // By file path
-        // std::unordered_map<std::filesystem::path, std::string> _doc_path_to_client_uri;
-        std::unordered_map<std::string, std::filesystem::path > _module_to_file;
-        std::unordered_set<std::filesystem::path> _project_tree_files;
-        std::unordered_set<std::string> _project_tree_modules;
-
-
+       
         std::vector< std::filesystem::path> _root_dirs;
         std::unordered_set< std::filesystem::path> _excluded_paths;
         
@@ -146,7 +126,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _clear_project_tree();
         void _add_module_to_project_tree(const std::string& mod);
 
-        const SVDocument* _document_from_module(const std::string& module) const;
+        // const SVDocument* _document_from_module(const std::string& module) const;
         const ModuleBlackBox* _bb_from_module(const std::string& module) const;
         const std::vector<ModuleBlackBox> _bb_from_file(const std::string& fpath) const;
 
@@ -154,7 +134,7 @@ class DiplomatLSP : public slsp::BaseLSP
         explicit DiplomatLSP(std::istream& is = std::cin, std::ostream& os = std::cout, bool watch_client_pid = true);
 
         slang::ast::Compilation* get_compilation();
-        inline const std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
+        // inline const std::unordered_map<std::filesystem::path, std::unique_ptr<SVDocument>>& get_documents() const {return _documents;};
         
         //void read_config(std::filesystem::path& filepath);
         void hello(json params);

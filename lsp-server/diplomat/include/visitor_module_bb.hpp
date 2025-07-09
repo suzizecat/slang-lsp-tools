@@ -39,7 +39,10 @@ struct ModuleBlackBox
     std::string module_name;
     std::vector<ModuleParam> parameters;
     std::vector<ModulePort> ports;
-    std::unordered_set<std::string> deps;    
+
+    //TODO : Actually replace with array of ModuleBB to
+    // allow signature computation and better binding.
+    std::unordered_set<std::string> deps;
 };
 
 
@@ -67,6 +70,7 @@ struct ModuleBlackBox
     void to_json(json& j, const ModuleParam& p);
     void to_json(json& j, const ModulePort& p);
     void to_json(json& j, const ModuleBlackBox& p);
+    void to_json(json& j, const  ModuleBlackBox* const & p);
 
     void from_json(const json& j, ModuleParam& p);
     void from_json(const json& j, ModulePort& p);

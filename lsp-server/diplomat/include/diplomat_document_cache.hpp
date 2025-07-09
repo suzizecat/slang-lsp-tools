@@ -1,11 +1,14 @@
 
-#include "sv_document.hpp"
+#pragma once 
+
 
 #include "slang/text/SourceManager.h"
 #include "uri.hh"
+#include "visitor_module_bb.hpp"
 
 
 #include <memory>
+
 #include <string>
 #include <filesystem>
 #include <set>
@@ -35,8 +38,13 @@ namespace diplomat::cache
             std::set<std::filesystem::path> _prj_files;
             std::set<std::filesystem::path> _ws_files;
 
+            std::unordered_map<std::filesystem::path, std::filesystem::file_time_type> _processed_timestamp;
+
             //! Holds the file to blackboxes associations.
             std::unordered_map<std::filesystem::path, std::vector<const ModuleBlackBox*> > _path_to_bb;
+            
+            //! Reverse lookup of a blackbox to its originating file.
+            std::unordered_map<const ModuleBlackBox*, std::filesystem::path> _bb_to_path;
 
             //! Sometimes the client has a URI that differs from what the server would provide
             //! (In example, symbolic links). This table record actual URI send by the 
@@ -56,6 +64,19 @@ namespace diplomat::cache
             //DiplomatDocumentCache();
 
             /**
+             * @brief Removes references from project files
+             */
+            void clear_project();
+
+            /**
+             * @brief Refresh the internal state of the cache for all updated files.
+             * 
+             */
+            void refresh(bool prj_only);
+
+
+
+            /**
              * @brief Add a given file to the cache but do not process it
              * 
              * @param fpath path to the file to process.
@@ -65,12 +86,70 @@ namespace diplomat::cache
 
 
             /**
+             * @brief Get a blackbox, looked up by the module name it defines
+             * 
+             * @param modname module name to lookup.
+             * @return const ModuleBlackBox* Found BB if any, `nullptr` otherwise.
+             * 
+             * @note If multiple black boxes are found, return (by priority) :
+             *  1. A module registered in the project.
+             *  2. The first found BB in the workspace.
+             * 
+             *  \todo Use the BB signature for more accurate lookup.
+             */
+            const ModuleBlackBox* get_bb_by_module(const std::string& modname) const ;
+
+
+            /**
+             * @brief Get the list of blackboxes given a file path 
+             * 
+             * @param fpath The file path to lookup
+             * @return const std::vector<const ModuleBlackBox*>* The recorded list of black-boxes or nullptr if the lookup failed.
+             */
+            const std::vector<const ModuleBlackBox*>* get_bb_by_file(const std::filesystem::path& fpath) const ;
+
+            /**
              * @brief Get the uri path associated to the given file path.
              * If an URI is already recorded, use it. Otherwise, build it.
              * 
              * @param fpath Filesystem path to lookup/convert.
              */
             uri get_uri(const std::filesystem::path& fpath) const;
+
+
+            /**
+             * @brief Get the files list for the whole workspace
+             * 
+             * @return const std::set<std::filesystem::path>& a reference to the workspace file listing.
+             */
+            inline const std::set<std::filesystem::path>& get_files_ws() const
+            {return _ws_files;};
+
+            /**
+             * @brief Get the files list for the project
+             * 
+             * @return const std::set<std::filesystem::path>& a reference to the project file listing. 
+             */
+            inline const std::set<std::filesystem::path>& get_files_prj() const
+            {return _prj_files;};
+
+            /**
+             * @brief Get the file from a module name
+             * 
+             * @param module module blaackbox pointer to lookup
+             * @return std::filesystem::path associated with the module blackbox .
+             */
+            inline std::filesystem::path get_file_from_module(const ModuleBlackBox* module) const
+            {return _bb_to_path.at(module);};
+
+
+            /**
+             * @brief The the whole file to module binding of the cache
+             * 
+             * @return the map between the file path and the list of BB included.
+             */
+            inline const std::unordered_map<std::filesystem::path, std::vector<const ModuleBlackBox*> >& get_modules() const 
+            {return _path_to_bb;};
 
             /**
              * @brief Get a constant pointer to the uri bindings object
@@ -84,6 +163,17 @@ namespace diplomat::cache
              */
             inline const std::unordered_map<std::filesystem::path, uri>* get_uri_bindings() const
             {return &_doc_path_to_client_uri;};
+
+
+            /**
+             * @brief Returns true if the module name passed in argument is found
+             * within the project.
+             * 
+             * @param modname Module name to lookup
+             * @return true if the module is found within the project.
+             */
+            inline const bool got_module_in_project(const std::string& modname) const
+            {return _prj_module_to_bb.contains(modname);};
 
             /**
              * @brief Process the given file, 
@@ -112,6 +202,9 @@ namespace diplomat::cache
              * in all sub-containers.
              * 
              * @param fpath file to remove.
+             * 
+             * @note It is safe to call this method on a path that has not yet been recorded.
+             * In this case, it will do nothing. 
              */
             void remove_file(const std::filesystem::path& fpath);
     };

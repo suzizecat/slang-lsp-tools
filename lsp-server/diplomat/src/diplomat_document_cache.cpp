@@ -1,20 +1,86 @@
 #include "fmt/format.h"
+#include <cstddef>
+#include <filesystem>
 #include "diplomat_document_cache.hpp"
 
 namespace fs = std::filesystem;
 namespace diplomat::cache
 {
+
+void DiplomatDocumentCache::clear_project()
+{
+    _prj_files.clear();
+    _prj_module_to_bb.clear();
+}
+
+void DiplomatDocumentCache::refresh(bool prj_only)
+{
+    for(const auto& fpath : _prj_files )
+        process_file(fpath,true);
+
+    if(! prj_only)
+    {
+        for (const auto& fpath : _ws_files)
+            process_file(fpath,false);
+    }
+}
+
 void DiplomatDocumentCache::record_file(const fs::path& fpath,
                                         bool in_prj)
 {
     fs::path canon_path = _standardize_path(fpath);
     if(in_prj)
-        _prj_files.emplace(fpath);
+    {
+       _prj_files.insert(canon_path);
+
+    }
     
     // The file is always added to the WS files, but the lookup
     // will always start by the _prj_files.
-    _ws_files.emplace(fpath);
+    // However, if the file was already available as WS file and is read back into project,
+    // The BB references should be pushed to the project.
+    if( auto inserted = _ws_files.insert(canon_path); in_prj && ! inserted.second)
+    {
+        for(const ModuleBlackBox* bb : _path_to_bb.at(canon_path))
+        {
+            _prj_module_to_bb[bb->module_name] = bb;
+        }
+    }
+    
 }
+
+const ModuleBlackBox* DiplomatDocumentCache::get_bb_by_module(const std::string& modname) const 
+{
+    if(auto lookup = _prj_module_to_bb.find(modname); lookup != _prj_module_to_bb.end())
+    {
+        return lookup->second;
+    }
+    else if(auto lookup = _ws_module_to_bb.find(modname); lookup != _ws_module_to_bb.end())
+    {
+        // Return any, should select based upon signature (that should be provided as param)
+        return *(lookup->second.begin());
+    }
+    else 
+    {
+        return nullptr;
+    }
+}
+
+
+const std::vector<const ModuleBlackBox*>* DiplomatDocumentCache::get_bb_by_file(const std::filesystem::path& fpath) const
+{
+    fs::path lu_path = _standardize_path(fpath);
+
+    if(const auto found = _path_to_bb.find(lu_path); found != _path_to_bb.end() )
+    {
+        return &(found->second);
+    }
+    else 
+    {
+        return nullptr;
+    }
+}
+
 
 /**
  * This function does not requires a canonical path and will not record the file if not recorded.
@@ -30,11 +96,26 @@ uri DiplomatDocumentCache::get_uri(const std::filesystem::path& fpath) const
         return uri(fmt::format("file://{}",stdpath.generic_string()));
 }
 
+
 void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, bool in_prj)
 {
     bool auto_dispose = ! _sm.get();
 
     fs::path curr_path = _standardize_path(fpath);
+
+    // If the passed file has been already processed, check if the 
+    // file has been modified before processing it.
+    if(const auto found = _processed_timestamp.find(curr_path); found != _processed_timestamp.end())
+    {
+        if(fs::last_write_time(curr_path) <= found->second)
+        {
+            // Update the "in_prj" status and exit
+            record_file(curr_path,in_prj);
+            return;
+        }
+        else
+            remove_file(curr_path);
+    }
 
     record_file(curr_path,in_prj);
 
@@ -48,7 +129,7 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 
     for(const auto modname : std::views::keys(*(visitor.read_bb.get())))
     {
-        
+                
         const auto insert_ok = _bb_storage.emplace((std::intptr_t)(visitor.read_bb->at(modname).get()),std::move(visitor.read_bb->at(modname)));
         const ModuleBlackBox* bb_ptr = insert_ok.first->second.get();
         
@@ -64,8 +145,13 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
             {
                 _ws_module_to_bb[modname] = {bb_ptr};
             }
+
+            _bb_to_path[bb_ptr] = curr_path;
         }        
     }
+
+    _processed_timestamp[curr_path] = std::chrono::file_clock::now();
+
 
     if(auto_dispose)
         _sm.reset();
@@ -102,10 +188,13 @@ void DiplomatDocumentCache::remove_file(const std::filesystem::path& fpath)
             const std::string& modname = bb->module_name;
 
             const auto prj_bb =  _prj_module_to_bb.find(modname);
-            if(prj_bb != _prj_module_to_bb.cend())
-            {
+            if(prj_bb != _prj_module_to_bb.cend() && prj_bb->second == bb)
+            {  
                 _prj_module_to_bb.erase(prj_bb);
             }
+            
+
+            _bb_to_path.erase(bb);
 
             _ws_module_to_bb.at(modname).erase(bb);
             if(_ws_module_to_bb.at(modname).empty())
@@ -121,6 +210,7 @@ void DiplomatDocumentCache::remove_file(const std::filesystem::path& fpath)
         _doc_path_to_client_uri.erase(path);
         _prj_files.erase(path);
         _ws_files.erase(path);
+        _processed_timestamp.erase(path);
     }
 }
 } // namespace diplomat::cache

@@ -7,12 +7,11 @@
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
  - Added `--version` management for sv-indexer (same version as LSP)
-<<<<<<< HEAD
  - Added statement expension formatter (to split multi-statements).
-=======
  - Added Doxygen setup
  - Added new workspace elements (blackboxes) caching backend
->>>>>>> 49dbbdf (Stable-ish commit before moving to new document caching method.)
+ - Added new workspace elements (blackboxes) caching backend.
+
  
 ## Changed
 
@@ -30,7 +29,11 @@
 
 ## Dependencies
 
- - Slang to v8.0
+ - Slang to v8.1
+
+## Removed
+ 
+ - Removed the SVDocument object and dependencies entirely.
 
 # 0.2.1
 

@@ -8,7 +8,7 @@
 using namespace slsp::types;
 namespace slsp
 {
-    LSPDiagnosticClient::LSPDiagnosticClient(const sv_doclist_t &doc_list, const slang::SourceManager* sm, const LSPDiagnosticClient* prev ) : _documents(doc_list), _sm{sm}
+    LSPDiagnosticClient::LSPDiagnosticClient(const diplomat::cache::DiplomatDocumentCache & cache_ref, const slang::SourceManager* sm, const LSPDiagnosticClient* prev ) : _cache(cache_ref), _sm{sm}
     {
 		// If a previous diagnostic client was existing, it is interesting to get back the list
 		// of files that had a diagnostic.
@@ -39,9 +39,10 @@ namespace slsp
     void LSPDiagnosticClient::_cleanup_diagnostics()
     {
         std::erase_if(_diagnostics, [](const auto &item)
-                      {
-        auto const& [key, value] = item;
-        return value->diagnostics.size() == 0; });
+        {
+            auto const& [key, value] = item;
+            return value->diagnostics.size() == 0; 
+        });
     }
 
     void LSPDiagnosticClient::report(const slang::ReportedDiagnostic &to_report)
@@ -68,17 +69,7 @@ namespace slsp
 
         std::filesystem::path buffer_path = std::filesystem::canonical(sourceManager->getFullPath(to_report.location.buffer()));
         std::string path_string = buffer_path.generic_string();
-        SVDocument* doc = nullptr;
-        if (_documents.contains(path_string))
-        {
-            SVDocument* doc = _documents.at(buffer_path.generic_string()).get();
-        }
-        else
-        {
-            spdlog::debug("File not handled by diplomat {}.", path_string);
-            // _last_publication = nullptr;
-            // return;
-        }
+
         spdlog::debug("Report new diagnostic [{:3d}-{}] : {} ({}) ", to_report.originalDiagnostic.code.getCode(), slang::toString(to_report.originalDiagnostic.code), to_report.formattedMessage,  sourceManager->getFileName(to_report.location));
 
         Diagnostic diag;
@@ -121,13 +112,8 @@ namespace slsp
         }
 
         PublishDiagnosticsParams *pub;
-        // Absolute will not cleanup once it reach a symlink, so it is required to use canonical
-        // Simple concatenation does not work as of C++23 ...
-        std::string the_uri;
-        if (doc != nullptr)
-            the_uri = doc->doc_uri.value_or(fmt::format("file://{}", buffer_path.generic_string()));
-        else
-            the_uri = fmt::format("file://{}", buffer_path.generic_string());
+
+        std::string the_uri = _cache.get_uri(buffer_path).to_string();
 
         if (!_diagnostics.contains(the_uri))
         {
@@ -156,17 +142,9 @@ namespace slsp
             std::filesystem::path buffer_path = sourceManager->getFullPath(to_report.location.buffer());
             if(!buffer_path.empty())
                 buffer_path = std::filesystem::weakly_canonical(buffer_path);
+
+            std::string the_uri = _cache.get_uri(buffer_path).to_string();
             
-            SVDocument* doc = nullptr;
-            if (_documents.contains(buffer_path.generic_string()))
-                doc = _documents.at(buffer_path.generic_string()).get();
-
-            std::string the_uri;
-            if (doc != nullptr)
-                the_uri = doc->doc_uri.value_or(fmt::format("file://{}", buffer_path.generic_string()));
-            else
-            the_uri = fmt::format("file://{}", buffer_path.generic_string());
-
             // In some case, slang report "first defined here" kind of diagnostics.
             // In this situation, we add it as related information.
             DiagnosticRelatedInformation rel_info;

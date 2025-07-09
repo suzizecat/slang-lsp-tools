@@ -39,6 +39,15 @@ void to_json(json& j, const ModuleBlackBox& p)
 	};
 }
 
+void to_json(json& j, const  ModuleBlackBox* const & p)
+{
+	j = json{
+		{"module",p->module_name},
+		{"parameters",p->parameters},
+		{"ports",p->ports}
+	};
+}
+
 void from_json(const json& j, ModuleParam& p)
 {
 	j.at("name").get_to(p.name);
