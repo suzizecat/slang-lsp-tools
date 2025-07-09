@@ -497,6 +497,7 @@ void DiplomatLSP::_compile()
     // As per slang limitation, it is needed to recreate the diagnostic engine
     // because the source manager will be deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuilt.
+    _sm.reset(new slang::SourceManager());
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
 
 
@@ -520,7 +521,6 @@ void DiplomatLSP::_compile()
     // Regenerate compilation object to allow for a "recompilation".
     _compilation.reset(new slang::ast::Compilation(bag));
 
-    _sm.reset(new slang::SourceManager());
 
     if(_settings.top_level)
     {

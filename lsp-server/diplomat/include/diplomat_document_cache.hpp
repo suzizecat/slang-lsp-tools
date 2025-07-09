@@ -59,6 +59,14 @@ namespace diplomat::cache
             static inline std::filesystem::path _standardize_path(const std::filesystem::path& fpath) 
             {return std::filesystem::weakly_canonical(fpath);};
 
+            /**
+             * @brief Low level function to bind a blackbox to its file path. 
+             * 
+             * @param fpath File to target, shall already have been standardized.
+             * @param bb Blackbox to record
+             */
+            void _bind_bb_and_path(const std::filesystem::path& fpath, const ModuleBlackBox* bb);
+
         public : 
 
             //DiplomatDocumentCache();
