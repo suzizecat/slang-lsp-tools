@@ -206,16 +206,22 @@ namespace diplomat::index {
 		{
 			// Using get_scope_by_name will resolve any duplicated scope.
 			IndexScope* module_scope = _current_scope()->get_scope_by_name(node.name);
+			if(! module_scope)
+			{
+				spdlog::error("Failed to lookup the expected child scope '{}' from {}", node.name, _current_scope()->get_full_path());	
+			}
+			else
+			{
+				// Manual insertion of the module name as a symbol to the target scope...
+				_open_scope(module_scope->get_name(),false);
+				const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
+				IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
+				_current_scope()->add_symbol(new_symb);
 
-			// Manual insertion of the module name as a symbol to the target scope...
-			_open_scope(module_scope->get_name(),false);
-			const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
-			IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
-			_current_scope()->add_symbol(new_symb);
-
-			spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
-			
-			_close_scope(module_scope->get_name());
+				spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
+				
+				_close_scope(module_scope->get_name());
+			}
 		}
 
 
