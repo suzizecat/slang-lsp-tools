@@ -370,11 +370,11 @@ void DiplomatLSP::_read_filetree_modules()
 {
     log(MessageType_Info, "Reading filetree");
     
-    _sm.reset(new slang::SourceManager());
-    for(auto& path : _settings.includes.user)
-        _sm->addUserDirectories(path);
-    for(auto& path : _settings.includes.system)
-        _sm->addUserDirectories(path);
+    // _sm.reset(new slang::SourceManager());
+    // for(auto& path : _settings.includes.user)
+    //     _sm->addUserDirectories(path);
+    // for(auto& path : _settings.includes.system)
+    //     _sm->addUserDirectories(path);
 
     _cache.refresh(true);
     // SVDocument* doc;
@@ -498,6 +498,12 @@ void DiplomatLSP::_compile()
     // because the source manager will be deleted by _read_workspace_modules.
     // Therefore, the client shall also be rebuilt.
     _sm.reset(new slang::SourceManager());
+    
+    for(auto dir : _settings.includes.system )
+        _sm->addUserDirectories(dir);
+    for(auto dir : _settings.includes.user )
+        _sm->addUserDirectories(dir);
+
     _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
 
 
