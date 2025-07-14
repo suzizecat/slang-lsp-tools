@@ -147,6 +147,7 @@ void DiplomatLSP::_bind_methods()
     bind_notification("diplomat-server.index-dump", LSP_MEMBER_BIND(DiplomatLSP,dump_index));
     bind_request("diplomat-server.get-modules", LSP_MEMBER_BIND(DiplomatLSP,_h_get_modules));
     bind_request("diplomat-server.get-module-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_module_bbox));
+    bind_request("diplomat-server.get-file-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_file_bb));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,_h_force_clear_index));
     bind_notification("diplomat-server.ignore", LSP_MEMBER_BIND(DiplomatLSP,_h_ignore));
     bind_notification("diplomat-server.add-incdir", LSP_MEMBER_BIND(DiplomatLSP,_h_add_to_include));

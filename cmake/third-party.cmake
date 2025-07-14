@@ -5,11 +5,7 @@ include(FetchContent)
 
 FetchContent_Declare(fmt
 GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-<<<<<<< HEAD
 #GIT_TAG 10.2.1 # For correct management with slang
-=======
-# GIT_TAG 11.0.2
->>>>>>> 49dbbdf (Stable-ish commit before moving to new document caching method.)
 GIT_TAG 11.2.0
 GIT_SHALLOW ON)
 
@@ -20,10 +16,7 @@ GIT_SHALLOW ON)
 
 FetchContent_Declare(spdlog
 GIT_REPOSITORY https://github.com/gabime/spdlog.git
-<<<<<<< HEAD
-=======
 #GIT_TAG v1.14.1
->>>>>>> 49dbbdf (Stable-ish commit before moving to new document caching method.)
 GIT_TAG v1.15.3
 GIT_SHALLOW ON)
 
@@ -46,12 +39,8 @@ GIT_SHALLOW ON)
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
-<<<<<<< HEAD
-  GIT_TAG v8.0
-=======
   #GIT_TAG v8.0
   GIT_TAG v8.1
->>>>>>> 49dbbdf (Stable-ish commit before moving to new document caching method.)
   GIT_SHALLOW ON)
 
 

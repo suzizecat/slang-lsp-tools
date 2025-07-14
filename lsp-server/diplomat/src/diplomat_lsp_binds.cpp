@@ -3,9 +3,12 @@
 
 #include <chrono>
 #include <algorithm>
+#include "types/enums/DiagnosticTag.hpp"
+#include "types/enums/LSPErrorCodes.hpp"
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
+#include <filesystem>
 #include <slang/ast/symbols/CompilationUnitSymbols.h>
 #include <slang/ast/Symbol.h>
 #include <slang/ast/Scope.h>
@@ -538,6 +541,33 @@ void DiplomatLSP::_h_set_top_module(json _)
 	_settings.top_level = _[0].at("top").template get<std::string>();
 }
 
+
+/**
+ * @brief Return the list of blackboxes from the file URI provided.
+ * 
+ * @param params Array of one single URI
+ * @return json Array of BB (may be empty)
+ */
+json DiplomatLSP::_h_get_file_bb(json params)
+{
+	spdlog::debug("Get BBOX on {}",params.dump(1));
+	uri target_file =  uri(params.at(0));
+	fs::path target_path = "/" + target_file.get_path();
+	spdlog::debug("Target is {}",target_file.get_path());
+	const std::vector<const ModuleBlackBox*> * bb_list = _cache.get_bb_by_file(target_path);
+	if(bb_list == nullptr)
+	{
+		_cache.process_file(target_path);
+		bb_list = _cache.get_bb_by_file(target_path);
+	}
+
+	if(bb_list == nullptr)
+		throw slsp::lsp_request_failed_exception("File processing failed");
+
+	return *bb_list;
+
+}
+
 json DiplomatLSP::_h_get_modules(json params)
 {
 	_read_workspace_modules();
@@ -571,27 +601,29 @@ json DiplomatLSP::_h_get_module_bbox(json _)
 
 void DiplomatLSP::_h_set_module_top(json params)
 {
-	fs::path p;
-	for (const json& record : params.at(1))
-	{
-		p = fs::canonical(record["path"].template get<std::string>());
-	}
 
-	spdlog::info("Set top file {}", p.generic_string());
+	// fs::path p;
+	// for (const json& record : params.at(1))
+	// {
+	// 	p = fs::canonical(record["path"].template get<std::string>());
+	// }
 
-	const auto* bb_list = 	_cache.get_bb_by_file(p);
-	if(! bb_list)
-	{
-		spdlog::error("Lookup failed: File not found in the cache.");
-	}
-	else {
-		if(bb_list->size() > 1)
-		{
-			spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
-		}
-		_settings.top_level = bb_list->front()->module_name;
-	}
-	
+	// spdlog::info("Set top file {}", p.generic_string());
+
+	// const auto* bb_list = 	_cache.get_bb_by_file(p);
+	// if(! bb_list)
+	// {
+	// 	spdlog::error("Lookup failed: File not found in the cache.");
+	// }
+	// else {
+	// 	if(bb_list->size() > 1)
+	// 	{
+	// 		spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
+	// 	}
+	// 	_settings.top_level = bb_list->front()->module_name;
+	// }
+	_settings.top_level = params.at(0);
+	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
 	_compute_project_tree();
 	_compile();
 }

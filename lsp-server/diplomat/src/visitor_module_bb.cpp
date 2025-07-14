@@ -1,10 +1,10 @@
 #include "visitor_module_bb.hpp"
 #include "slang/text/SourceManager.h"
 #include "slang/parsing/Token.h"
-#include "slang/parsing/TokenKind.h"
-#include <iostream>
-#include <bit>
-#include "spdlog/spdlog.h"
+// #include "slang/parsing/TokenKind.h"
+// #include <iostream>
+// #include <bit>
+// #include "spdlog/spdlog.h"
 
 
 using namespace slang::syntax;
@@ -35,7 +35,8 @@ void to_json(json& j, const ModuleBlackBox& p)
 	j = json{
 		{"module",p.module_name},
 		{"parameters",p.parameters},
-		{"ports",p.ports}
+		{"ports",p.ports},
+		{"dependencies",p.deps}
 	};
 }
 
@@ -44,7 +45,8 @@ void to_json(json& j, const  ModuleBlackBox* const & p)
 	j = json{
 		{"module",p->module_name},
 		{"parameters",p->parameters},
-		{"ports",p->ports}
+		{"ports",p->ports},
+		{"dependencies",p->deps}
 	};
 }
 

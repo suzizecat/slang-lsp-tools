@@ -55,6 +55,7 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_get_configuration(json& params);
         void _h_get_configuration_on_init(json& params);
         void _h_update_configuration(json& params);
+        json _h_get_file_bb(json params);
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
         void _h_set_module_top(json params);

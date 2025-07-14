@@ -1,64 +1,62 @@
 {
-
-    "$schema": "https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/metaModel/metaModel.schema.json", 
-    "metaData": {
+	"$schema": "https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/metaModel/metaModel.schema.json",
+	"metaData": {
 		"version": "3.17.0"
 	},
-    "requests" : [],
-    "notifications" : [],
-    "structures" : [
-          {
-            "name" : "HDLModule",
-            "properties" : [
-                {
-                    "name" : "file",
-                    "type" : {
-                        "kind" : "base",
-                        "name" : "DocumentUri"
-                    }
-                },
-                {
-                    "name" : "module",
-                    "type" : {
-                        "kind" : "base",
-                        "name" : "string"
-                    },
-                    "optional" : true
-                }
-            ]
-        },
-        {
-            "name" : "DiplomatProject",
-            "properties" : [
-                {
-                    "name" : "name",
-                    "type" : {
-                        "kind" : "base",
-                        "name" : "string"
-                    }
-                },
-                {
-                    "name" : "sourceList",
-                    "type" : {
-                        "kind" : "array",
-                        "element" : {
-                            "kind" : "base",
-                            "name" : "DocumentUri"
-                        }
-                    }
-                },
-                {
-                    "name" : "topLevel",
-                    "type" : {
-                        "kind" : "reference",
-                        "name" : "HDLModule"
-                    },
-                    "optional" : true
-                }
-            ]
-        }
-    ],
-    "enumerations" : [],
-    "typeAliases" : []
-
+	"requests": [],
+	"notifications": [],
+	"structures": [
+		{
+			"name": "HDLModule",
+			"properties": [
+				{
+					"name": "file",
+					"type": {
+						"kind": "base",
+						"name": "DocumentUri"
+					}
+				},
+				{
+					"name": "module",
+					"type": {
+						"kind": "base",
+						"name": "string"
+					},
+					"optional": true
+				}
+			]
+		},
+		{
+			"name": "DiplomatProject",
+			"properties": [
+				{
+					"name": "name",
+					"type": {
+						"kind": "base",
+						"name": "string"
+					}
+				},
+				{
+					"name": "sourceList",
+					"type": {
+						"kind": "array",
+						"element": {
+							"kind": "base",
+							"name": "DocumentUri"
+						}
+					}
+				},
+				{
+					"name": "topLevel",
+					"type": {
+						"kind": "reference",
+						"name": "HDLModule"
+					},
+					"optional": true
+				}
+			]
+		}
+	],
+	"enumerations": [],
+	"typeAliases": []
 }
