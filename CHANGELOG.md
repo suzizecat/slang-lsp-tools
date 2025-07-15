@@ -10,7 +10,7 @@
  - Added statement expension formatter (to split multi-statements).
  - Added Doxygen setup
  - Added new workspace elements (blackboxes) caching backend
- - Added new workspace elements (blackboxes) caching backend.
+ - Added `diplomat-server.get-file-bbox` to retrieve infos about a specific file.
 
  
 ## Changed
@@ -20,6 +20,7 @@
  - Show versions upon start of LSP and indexer (standalone)
  - Reduced log level in the indexer (use of trace)
  - Try to handle stop and reboot in TCP mode using --keep-alive (still some instability)
+ - Update `diplomat-server.set-top` to accept module name instead of file path
  - Move sv-tree as a cmake "module"
 
 ## Fixed

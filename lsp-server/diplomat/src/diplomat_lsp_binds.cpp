@@ -599,29 +599,15 @@ json DiplomatLSP::_h_get_module_bbox(json _)
 		return json::array({});
 }
 
+/**
+ * @brief Set the top-level module name
+ * 
+ *	Handler for `diplomat-server.set-top`
+ * 
+ * @param params an array of size 1 containing only the new top-level module name
+ */
 void DiplomatLSP::_h_set_module_top(json params)
 {
-
-	// fs::path p;
-	// for (const json& record : params.at(1))
-	// {
-	// 	p = fs::canonical(record["path"].template get<std::string>());
-	// }
-
-	// spdlog::info("Set top file {}", p.generic_string());
-
-	// const auto* bb_list = 	_cache.get_bb_by_file(p);
-	// if(! bb_list)
-	// {
-	// 	spdlog::error("Lookup failed: File not found in the cache.");
-	// }
-	// else {
-	// 	if(bb_list->size() > 1)
-	// 	{
-	// 		spdlog::warn("Found multiple modules on top. As the selection is not yet supported, only use the first module recorded.");
-	// 	}
-	// 	_settings.top_level = bb_list->front()->module_name;
-	// }
 	_settings.top_level = params.at(0);
 	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
 	_compute_project_tree();
