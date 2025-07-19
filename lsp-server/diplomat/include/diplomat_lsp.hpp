@@ -59,6 +59,7 @@ class DiplomatLSP : public slsp::BaseLSP
         json _h_get_modules(json params);
         json _h_get_module_bbox(json params);
         void _h_set_module_top(json params);
+        json _h_project_tree_from_module(json params);
         void _h_ignore(json params);
         void _h_add_to_include(json params);
         void _h_force_clear_index(json params);

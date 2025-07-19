@@ -82,7 +82,23 @@ namespace diplomat::cache
              */
             void refresh(bool prj_only);
 
+            /**
+             * @brief Calling this function will force setting a source manager
+             * which will therefore be shared between multiple calls to {@link process_file}
+             * to avoid rebuild and free the source manager.
+             *
+             * This may consume more memory but should improve the overall speed.
+             *
+             * @note This cache should be disabled at some point using {@link disable_shared_source_manager}
+             *
+             */
+            void enable_shared_source_manager();
 
+            /**
+             * @brief Force clearing the internal source manager, following a call to {@link enable_shared_source_manager}
+             * 
+             */
+            void disable_shared_source_manager();
 
             /**
              * @brief Add a given file to the cache but do not process it
@@ -215,6 +231,8 @@ namespace diplomat::cache
              * In this case, it will do nothing. 
              */
             void remove_file(const std::filesystem::path& fpath);
+
+
     };
 
 

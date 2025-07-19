@@ -14,15 +14,17 @@
 					"type": {
 						"kind": "base",
 						"name": "DocumentUri"
-					}
+					},
+					"documentation" : "@brief The URI to the file containing the module"
 				},
 				{
-					"name": "module",
+					"name": "moduleName",
 					"type": {
 						"kind": "base",
 						"name": "string"
 					},
-					"optional": true
+					"optional": true,
+					"documentation" : "@brief The name of the module to lookup.\nIf not provided, it will be the task of the recipient to try and determine the module based upon the file alone."
 				}
 			]
 		},

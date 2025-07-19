@@ -274,19 +274,11 @@ void DiplomatLSP::_remove_workspace_folders(const std::vector<WorkspaceFolder>& 
 void DiplomatLSP::_read_workspace_modules()
 {
     log(MessageType_Info, "Reading workspace");
+
     namespace fs = fs;
-    // _documents.clear();
-    // _blackboxes.clear();
-    // _module_to_file.clear();
-    
-    _sm.reset(new slang::SourceManager());
-    for(auto& path : _settings.includes.user)
-        _sm->addUserDirectories(path);
-    for(auto& path : _settings.includes.system)
-        _sm->addUserDirectories(path);
 
     fs::path p;
-
+    _cache.enable_shared_source_manager();
     for (const fs::path& root : _settings.workspace_dirs)
     {
         fs::recursive_directory_iterator it(root);
@@ -334,30 +326,11 @@ void DiplomatLSP::_read_workspace_modules()
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
                 _cache.process_file(p);
-                // spdlog::debug("Read SV file {}", p.generic_string());
-                // doc = _read_document(p);
-                // _blackboxes.emplace(p,doc->extract_blackbox());
-
-                // for(auto& name : std::views::keys(*(_blackboxes.at(p))))
-                // {
-                //     // If module to file already have a reference,
-                //     // try to select the one where the filename match the module name.
-                //     if(_module_to_file.contains(name))
-                //     {
-                //         if(p.has_stem() && p.stem().generic_string() == name)
-                //             _module_to_file[name] = p;
-                //         else
-                //             spdlog::warn("Ignored file {} for module {} as the filename does not match the module and we already have a reference.",
-                //             p.generic_string(),name);
-                //     }
-                //     else
-                //     {
-                //         _module_to_file[name] = p;
-                //     }
-                // }
             }
         }
     }
+
+    _cache.disable_shared_source_manager();
 }
 
 
@@ -370,45 +343,11 @@ void DiplomatLSP::_read_workspace_modules()
 void DiplomatLSP::_read_filetree_modules()
 {
     log(MessageType_Info, "Reading filetree");
-    
-    // _sm.reset(new slang::SourceManager());
-    // for(auto& path : _settings.includes.user)
-    //     _sm->addUserDirectories(path);
-    // for(auto& path : _settings.includes.system)
-    //     _sm->addUserDirectories(path);
+
 
     _cache.refresh(true);
-    // SVDocument* doc;
-    // for (const fs::path& file : _project_tree_files)
-    // {                
-    //     spdlog::debug("Read SV file from project tree {}", file.generic_string());
-    //     doc = _read_document(file);
-    //     _blackboxes[file] = doc->extract_blackbox();
-
-    //     for(auto& module_name : std::views::keys(*(_blackboxes.at(file))))
-    //         _module_to_file[module_name] = file.generic_string();
-    // }
 }
 
-
-/**
- * @brief Retrieve the SVDocument from a module name if it exists.
- * 
- * @param module name to lookup.
- * @return const SVDocument* Pointer to the SVDocument found if any, nullptr otherwise.
- */
-// const SVDocument* DiplomatLSP::_document_from_module(const std::string& module) const
-// {
-//     try
-//     {
-//         return _documents.at(_module_to_file.at(module)).get();
-//     }
-//     catch(const std::out_of_range& e)
-//     {
-//         spdlog::warn("No document found when looking up the module {}",module);
-//         return nullptr;
-//     }
-// }
 
 /**
  * @brief Retrive the blackbox definition associated to a module name if any.
@@ -448,6 +387,7 @@ void DiplomatLSP::_compute_project_tree(bool keep_tree)
 void DiplomatLSP::_clear_project_tree() 
 {
     _project_file_tree_valid = false;
+    _cache.clear_project();
     // _project_tree_files.clear(); 
     // _project_tree_modules.clear();
 }

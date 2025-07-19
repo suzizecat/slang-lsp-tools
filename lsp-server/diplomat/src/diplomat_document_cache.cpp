@@ -1,4 +1,5 @@
 #include "fmt/format.h"
+#include "slang/text/SourceManager.h"
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include "diplomat_document_cache.hpp"
@@ -48,6 +49,20 @@ void DiplomatDocumentCache::refresh(bool prj_only)
 		for (const auto& fpath : _ws_files)
 			process_file(fpath,false);
 	}
+}
+
+/**
+ * @note This function does nothing on as long as the source_manager is enabled.
+ */
+void DiplomatDocumentCache::enable_shared_source_manager()
+{
+	if(_sm.get() == nullptr)
+		_sm.reset(new slang::SourceManager());
+}
+
+void DiplomatDocumentCache::disable_shared_source_manager()
+{
+	_sm.reset();
 }
 
 void DiplomatDocumentCache::record_file(const fs::path& fpath,

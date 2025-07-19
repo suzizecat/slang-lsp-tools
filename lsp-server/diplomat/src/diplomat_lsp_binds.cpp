@@ -1,14 +1,18 @@
 #include "diplomat_lsp.hpp"
+#include "lsp_errors.hpp"
 #include "spdlog/spdlog.h"
 
 #include <chrono>
 #include <algorithm>
 #include "types/enums/DiagnosticTag.hpp"
 #include "types/enums/LSPErrorCodes.hpp"
+#include "types/enums/MessageType.hpp"
+#include "types/structs/HDLModule.hpp"
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
 #include <filesystem>
+#include <fmt/format.h>
 #include <slang/ast/symbols/CompilationUnitSymbols.h>
 #include <slang/ast/Symbol.h>
 #include <slang/ast/Scope.h>
@@ -31,6 +35,7 @@
 // UNIX only header
 #include <sys/wait.h>
 #include <fstream>
+#include <vector>
 
 #include "uri.hh"
 
@@ -38,6 +43,10 @@
 #include "visitor_module_bb.hpp"
 
 #include "signal.h"
+
+#ifndef DIPLOMAT_VERSION_STRING
+#define DIPLOMADIPLOMAT_VERSION_STRING "custom-build"
+#endif
 
 using namespace slsp::types;
 
@@ -225,7 +234,7 @@ json DiplomatLSP::_h_initialize(InitializeParams params)
 
 	InitializeResult reply;
 	reply.capabilities = capabilities;
-	reply.serverInfo = InitializeResult_serverInfo{"Diplomat-LSP","0.0.1"};
+	reply.serverInfo = InitializeResult_serverInfo{"Diplomat-LSP",DIPLOMAT_VERSION_STRING};
 
 	set_initialized(true) ;
 	return reply;
@@ -498,8 +507,8 @@ void DiplomatLSP::_h_set_project(json _)
 	// We assume that the project file tree is valid.
 	_project_file_tree_valid = true;
 
-	if (params.topLevel && params.topLevel->module)
-		set_top_level(params.topLevel->module.value());
+	if (params.topLevel && params.topLevel->moduleName)
+		set_top_level(params.topLevel->moduleName.value());
 	else
 		_compile();
 }
@@ -612,6 +621,52 @@ void DiplomatLSP::_h_set_module_top(json params)
 	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
 	_compute_project_tree();
 	_compile();
+}
+
+
+/**
+ * @brief This function shall return the list of files required to build the project.
+ * 
+ * This list is built using the dependencies scanning capabilities of the {@link VisitorModuleBlackBox}.
+ *
+ * @param params is a JSON array containing a single {@link slsp::types::HDLModule}
+ * @returns a list of URI matching the required files
+ */
+json DiplomatLSP::_h_project_tree_from_module(json params)
+{
+	_read_workspace_modules();
+
+	HDLModule requested_root_module = params.at(0);
+	uri target_uri(requested_root_module.file);
+	
+	const ModuleBlackBox* target = nullptr;
+
+	const std::vector<const ModuleBlackBox*> * target_bb_list = _cache.get_bb_by_file(fs::path("/" + target_uri.get_path()));
+	if(target_bb_list == nullptr)
+	{
+		log(slsp::types::MessageType_Error, fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
+		throw slsp::lsp_request_failed_exception(fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
+	}
+	else
+	{
+		for(const ModuleBlackBox* bb : *target_bb_list)
+		{
+			if(! requested_root_module.moduleName || requested_root_module.moduleName.value() == bb->module_name)
+			{
+				target = bb;
+				break;
+			}
+		}
+	}
+
+	if(! target)
+	{
+		log(slsp::types::MessageType_Error, fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
+		throw slsp::lsp_request_failed_exception(fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
+	}
+
+	// Here, we have the proper target file.
+	// Now, we need to lookup each dependencies.
 }
 
 void DiplomatLSP::_h_ignore(json params)
