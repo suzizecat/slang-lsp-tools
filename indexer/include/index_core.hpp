@@ -43,7 +43,13 @@ namespace diplomat::index
 		IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind = "");
 
 		inline nlohmann::json dump() const {return nlohmann::json(*this);} ;
-
+		
+		/**
+		 * @brief Return a list of symbols found in each files
+		 * 
+		 * @return nlohmann::json JSON view of the index
+		 */
+		nlohmann::json dump_symbol_list() const;
 
 	   inline auto get_indexed_files_paths() const { return std::views::keys(_files);} ;
 	   inline auto get_indexed_files() const { return std::views::values(_files);} ;

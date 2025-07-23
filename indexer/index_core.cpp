@@ -49,6 +49,23 @@ namespace diplomat::index {
 		return s;
 	}
 
+	nlohmann::json IndexCore::dump_symbol_list() const
+	{
+		using namespace nlohmann; 
+		json ret;
+		for(const auto& [path, idx_file] : _files )
+		{
+			json file_content = json::array();
+			for(const auto& [loc, ref] : idx_file->get_references())
+			{
+				file_content.push_back({{"loc",loc},{"name",ref.key->get_name()}});
+			}
+			ret[path.generic_string()] = file_content;
+		}
+
+		return ret;
+	}
+
 	IndexScope* IndexCore::get_scope_by_position(const IndexLocation& pos)
 	{
 		if(! _files.contains(pos.file))

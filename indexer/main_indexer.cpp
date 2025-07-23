@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     std::optional<bool> showVersion;
     std::optional<bool> verbose;
     std::optional<bool> trace;
+    std::optional<bool> out_is_ref;
     std::optional<std::string> cst_dump_file;
     std::optional<std::string> output_file;
     driver.cmdLine.add("-h,--help", showHelp, "Display available options");
@@ -44,6 +45,7 @@ int main(int argc, char** argv) {
     driver.cmdLine.add("--verbose",verbose, "Enable verbose mode");
     driver.cmdLine.add("--trace",trace, "Enable verbosier mode");
     driver.cmdLine.add("--cst",cst_dump_file, "Dump the CST of the provided file, if found");
+    driver.cmdLine.add("--Oref",out_is_ref, "Output only the refs");
 
     if (!driver.parseCommandLine(argc, argv))
         return 1;
@@ -131,7 +133,10 @@ int main(int argc, char** argv) {
         std::ofstream dump_file;
         dump_file.open(output_file.value());
         spdlog::info("Start dumping index to {}", output_file.value());
-        dump_file << index->dump().dump(4);
+        if(out_is_ref.value_or(false))
+            dump_file << index->dump_symbol_list().dump(4);
+        else
+            dump_file << index->dump().dump(4);
         spdlog::info("Done.");
         dump_file.close();
     }

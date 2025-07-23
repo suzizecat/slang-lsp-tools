@@ -1,4 +1,5 @@
 #include "index_reference_visitor.hpp"
+#include "index_elements.hpp"
 #include <spdlog/spdlog.h>
 namespace diplomat::index
 {
@@ -165,6 +166,14 @@ namespace diplomat::index
 		// Manually skip the parameters visit, as this will be performed by the 
 		// HierarchicalInstanceSyntax handler once we selected the underlying scope.
 		visitDefault(node.instances);
+		spdlog::debug("Adding reference to instance type {}",node.type.rawText());		
+		
+		// Select the first instance name as the instance scope for symbol lookup in order to 
+		// add a reference to the module name on the type name.
+		_select_instance_scope(IndexLocation(node.type.location(),*_sm), node.instances.getFirstToken().rawText());
+		_add_reference_to_symbol(node.type.range(),node.type.rawText());
+		// Reset the instance scope.
+		_instance_scope = nullptr;
 	}
 
 	void ReferenceVisitor::handle(const slang::syntax::IdentifierNameSyntax& node)
