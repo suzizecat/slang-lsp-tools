@@ -11,6 +11,7 @@
  - Added Doxygen setup
  - Added new workspace elements (blackboxes) caching backend
  - Added `diplomat-server.get-file-bbox` to retrieve infos about a specific file.
+ - Partially adds support for wildcard import lookup in the indexer (#18)
 
  
 ## Changed
