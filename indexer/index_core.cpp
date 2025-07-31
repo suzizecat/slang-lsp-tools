@@ -58,7 +58,7 @@ namespace diplomat::index {
 			json file_content = json::array();
 			for(const auto& [loc, ref] : idx_file->get_references())
 			{
-				file_content.push_back({{"loc",loc},{"name",ref.key->get_name()}});
+				file_content.push_back({{"loc",loc},{"des",ref.key->get_name()},{"to",ref.key->get_source_location()}});
 			}
 			ret[path.generic_string()] = file_content;
 		}
