@@ -41,6 +41,17 @@ namespace diplomat::index {
 			void _add_symbols_from_name_syntax(const slang::syntax::NameSyntax* node);
 
 			void _default_symbol_handle(const slang::ast::Symbol& node);
+			
+			/**
+			 * @brief This function assumes the standard low-level scope handling.
+			 * 
+			 * @note As a limitation of {@link visitDefault}, the call to _default_symbol_ll should always be followed by
+			 * a call to visit default.
+			 *
+			 * @param node Node representing the scope
+			 * @param scope_name actual name used for the scope for {@link IndexScope} lookups.
+			 * @param is_virtual true if the scope is virtual (elements from inside have access to the parent scope)
+			 */
 			void _default_scope_handle(const slang::ast::Scope& node, const std::string_view& scope_name, const bool is_virtual = false);
 			void _default_scope_handle(const slang::ast::Scope& node, const bool is_virtual = false);
 			inline IndexScope* _current_scope() const {return _scope_stack.empty() ? nullptr : _scope_stack.top(); };

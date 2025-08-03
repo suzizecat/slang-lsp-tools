@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <slang/ast/types/DeclaredType.h>
 #include <slang/parsing/Token.h>
+#include <string_view>
 
 using namespace slang::ast;
 
@@ -81,7 +82,9 @@ namespace diplomat::index {
 				spdlog::debug("Skipped symbol without def {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 		}
 		
-		visitDefault(node);
+		// You cannot use `visitDefault` on a Symbol& as this is a no-op.
+		// See https://github.com/MikePopoloski/slang/issues/1453
+		//visitDefault(node);
 	}
 
 	void IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const std::string_view& scope_name, const bool is_virtual )
@@ -100,7 +103,8 @@ namespace diplomat::index {
 			if(s.kind == slang::ast::SymbolKind::CompilationUnit)
 			{
 				containing_file->set_syntax_root(stx);
-				visitDefault(node);
+				for(const auto& member : node.members())
+					member.visit(*this);
 				return;
 			}
 			// else if(s.kind == slang::ast::SymbolKind::Subroutine)
@@ -148,7 +152,8 @@ namespace diplomat::index {
 		}
 
 		//_default_symbol_handle(s);
-		visitDefault(node);
+		for(const auto& member : node.members())
+			member.visit(*this);
 		_close_scope(used_scope_name);
 	}
 
@@ -161,32 +166,38 @@ namespace diplomat::index {
 	{
 		bool is_virtual = node.asSymbol().kind != slang::ast::SymbolKind::InstanceBody;
 		_default_scope_handle(node,is_virtual);
+		
 	}
 
 
 	void IndexVisitor::handle(const slang::ast::DefinitionSymbol& node)
 	{
 		_default_symbol_handle(node);
+		visitDefault(node);
 	}
 
 	void IndexVisitor::handle(const slang::ast::VariableSymbol& node)
 	{
 		_default_symbol_handle(node);
+		visitDefault(node);
 	}
 
 	void IndexVisitor::handle(const slang::ast::GenvarSymbol& node)
 	{
 		_default_symbol_handle(node);
+		visitDefault(node);
 	}
 	
 	void IndexVisitor::handle(const slang::ast::ParameterSymbol& node)
 	{
 		_default_symbol_handle(node);
+		visitDefault(node);
 	}
 
 	void IndexVisitor::handle(const slang::ast::TransparentMemberSymbol& node)
 	{
 		_default_symbol_handle(node.wrapped);
+		visitDefault(node);
 	}
 
 
@@ -198,6 +209,8 @@ namespace diplomat::index {
 		
 		// Visit the scope before the next code block in order to setup the scope.
 		_default_symbol_handle(node);
+		//visitDefault(node);
+
 		_default_scope_handle(node.body,node.name,false);
 
 		// When running into an instance, add the declared type to the scope of the instance.

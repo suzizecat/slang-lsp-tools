@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 
     auto compilation = driver.createCompilation();
         
-    ok &= driver.reportCompilation(*compilation, /* quiet */ false);
+    ok &= driver.runFullCompilation( /* quiet */ false);
     const ast::RootSymbol&  root_symb = compilation->getRoot();
 
     auto definitions = compilation->getDefinitions();
@@ -144,5 +144,6 @@ int main(int argc, char** argv) {
         std::cout << index->dump().dump(4);   
     
     spdlog::info("Got {} failed references total.",failed_refs);
+    spdlog::info("Index run complete, graceful exit.");
     return ok ? 0 : 3;
 }

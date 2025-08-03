@@ -1,4 +1,7 @@
 #include "diplomat_lsp.hpp"
+#include "slang/analysis/AnalysisManager.h"
+#include "slang/analysis/AnalysisOptions.h"
+#include "slang/ast/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "spdlog/spdlog.h"
 
@@ -458,7 +461,9 @@ void DiplomatLSP::_compile()
     de.addClient(_diagnostic_client);
 
     slang::ast::CompilationOptions coptions;
-    coptions.flags &= ~ (slang::ast::CompilationFlags::SuppressUnused);
+    coptions.flags = slang::ast::CompilationFlags::AllowHierarchicalConst 
+    | slang::ast::CompilationFlags::AllowTopLevelIfacePorts ;
+
     
     if (_settings.top_level)
         coptions.topModules = {_settings.top_level.value()};
@@ -497,6 +502,10 @@ void DiplomatLSP::_compile()
 
     // Actually compile and elaborate the design
     _compilation->getRoot();
+
+    spdlog::info("Running analysis");
+    slang::analysis::AnalysisManager ana_mgr;
+    ana_mgr.analyze(*_compilation);
 
     spdlog::info("Issuing diagnostics");
     for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
