@@ -15,4 +15,5 @@ EXE_INC
 EXE_LINK
     PRIVATE slang::slang
     PRIVATE nlohmann_json::nlohmann_json
+    PRIVATE argparse::argparse
  )

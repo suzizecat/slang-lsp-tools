@@ -14,6 +14,7 @@
 #include "explorer_visitor.h"
 #include "hier_visitor.h"
 #include "nlohmann/json.hpp"
+#include "slang/analysis/AnalysisManager.h"
 using json = nlohmann::json;
 
 using namespace slang;
@@ -257,8 +258,10 @@ int main(int argc, char** argv) {
     bool ok = driver.parseAllSources();
 
     auto compilation = driver.createCompilation();
-        
-    ok &= driver.reportCompilation(*compilation, /* quiet */ false);
+    driver.reportCompilation(*compilation, false);
+    driver.runAnalysis(*compilation);
+    ok &= driver.reportDiagnostics(false);
+
     const ast::RootSymbol&  root_symb = compilation->getRoot();
     const ast::Symbol* net = root_symb.lookupName("lock");
     

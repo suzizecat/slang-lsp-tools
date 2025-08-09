@@ -167,7 +167,7 @@ add_custom_target(full
 DEPENDS 
 	sv-formatter-exe
 	sv-indexer-exe
-	sv-tree-exe
+	# sv-tree-exe
 	sv-explorer-exe
 	slang-lsp)
 
