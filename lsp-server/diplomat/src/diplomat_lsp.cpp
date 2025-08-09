@@ -503,16 +503,11 @@ void DiplomatLSP::_compile()
     // Actually compile and elaborate the design
     _compilation->getRoot();
 
-    spdlog::info("Running analysis");
-    slang::analysis::AnalysisManager ana_mgr;
-    ana_mgr.analyze(*_compilation);
-
+    
     spdlog::info("Issuing diagnostics");
     for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
         de.issue(diag);
-
-    spdlog::info("Send diagnostics");
-    _emit_diagnostics();
+    
 
     spdlog::info("Run indexer");
     
@@ -549,6 +544,19 @@ void DiplomatLSP::_compile()
         _index.reset();
         spdlog::error("Indexing error {}", e.what());
     }
+
+    _compilation->freeze();
+    spdlog::info("Running analysis");
+    slang::analysis::AnalysisManager ana_mgr;
+    ana_mgr.analyze(*_compilation);
+
+    for (const slang::Diagnostic& diag : ana_mgr.getDiagnostics(_sm.get()))
+        de.issue(diag);
+
+    spdlog::info("Send diagnostics");
+    _emit_diagnostics();
+
+
     spdlog::info("Compilation done.");
 }
 

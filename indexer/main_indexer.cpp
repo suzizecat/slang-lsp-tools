@@ -4,6 +4,8 @@
 #include "slang/ast/Scope.h"
 #include "slang/ast/Symbol.h"
 
+#include "slang/analysis/AnalysisManager.h"
+
 #include <iostream>
 #include <fstream>
 #include <stack>
@@ -80,13 +82,14 @@ int main(int argc, char** argv) {
         return 2;
 
     bool ok = driver.parseAllSources();
-
+    
     auto compilation = driver.createCompilation();
+    driver.reportCompilation(*compilation, false);
+    driver.runAnalysis(*compilation);
+    ok &= driver.reportDiagnostics(false);
         
-    ok &= driver.runFullCompilation( /* quiet */ false);
+    // ok &= driver.runFullCompilation( /* quiet */ false);
     const ast::RootSymbol&  root_symb = compilation->getRoot();
-
-    auto definitions = compilation->getDefinitions();
     
 
     diplomat::index::IndexVisitor indexer(compilation->getSourceManager());
