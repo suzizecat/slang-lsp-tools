@@ -635,7 +635,7 @@ void DiplomatLSP::_h_set_module_top(json params)
 json DiplomatLSP::_h_project_tree_from_module(json params)
 {
 	_read_workspace_modules();
-
+	spdlog::debug("Get _h_project_tree_from_module with {}",params.dump(1));
 	HDLModule requested_root_module = params.at(0);
 	uri target_uri(requested_root_module.file);
 	
@@ -667,6 +667,36 @@ json DiplomatLSP::_h_project_tree_from_module(json params)
 
 	// Here, we have the proper target file.
 	// Now, we need to lookup each dependencies.
+	std::unordered_set<std::string> processed;
+	std::unordered_set<std::string> to_process;
+	std::vector<std::string> result;
+
+
+	result.push_back(_cache.get_uri(_cache.get_file_from_module(target)).to_string());
+	for (std::string dep : target->deps)
+	{
+		to_process.insert(dep);
+	}
+
+	while(! to_process.empty())
+	{
+		const std::string processed_bbname = to_process.extract(to_process.begin()).value();
+		if (processed.contains(processed_bbname))
+			continue;
+
+		const ModuleBlackBox* processed_bb = _cache.get_bb_by_module(processed_bbname);
+		if (!processed_bb)
+			continue;
+
+		result.push_back(_cache.get_uri(_cache.get_file_from_module(processed_bb)).to_string());
+
+		for (std::string dep : processed_bb->deps)
+		{
+			to_process.insert(dep);
+		}
+	}
+
+	return result;
 }
 
 void DiplomatLSP::_h_ignore(json params)
