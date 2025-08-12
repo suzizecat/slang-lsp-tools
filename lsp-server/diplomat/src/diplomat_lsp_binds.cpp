@@ -500,8 +500,9 @@ void DiplomatLSP::_h_set_project(json _)
 	_clear_project_tree();
 
 	for(const std::string& filepath : params.sourceList)
-	{	
-		_cache.process_file(filepath,true);
+	{
+		if(_accepted_extensions.contains(fs::path(filepath).extension()))
+			_cache.process_file(filepath,true);
 	}
 
 	// We assume that the project file tree is valid.
