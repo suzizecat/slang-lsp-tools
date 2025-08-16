@@ -111,16 +111,37 @@ namespace slsp{
 
     std::optional<json> BaseLSP::invoke(const std::string& fct,  json& params)
     {
-        _filter_invocation(fct);
-        if (is_request(fct))
-            return _invoke_request(fct,params);
-        else if (is_notif(fct))
-        {
-            _invoke_notif(fct,params);
-            return {};
-        }
 
-        spdlog::warn("Call requested for unknown method {}", fct);
+        _filter_invocation(fct);
+        try {
+            if (is_request(fct))
+                return _invoke_request(fct,params);
+            else if (is_notif(fct))
+            {
+                _invoke_notif(fct,params);
+                return {};
+            }
+        } 
+        catch(const rpc_base_exception& e) 
+        { 
+            spdlog::error("Command {} failed with error {}.\nArgument were {}",
+                            fct,
+                            e.what(),
+                            params.dump(1));
+            // Rethrow
+            throw e; 
+        }
+        catch(const server_side_base_exception& e) 
+        { 
+            spdlog::error("Command {} failed with error {}.\nArgument were {}",
+                            fct,
+                            e.what(),
+                            params.dump(1));
+            // Rethrow
+            throw e; 
+        }
+        
+        spdlog::warn("Call requested for unknown method {} with arguments {}", fct, params.dump());
         throw rpc_method_not_found_error(fct);
         
     }
@@ -142,6 +163,7 @@ namespace slsp{
             // If any unhandled exception raises during a call to an execute command, 
             // Just rethrow as an unknown error.
             spdlog::error("Got unknown error during the handling of {}: {}",params.command, e.what());
+            spdlog::debug("Arguments were: {}",params.arguments.value_or(json()).dump(1));
             throw lsp_unknown_error(e.what());
         }        
     }
@@ -252,6 +274,10 @@ namespace slsp{
             try
             {
                 json raw_input = _rpc.get();
+                
+                if(raw_input.empty())
+                    continue;
+
                 has_id = raw_input.contains("id");
                 is_method_call = raw_input.contains("method");
 
