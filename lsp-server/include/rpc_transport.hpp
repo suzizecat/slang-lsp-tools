@@ -21,6 +21,10 @@ namespace rpc
         std::mutex _rx_access;
         std::mutex _tx_access;
 
+        /**
+         * @brief Input stream
+         * 
+         */
         std::istream& _in;
         std::ostream& _out;
 
@@ -36,10 +40,34 @@ namespace rpc
 
         bool _use_endl;
 
+        /**
+         * @brief This function will retrieve data from the input
+         * stream ::_in and transfer it (as json) to the #_inbox.
+         * 
+         * @note This function is expected to be used as the #_inbox_manager function.
+         *
+         * @param stok stop token, used to exit the process upon stopping the LS.
+         *  \sa _get_json() is used to actually extract data.
+         */
         void _poll_inbox(std::stop_token stok);
+
+        /**
+         * @brief This function wait for data to be in the #_outbox and then
+         * transfer it through the medium provided by #_out .
+         * 
+         * @param stok Stop token to gracefully handle stop of operations.
+         */
         void _push_outbox(std::stop_token stok);
 
-        nlohmann::json _get_json();
+        /**
+         * @brief Low level function used to capture a json string from the 
+         * input stream ::_in . 
+         * 
+         * @param stok Stop token, used to stop the capture gracefully as soon as possible
+         * upon external stop request.
+         * @return nlohmann::json with the extracted RPC call content on success, empty json otherwise.
+         */
+        nlohmann::json _get_json(std::stop_token& stok);
 
     public:
         RPCPipeTransport() = delete;

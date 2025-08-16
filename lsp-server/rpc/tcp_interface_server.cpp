@@ -1,4 +1,5 @@
 #include "tcp_interface_server.hpp"
+#include "spdlog/spdlog.h"
 
 namespace slsp {
     std::streamsize TCPInterfaceServer::xsputn(const TCPInterfaceServer::char_type *s, std::streamsize n)
@@ -54,6 +55,15 @@ namespace slsp {
         std::stringbuf::setg(_rx.begin(),_rx.begin(),_rx.begin());
     }
 
+    TCPInterfaceServer::~TCPInterfaceServer()
+    {
+        spdlog::info("Destroying the TCP medium");
+        flush();
+        
+        _sock.close();
+
+    }
+
     bool TCPInterfaceServer::await_client()
     {
         sockpp::inet_address peer;
@@ -71,6 +81,17 @@ namespace slsp {
     void TCPInterfaceServer::send(const std::string& data)
     {
         _sock.write(data);
+    }
+
+    void TCPInterfaceServer::flush()
+    {
+        spdlog::info("Flushing server communication interface.");
+        while (_sock.read(_rx.begin(),_rx.size()) > 0) {/*nothing, discard*/}
+
+        // Reset the 'get' positions to the begining.
+        setg(_rx.begin(),_rx.begin(),_rx.begin());
+
+        _sock.clear();
     }
 
 }

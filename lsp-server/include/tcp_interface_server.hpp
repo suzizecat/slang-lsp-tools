@@ -31,10 +31,18 @@ namespace slsp {
         public: 
 
             TCPInterfaceServer(in_port_t port, const std::string addr = "0.0.0.0");
-
+            ~TCPInterfaceServer();
             bool await_client();
             void send(const std::string& data);
-            std::string receive();
+            
+            /**
+             * @brief This function will attempt to read (and discard) any data remaining in the socket/pipe.
+             * it will also update the various positions to discard any non-handled data.
+             * 
+             * @note as the TX is made immediately, there is no need for flushing operation.
+             */
+            void flush();
+            // std::string receive();
 
             std::stringstream _out;
             const std::stringstream& get_out_stream() {return _out;};

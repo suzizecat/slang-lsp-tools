@@ -1,7 +1,9 @@
 #include "rpc_transport.hpp"
 #include <future>
 #include <chrono>
+#include <istream>
 #include <string>
+#include <thread>
 #include "spdlog/spdlog.h"
 #include "fmt/format.h"
 #include "lsp_errors.hpp"
@@ -42,110 +44,134 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
     }
 
 
-    json RPCPipeTransport::_get_json()
+    /**
+     * This function will wait for the proper start of the payload
+     * of a RPC call (new line then '`{`' character ) while discarding
+     * other data.
+     * It will then capture all characters until the first brace is closed, denoting
+     * the end of the JSON segment.
+     *
+     * This JSON is then parsed and returned.
+     * Upon failure, the function will try to flush the input stream _in to avoid potential
+     * corrupted data. Upon resuming, the function will not capture anything before having a proper
+     * start of JSON.
+     *
+     * @note It is required for this function to handle each characters in order to be 
+     * as non-blocking as possible to handle \p stok .
+     *  
+     */
+    json RPCPipeTransport::_get_json(std::stop_token& stok)
     {
-        json ret;
-        std::string rx_header;
-        bool in_header = true;
-        bool got_header = false; 
-        bool data_valid = false;
-        do
-        {   
-            do
-            {
-                std::getline(_in,rx_header);
-                if(rx_header.length() > 1)
-                {
-                    got_header = true;
-                }
-                else if(got_header)
-                {
-                    got_header = false;
-                    in_header = false;
-                }
-            }while(in_header);
-            
-            try
-            {
-                in_header = true;
-                _in >> ret;
-                data_valid = true;
-            }
-            catch (nlohmann::json::parse_error e)
-            {
-                if(_in.eof())
-                {
-                    spdlog::warn("Catched EOF");
-                    _in.ignore(std::numeric_limits<std::streamsize>::max());
-                    ret = R"({
-                        	"jsonrpc": "2.0",
-                            "id": 0,
-                            "method": "exit",
-                            "params": null
-                            })"_json;
-                    return ret;
-                }
-                else
-                {
-                    std::this_thread::sleep_for(100ms);
-                    spdlog::error("Ignored ill-formed JSON input : {}", std::string(e.what()));
-                    ret.clear();
-                    char* buf = new char[_in.rdbuf()->in_avail() + 1];
-                    memset(buf,0,_in.rdbuf()->in_avail() + 1);
-                    _in.readsome(buf, _in.rdbuf()->in_avail());
-                    spdlog::error("Flushed input buffer data is: {}",buf);
-                    delete[] buf;
-                    spdlog::error("Server should have recovered.");
-                    //_in.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-                }
-            }
-        } while (!data_valid);
+        std::string buf;
+        using namespace std::chrono_literals;
 
-        return ret;
+        int json_idx = 0;
+        bool in_string = false; 
+
+        char last_char = 0;
+        char new_char = 0;
+
+        while (! _in.eof() && ! stok.stop_requested()) {
+            // If "something" is waiting to be read
+            if(_in.peek() != EOF)
+            {
+                last_char = new_char;
+                new_char = _in.get();
+
+                buf.push_back(new_char);
+                
+                // Skip everything as long as we don't have at least one
+                // level of json ( '{' )
+                if(json_idx == 0)
+                {
+                    if(! in_string && last_char == '\n' && new_char == '{')
+                    {
+                        spdlog::trace("Skipped data before json :\n{}",buf);
+                        buf.clear();
+                        json_idx ++;
+                        // As we cleared the buffer, re-insert the brace.
+                        buf.push_back(new_char);
+                    }
+                }
+                else 
+                {
+                    if(new_char == '"' && last_char != '\\')
+                            in_string = !in_string;
+                    else if(! in_string)
+                    {
+                        if(new_char == '{')
+                            json_idx ++;
+                        else if(new_char == '}')
+                            json_idx --;
+                    }
+                    
+                    if(json_idx == 0)
+                    {
+                        // Parse the received data
+                        try 
+                        {
+                            return json::parse(buf);
+                        } 
+                        catch (nlohmann::json::parse_error e) 
+                        {
+                            spdlog::error("Ignored ill-formed JSON input : {}\nBuffer was {}", std::string(e.what()),buf);
+                            // Cleanup                            
+                            while(_in.rdbuf()->in_avail())
+                                _in.get();
+
+                            return json();
+                        }
+                    }
+                }
+            }
+            else 
+            {
+                std::this_thread::sleep_for(100ms);
+            }
+        }
+
+        if(! stok.stop_requested() && _in.eof())
+        {
+        spdlog::warn("Caught EOF");
+        _in.ignore(std::numeric_limits<std::streamsize>::max());
+        return R"({
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": "exit",
+                "params": null
+                })"_json;
+        }
+
+        // Fallback, hever would be the case where stok was triggered, so we don't care
+        // about the value, we want to get out.
+        return json();
     }
+
 
     void RPCPipeTransport::_poll_inbox(std::stop_token stok)
     {
-        using namespace std::chrono_literals;
-
-        std::packaged_task<json()> task;
-        std::future<json> future_line;
-        std::thread t;
-
-        //future_line = std::async(std::launch::async, &RPCPipeTransport::_get_json, this);
-        task = std::packaged_task<json()>([this](){ return this->_get_json(); });
-        future_line = task.get_future();
-        t = std::thread((std::move(task)));
-
-        while (!stok.stop_requested() && !_in.eof())
+         while (!stok.stop_requested() && !_in.eof())
         {
-            //spdlog::info("Check {}", stok.stop_requested());
-            std::future_status status;
-            if(status = future_line.wait_for(100ms); status == std::future_status::ready )
+            json new_message = _get_json(stok);
+            spdlog::trace("Captured data {}", new_message.dump(1));
+            if(! new_message.empty())
             {
-                json data = future_line.get();
-                t.join();
-                spdlog::trace("Captured data {}", data.dump());
-
+                // Push new json
                 {
                     std::lock_guard<std::mutex> lock(_rx_access);
-                    _inbox.push(data);
-                    data = json();
+                    _inbox.push(new_message);
                 }
+
                 _data_available.notify_all();
-                if(! stok.stop_requested())
-                {
-                    task = std::packaged_task<json()>([this](){ return this->_get_json(); });
-                    future_line = task.get_future();
-                    t = std::thread((std::move(task)));
-                }
             }
         }
-        t.detach();
+
         _closed = true;
         _data_available.notify_all();
         spdlog::info("Stop polling inbox.");
+
     }
+
 
     void RPCPipeTransport::_push_outbox(std::stop_token stok)
     {

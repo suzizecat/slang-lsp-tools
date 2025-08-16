@@ -20,7 +20,7 @@
  - Updated CMakeLists.txt to generate proper semver version strings
  - Show versions upon start of LSP and indexer (standalone)
  - Reduced log level in the indexer (use of trace)
- - Try to handle stop and reboot in TCP mode using --keep-alive (still some instability)
+ - Handle stop and reboot in TCP mode using --allow-reboot 
  - Update `diplomat-server.set-top` to accept module name instead of file path
  - Move sv-tree as a cmake "module"
 
@@ -31,7 +31,7 @@
 
 ## Dependencies
 
- - Slang to v8.1
+ - Slang to v9
 
 ## Removed
  

@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 
     if(prog.get<bool>("--tcp"))
     {
-        while(true)
+        do
         {
             {
                 in_port_t port = prog.get<in_port_t>("--port");
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
                 spdlog::info("Shutting down, bye!");
                 break;
             }
-        }
+        } while (prog.get<bool>("--allow-reboot"));
     }
     else
     {
