@@ -25,5 +25,13 @@ class HierVisitor : public slang::ast::ASTVisitor<HierVisitor,false,false>
     void handle(const slang::ast::UninstantiatedDefSymbol& node);
     //void handle(const slang::ast::ValueSymbol& node);
 
+    /**
+     * @brief Return the hierarchy object
+     * 
+     * @return const nlohmann::json& the json object representing the hierarchy.
+     *
+     * @todo Provide a metamodel as an exchange type of the hierarchy, and update the
+     * underlying code.
+     */
     inline const nlohmann::json& get_hierarchy() const {return _hierarchy;}; 
 };

@@ -8,12 +8,14 @@
 // #include "diplomat_index.hpp"
 
 
+#include "types/structs/Location.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
 #include "types/structs/ClientCapabilities.hpp" 
 
 
 #include "slang/ast/Compilation.h"
 #include "slang/diagnostics/DiagnosticEngine.h"
+#include "visitor_module_bb.hpp"
 
 #include <iostream>
 #include <unordered_set>
@@ -47,26 +49,25 @@ class DiplomatLSP : public slsp::BaseLSP
         void _h_setTrace(json params);
         json _h_shutdown(json params);
 
-        void _h_set_project(json params);
+        void _h_set_project(slsp::types::DiplomatProject params);
 
-        void _h_push_config(json params);
+        void _h_push_config(slsp::DiplomatLSPWorkspaceSettings params);
         json _h_pull_config(json params);
-        void _h_set_top_module(json params);
         void _h_get_configuration(json& params);
         void _h_get_configuration_on_init(json& params);
         void _h_update_configuration(json& params);
-        json _h_get_file_bb(json params);
-        json _h_get_modules(json params);
-        json _h_get_module_bbox(json params);
-        void _h_set_module_top(json params);
-        json _h_project_tree_from_module(json params);
+        const std::vector< const ModuleBlackBox*>  _h_get_file_bb(std::string params);
+        std::vector<slsp::types::HDLModule> _h_get_modules(json _);
+        const std::vector< const ModuleBlackBox*> _h_get_module_bbox(slsp::types::HDLModule params);
+        void _h_set_top_module(std::optional<std::string> params);
+        std::vector<std::string> _h_project_tree_from_module(slsp::types::HDLModule params);
         void _h_ignore(json params);
         void _h_add_to_include(json params);
         void _h_force_clear_index(json params);
 
-        json _h_resolve_hier_path(json params);
+        std::map<std::string,std::optional<slsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params);
         json _h_get_design_hierarchy(json params);
-        json _h_list_symbols(json& params);
+        std::map<std::string,std::vector<slsp::types::Range>> _h_list_symbols(std::string params);
 
         void _bind_methods();
 

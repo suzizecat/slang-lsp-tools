@@ -55,6 +55,23 @@
 						"name": "HDLModule"
 					},
 					"optional": true
+				},
+				{
+					"name": "includeDirs",
+					"type": {
+						"kind": "array",
+						"element": {
+							"kind": "base",
+							"name": "DocumentUri"
+						}
+					}
+				},
+				{
+					"name": "active",
+					"type": {
+						"kind": "base",
+						"name": "boolean"
+					}
 				}
 			]
 		}

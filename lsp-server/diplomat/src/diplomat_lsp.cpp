@@ -72,11 +72,10 @@ DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_p
 _sm(new slang::SourceManager()),
 _diagnostic_client(new slsp::LSPDiagnosticClient(_cache,_sm.get())),
 _watch_client_pid(watch_client_pid),
-// _project_tree_files{},
-// _project_tree_modules{},
 _project_file_tree_valid(false),
 _broken_index_emitted(true)
 {
+    _unpack_args_for_customs = true;
     
     TextDocumentSyncOptions sync;
     sync.openClose = true;
@@ -149,8 +148,7 @@ void DiplomatLSP::_bind_methods()
     bind_request("initialize",LSP_MEMBER_BIND(DiplomatLSP,_h_initialize));
     bind_notification("diplomat-server.index-dump", LSP_MEMBER_BIND(DiplomatLSP,dump_index));
     bind_request("diplomat-server.get-modules", LSP_MEMBER_BIND(DiplomatLSP,_h_get_modules));
-	bind_request("diplomat-server.get-module-bbox",
-	             LSP_MEMBER_BIND(DiplomatLSP, _h_get_module_bbox));
+	bind_request("diplomat-server.get-module-bbox",LSP_MEMBER_BIND(DiplomatLSP, _h_get_module_bbox));
 	bind_request("diplomat-server.prj.tree-from-module",LSP_MEMBER_BIND(DiplomatLSP,_h_project_tree_from_module));
     bind_request("diplomat-server.get-file-bbox", LSP_MEMBER_BIND(DiplomatLSP,_h_get_file_bb));
     bind_notification("diplomat-server.full-index", LSP_MEMBER_BIND(DiplomatLSP,_h_force_clear_index));
@@ -159,7 +157,7 @@ void DiplomatLSP::_bind_methods()
     //bind_notification("diplomat-server.save-config", LSP_MEMBER_BIND(DiplomatLSP,_h_save_config));
     bind_notification("diplomat-server.push-config", LSP_MEMBER_BIND(DiplomatLSP,_h_push_config));
     bind_request("diplomat-server.pull-config", LSP_MEMBER_BIND(DiplomatLSP,_h_pull_config));
-    bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_module_top));
+    bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_top_module));
     
     bind_notification("diplomat-server.prj.set-project",LSP_MEMBER_BIND(DiplomatLSP,_h_set_project));
 

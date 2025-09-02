@@ -13,6 +13,7 @@
 #include "slang/diagnostics/AllDiags.h"
 #include <filesystem>
 #include <fmt/format.h>
+#include <optional>
 #include <slang/ast/symbols/CompilationUnitSymbols.h>
 #include <slang/ast/Symbol.h>
 #include <slang/ast/Scope.h>
@@ -493,10 +494,9 @@ json DiplomatLSP::_h_rename(json _)
  * @param json structure matching a list with only a single element in it, being 
  * the image of diplomat-vscode/exchange_types.ts:DiplomatProject
  */
-void DiplomatLSP::_h_set_project(json _)
+void DiplomatLSP::_h_set_project(DiplomatProject params)
 {
-	spdlog::debug("Set Project requested : {}",_.dump(1));
-	DiplomatProject params = _.front();
+	spdlog::debug("Set Project requested : {}",json(params).dump(1));
 	_clear_project_tree();
 
 	for(const std::string& filepath : params.sourceList)
@@ -519,12 +519,12 @@ void DiplomatLSP::_h_set_project(json _)
  * 
  * @param configuration, from slsp::DiplomatLSPWorkspaceSettings
  */
-void DiplomatLSP::_h_push_config(json params)
+void DiplomatLSP::_h_push_config(slsp::DiplomatLSPWorkspaceSettings params)
 {
 	spdlog::info("Received configuration from client");
 	log(slsp::types::MessageType::MessageType_Info,"Received configuration from client");
-	spdlog::debug("Config is {}",params.dump(1));
-	_settings = params[0];
+	spdlog::debug("Config is {}",json(params).dump(1));
+	_settings = params;
 
 	show_message(slsp::types::MessageType::MessageType_Info,"Configuration successfully loaded by the server.");
 	_compile();
@@ -537,7 +537,7 @@ void DiplomatLSP::_h_push_config(json params)
  * 
  * @param params, unused.
  */
-json DiplomatLSP::_h_pull_config(json params)
+json DiplomatLSP::_h_pull_config(json _)
 {
 	spdlog::info("Send configuration to the client.");
 	log(slsp::types::MessageType::MessageType_Info,"Configuration pulled from server");
@@ -545,22 +545,16 @@ json DiplomatLSP::_h_pull_config(json params)
 	return j;
 }
 
-void DiplomatLSP::_h_set_top_module(json _)
-{
-	_settings.top_level = _[0].at("top").template get<std::string>();
-}
-
-
 /**
  * @brief Return the list of blackboxes from the file URI provided.
  * 
- * @param params Array of one single URI
+ * @param params One single URI
  * @return json Array of BB (may be empty)
  */
-json DiplomatLSP::_h_get_file_bb(json params)
+const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::string params)
 {
-	spdlog::debug("Get BBOX on {}",params.dump(1));
-	uri target_file =  uri(params.at(0));
+	spdlog::debug("Get BBOX on {}",params);
+	uri target_file =  uri(params);
 	fs::path target_path = "/" + target_file.get_path();
 	spdlog::debug("Target is {}",target_file.get_path());
 	const std::vector<const ModuleBlackBox*> * bb_list = _cache.get_bb_by_file(target_path);
@@ -577,35 +571,46 @@ json DiplomatLSP::_h_get_file_bb(json params)
 
 }
 
-json DiplomatLSP::_h_get_modules(json params)
+std::vector<slsp::types::HDLModule> DiplomatLSP::_h_get_modules(json _)
 {
 	_read_workspace_modules();
-	json ret = json::array();
+	std::vector<slsp::types::HDLModule> ret;
 
 	for (const auto& [path, bb_list] : _cache.get_modules())
 	{
 		for(const auto& name : bb_list 
 			| std::views::transform([](const ModuleBlackBox* p){return p->module_name;}))
-			ret.push_back({ {"name", name},{"file", path.generic_string()} });
+			ret.push_back(HDLModule{.file = _cache.get_uri(path).to_string(), .moduleName=name});
 	}
 	return ret;
 }
 
 
-json DiplomatLSP::_h_get_module_bbox(json _)
+const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(slsp::types::HDLModule params)
 {
-	json params = _[0];
-	const std::string target_file = params.at("file").template get<std::string>();
+	const std::string target_file = params.file;
 	spdlog::info("Return information for file {}",target_file );
 	
 	auto* bb_list = _cache.get_bb_by_file(target_file);// _blackboxes.at(lookup_path).get();
 	if(bb_list)
 	{
-		return *bb_list;
+		if(params.moduleName.has_value())
+		{
+			for (const auto* bb : *bb_list) 
+			{
+				if(bb->module_name == params.moduleName)
+					return {bb};
+			}
+
+			return {};
+		}
+		else
+		{
+			return *bb_list;
+		}
 	}
-		
-	else
-		return json::array({});
+
+	return {};
 }
 
 /**
@@ -615,9 +620,9 @@ json DiplomatLSP::_h_get_module_bbox(json _)
  * 
  * @param params an array of size 1 containing only the new top-level module name
  */
-void DiplomatLSP::_h_set_module_top(json params)
+void DiplomatLSP::_h_set_top_module(std::optional<std::string> params)
 {
-	_settings.top_level = params.at(0);
+	_settings.top_level = params;
 	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
 	_compute_project_tree();
 	_compile();
@@ -632,11 +637,9 @@ void DiplomatLSP::_h_set_module_top(json params)
  * @param params is a JSON array containing a single {@link slsp::types::HDLModule}
  * @returns a list of URI matching the required files
  */
-json DiplomatLSP::_h_project_tree_from_module(json params)
+std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requested_root_module)
 {
 	_read_workspace_modules();
-	spdlog::debug("Get _h_project_tree_from_module with {}",params.dump(1));
-	HDLModule requested_root_module = params.at(0);
 	uri target_uri(requested_root_module.file);
 	
 	const ModuleBlackBox* target = nullptr;
@@ -743,10 +746,10 @@ void DiplomatLSP::_h_force_clear_index(json _)
  * @param params JSON structure equivalent to a list of hierarchical paths
  * @return json association initial path => Location. Return null on unresolved paths.
  */
-json DiplomatLSP::_h_resolve_hier_path(json params)
+std::map<std::string,std::optional<Location>> DiplomatLSP::_h_resolve_hier_path(std::vector<std::string> params)
 {
 	// Params will be a list of hier paths to resolve.
-	json ret;
+	std::map<std::string,std::optional<Location>> ret;
 	if(! _assert_index())
 		return ret;
 	
@@ -760,7 +763,7 @@ json DiplomatLSP::_h_resolve_hier_path(json params)
 		if(! lu_result)
 		{
 			spdlog::debug("Resolution yielded no result");
-			ret[path] = nullptr;
+			ret[path] = {};
 		}
 		else
 		{
@@ -776,6 +779,8 @@ json DiplomatLSP::_h_resolve_hier_path(json params)
  * 
  * @param _ 
  * @return json 
+ *
+ * @todo define a proper type as a metamodel.
  */
 json DiplomatLSP::_h_get_design_hierarchy(json _)
 {
@@ -834,9 +839,17 @@ void DiplomatLSP::_h_update_configuration(json &params)
 }
 
 
-json DiplomatLSP::_h_list_symbols(json& params)
+/**
+ * @brief Given a design path (such as `dut.scope.foo`) this function will 
+ * lookup the scope and return all symbols that shall be visible within this scope.
+ * For each symbol, this will associate the range of all references to this symbol.
+ *
+ * This is particularly used to annotate data from waveforms. 
+ * @param params An array with only one string, the hierarchical path of the scope to lookup.
+ * @return json A map `symbol_name` to `references_ranges[]`
+ */
+std::map<std::string,std::vector<slsp::types::Range>> DiplomatLSP::_h_list_symbols(std::string path)
 {
-	std::string path = params.at(0);
 	std::map<std::string,std::vector<slsp::types::Range>> ret;
 	
 	const di::IndexScope* lu_scope = _index->lookup_scope(path);
