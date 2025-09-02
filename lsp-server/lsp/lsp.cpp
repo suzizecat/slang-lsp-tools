@@ -2,6 +2,7 @@
 #include "lsp.hpp"
 #include <iostream>
 #include <utility>
+#include <algorithm>
 #include "spdlog/spdlog.h" 
 #include "spdlog/stopwatch.h"
 #include "lsp_errors.hpp"
@@ -15,6 +16,14 @@
 
 using json = nlohmann::json;
 
+// /**
+//  * @brief Formatting function to bind 'uri' to fmtlib
+//  * 
+//  * @param u an uri instance
+//  * @return auto the formatted uri
+//  */
+// std::string format_as(uri& u) { return u.to_string(); }
+
 namespace slsp{
     BaseLSP::BaseLSP(std::istream& is, std::ostream& os) : 
     _is_stopping(false),
@@ -25,7 +34,8 @@ namespace slsp{
     _bound_requests(),
     _bound_notifs(),
     _uuid(&_rand_engine),
-    capabilities()
+    capabilities(),
+    _unpack_args_for_customs(false)
     {
         std::random_device rd;
         auto seed_data = std::array<int, std::mt19937::state_size> {};
@@ -99,14 +109,43 @@ namespace slsp{
     json BaseLSP::_invoke_request(const std::string& fct, json& params)
     {
         spdlog::info("Got request {}",fct);
-        return _bound_requests[fct](params);
+        #ifdef DIPLOMAT_DEBUG
+        spdlog::debug("With args\n{}",params.dump(1));
+        #endif
+        if(_unpack_args_for_customs && is_non_standard_command(fct))
+        {
+            if(params.is_array() && params.size() > 0)
+                return _bound_requests[fct](params[0]);
+            else
+            {
+                json arg = json();
+                return _bound_requests[fct](arg);
+            }
+        }
+        else
+            return _bound_requests[fct](params);
     }
 
     void BaseLSP::_invoke_notif(const std::string& fct, json& params)
     {
         spdlog::info("Got notification {}",fct);
-
-        return _bound_notifs[fct](params);
+        #ifdef DIPLOMAT_DEBUG
+        spdlog::debug("With args\n{}",params.dump(1));
+        #endif
+        if(_unpack_args_for_customs && is_non_standard_command(fct))
+        {
+            if(params.is_array() && params.size() > 0)
+                _bound_notifs[fct](params[0]);
+            else
+            {
+                json arg = json();
+                _bound_notifs[fct](arg);
+            }
+        }
+        else
+        {
+            _bound_notifs[fct](params);
+        }
     }
 
     std::optional<json> BaseLSP::invoke(const std::string& fct,  json& params)
@@ -182,6 +221,17 @@ namespace slsp{
     {
         return is_notif(fct) || is_request(fct);
     }
+
+    bool BaseLSP::is_non_standard_command(const std::string &fct) const
+    {
+        if(capabilities.executeCommandProvider.has_value())
+        {
+            const auto & cmds =capabilities.executeCommandProvider->commands;
+            return std::find(cmds.cbegin(), cmds.cend(),fct) != cmds.end();
+        }
+        return false;
+    }
+    
 
     void BaseLSP::set_trace_level(const types::TraceValues level)
     {

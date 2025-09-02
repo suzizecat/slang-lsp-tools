@@ -52,6 +52,16 @@ namespace slsp{
         bool _is_stopped;
 
         /**
+         * @brief Unpack argument arrays when calling custom functions
+         *
+         * When using some clients (vscode) the arguments passed to
+         * a call to a LS function will be wrapped in an array.
+         * The LSP arguments generally are single arguments of the appropriate object type.
+         * thus requiring to manually unpack those values.
+         * When set, the argument will be assumed to be an array and will be unpacked accordingly.
+         */
+        bool _unpack_args_for_customs;
+        /**
          * @brief Registered trace level 
          * 
          * Should be taken into consideration  when the server sends to the client
@@ -93,10 +103,10 @@ namespace slsp{
 
         std::optional<json> invoke(const std::string& fct, json& params);
         
-
         bool is_notif(const std::string& fct) const;
         bool is_request(const std::string& fct) const;
         bool is_bound(const std::string& fct) const;
+        bool is_non_standard_command(const std::string& fct) const;
 
         void set_trace_level(const types::TraceValues level);
         void set_rpc_use_endl(const bool use_endl){_rpc.set_endl(use_endl);};
