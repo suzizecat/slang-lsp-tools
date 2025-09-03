@@ -7,6 +7,7 @@ function(create_component NAME)
         EXE_SRC 
         EXE_INC 
         EXE_LINK
+        BUILD_DEFINES
     )
     cmake_parse_arguments(PARSE_ARGV 1 COMP "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
@@ -31,6 +32,10 @@ function(create_component NAME)
         if(NOT DEFINED COMP_EXE_INC)
             set(COMP_EXE_INC "")
         endif()
+
+        if(DEFINED COMP_BUILD_DEFINES)
+            target_compile_definitions(${NAME}-lib ${COMP_BUILD_DEFINES})
+        endif()
         
         list(PREPEND COMP_EXE_LINK PRIVATE ${NAME}-lib)
         list(PREPEND COMP_EXE_INC PRIVATE $<TARGET_PROPERTY:${NAME}-lib,INTERFACE_INCLUDE_DIRECTORIES>)
@@ -49,6 +54,10 @@ function(create_component NAME)
         message(ERROR "Component ${NAME} have no source specified for its executable (EXE_SRC)")
     endif()
 
+    if(DEFINED COMP_BUILD_DEFINES)
+        # message(STATUS "  DEFINES : ${COMP_BUILD_DEFINES}")
+        target_compile_definitions(${NAME}-exe ${COMP_BUILD_DEFINES})
+    endif()
 
     target_link_libraries(${NAME}-exe ${COMP_EXE_LINK})
     target_include_directories(${NAME}-exe ${COMP_EXE_INC})

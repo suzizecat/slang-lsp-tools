@@ -18,4 +18,6 @@ EXE_SRC
     PRIVATE indexer/main_indexer.cpp
 EXE_LINK
     PRIVATE sv-tree-lib
+BUILD_DEFINES
+    PRIVATE DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\"
  )

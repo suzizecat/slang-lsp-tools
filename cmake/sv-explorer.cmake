@@ -16,4 +16,6 @@ EXE_LINK
     PRIVATE slang::slang
     PRIVATE nlohmann_json::nlohmann_json
     PRIVATE argparse::argparse
+BUILD_DEFINES
+    PRIVATE DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\"
  )

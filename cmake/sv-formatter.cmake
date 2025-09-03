@@ -18,4 +18,6 @@ EXE_LINK
     PRIVATE spdlog::spdlog
     PRIVATE slang::slang
     PRIVATE sv-formatter-lib
+BUILD_DEFINES
+    PRIVATE DIPLOMAT_VERSION_STRING=\"${VERSION_STRING}\"
  )
