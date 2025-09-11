@@ -250,6 +250,7 @@ void DiplomatLSP::_add_workspace_folders(const std::vector<WorkspaceFolder>& to_
     {
         uri path = uri(wf.uri);
         spdlog::info("Add workspace {} ({}) to working directories.", wf.name, wf.uri);
+        _cache.set_workspace_root(path);
         _settings.workspace_dirs.emplace(fs::path("/" + path.get_path()));
     }
 }
@@ -298,7 +299,7 @@ void DiplomatLSP::_read_workspace_modules()
             // canonical shall not be called on a non-existing path.
             if(! skipped)
             {
-                std::string path = fs::canonical(file.path()).generic_string();
+                std::string path = _cache.standardize_path(file.path()).generic_string();// fs::weakly_canonical(file.path()).generic_string();
                 
                 // Check for explicitely excluded paths (fast)
                 if (_settings.excluded_paths.contains(path))
@@ -484,6 +485,7 @@ void DiplomatLSP::_compile()
         spdlog::info("Add syntax trees from project file tree");
         for (const auto& file : _cache.get_files_prj())
         {
+            spdlog::debug("    Reading file {}",file.generic_string());
             auto st = slang::syntax::SyntaxTree::fromFile(file.generic_string(),*_sm);
             if(st.has_value())
                 _compilation->addSyntaxTree(st.value());

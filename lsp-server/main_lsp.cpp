@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include "argparse/argparse.hpp"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "fmt/format.h"
@@ -99,6 +100,10 @@ int main(int argc, char** argv) {
         .help("Port to use")
         .default_value<in_port_t>(8080)
         .scan<'u', in_port_t>();
+    prog.add_argument("-l", "--log")
+        .default_value(std::string{"./diplomat-lsp.log"})
+        .help("Set the log file");
+
 
     try {
         prog.parse_args(argc, argv);
@@ -109,20 +114,41 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
-    auto fwd_sink = std::make_shared<slsp::lsp_spdlog_sink_mt>();
-
+    
     if(prog.get<bool>("--verbose"))
     {
         spdlog::set_level(spdlog::level::debug);
     }
-
+    
     if(prog.get<bool>("--verbose-trace"))
     {
         spdlog::set_level(spdlog::level::trace);
     }
+    
+    // Setup SPDLOG
+    auto fwd_sink = std::make_shared<slsp::lsp_spdlog_sink_mt>();
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(prog.get<std::string>("--log"),true);
+    file_sink->set_level(spdlog::get_level());
+
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::get_level());
+
+    auto logger = std::make_shared<spdlog::logger>("main");
+    logger->set_level(spdlog::get_level());
+    logger->flush_on(logger->level());
+
+    spdlog::set_default_logger(logger);
 
     if(prog.get<bool>("--tcp"))
     {
+        logger->sinks().push_back(console_sink);
+        if(prog.is_used("--log"))
+            spdlog::default_logger()->sinks().push_back(file_sink);
+
+        if(prog.get<bool>("--forward-log"))
+            spdlog::default_logger()->sinks().push_back(fwd_sink);
+        
         do
         {
             {
@@ -141,7 +167,6 @@ int main(int argc, char** argv) {
                 if(prog.get<bool>("--forward-log"))
                 {
                     fwd_sink->set_target_lsp(&lsp);
-                    spdlog::default_logger()->sinks().push_back(fwd_sink);
                 }
                 
                 runner(lsp);
@@ -162,11 +187,11 @@ int main(int argc, char** argv) {
     }
     else
     {
-        auto logger =  spdlog::basic_logger_mt("main","./diplomat-lsp.log");
-        logger->set_level(spdlog::get_level());
-        logger->flush_on(logger->level());
+        // auto logger = std::make_shared<spdlog::logger>("main");
+         // spdlog::basic_logger_mt("main","./diplomat-lsp.log");
+        logger->sinks().push_back(file_sink);      
         logger->info("Start new log.");
-        spdlog::set_default_logger(logger);
+
 
         DiplomatLSP lsp = DiplomatLSP();
         lsp.set_rpc_use_endl(false);

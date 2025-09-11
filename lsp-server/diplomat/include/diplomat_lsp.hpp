@@ -61,7 +61,7 @@ class DiplomatLSP : public slsp::BaseLSP
         const std::vector< const ModuleBlackBox*> _h_get_module_bbox(slsp::types::HDLModule params);
         void _h_set_top_module(std::optional<std::string> params);
         std::vector<std::string> _h_project_tree_from_module(slsp::types::HDLModule params);
-        void _h_ignore(json params);
+        void _h_ignore(std::vector<std::string> params);
         void _h_add_to_include(json params);
         void _h_force_clear_index(json params);
 

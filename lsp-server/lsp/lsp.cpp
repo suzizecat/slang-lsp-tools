@@ -114,8 +114,13 @@ namespace slsp{
         #endif
         if(_unpack_args_for_customs && is_non_standard_command(fct))
         {
-            if(params.is_array() && params.size() > 0)
-                return _bound_requests[fct](params[0]);
+            if(params.is_array()&& params.size() > 0)
+            {
+                if(params.size() == 1)
+                    return _bound_requests[fct](params[0]);
+                else
+                    return _bound_requests[fct](params);
+            }
             else
             {
                 json arg = json();
@@ -135,7 +140,12 @@ namespace slsp{
         if(_unpack_args_for_customs && is_non_standard_command(fct))
         {
             if(params.is_array() && params.size() > 0)
-                _bound_notifs[fct](params[0]);
+            {
+                if(params.size() == 1)
+                    _bound_notifs[fct](params[0]);
+                else 
+                    _bound_notifs[fct](params);
+            }
             else
             {
                 json arg = json();
@@ -374,7 +384,9 @@ namespace slsp{
                     }
                     spdlog::stopwatch sw;
                     fct_ret = invoke(method,params);
-                    spdlog::debug("Method {} invocation done in {:.3}s",method,sw);
+                    spdlog::info("Method {} invocation done in {:.3}s",method,sw);
+                    if(fct_ret)
+                        spdlog::debug("Returned:\n{}",fct_ret.value().dump(1));
                 }
                 else if(has_id)
                 {

@@ -34,6 +34,7 @@
 #include "format_DataDeclaration.hpp"
 #include "spacing_manager.hpp"
 // UNIX only header
+#include <string>
 #include <sys/wait.h>
 #include <fstream>
 #include <vector>
@@ -338,7 +339,6 @@ json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
 json DiplomatLSP::_h_references(json _)
 {
 
-
 	if (!_assert_index())
 		return {};
 	
@@ -501,7 +501,7 @@ void DiplomatLSP::_h_set_project(DiplomatProject params)
 
 	for(const std::string& filepath : params.sourceList)
 	{	
-		_cache.process_file(filepath,true);
+		_cache.process_file(fs::path(filepath),true);
 	}
 
 	// We assume that the project file tree is valid.
@@ -702,11 +702,13 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 	return result;
 }
 
-void DiplomatLSP::_h_ignore(json params)
+void DiplomatLSP::_h_ignore(std::vector<std::string> params)
 {
-	for (const json& record : params.at(1))
+	//spdlog::info("{}",params);
+	for (const std::string& _ : params)
 	{
-		fs::path p = fs::canonical(record["path"].template get<std::string>());
+		uri path(_);
+		fs::path p = _cache.standardize_path("/" + path.get_path());
 		spdlog::info("Ignore path {}", p.generic_string());
 		_settings.excluded_paths.insert(p);
 		_project_file_tree_valid = false;
@@ -810,15 +812,6 @@ void DiplomatLSP::_h_get_configuration(json &clientinfo)
 		_accepted_extensions.emplace(ext);
 		spdlog::debug("Add accepted extension {}",ext);
 	}   
-
-
-	// if(fs::exists(_settings_path))
-	// {
-	// 	spdlog::info("Read configuration file {}",_settings_path.generic_string());
-	// 	std::ifstream conf_file(_settings_path);
-	// 	json conf = json::parse(conf_file) ;
-	// 	_settings = conf.template get<slsp::DiplomatLSPWorkspaceSettings>();
-	// }
 }
 
 void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)

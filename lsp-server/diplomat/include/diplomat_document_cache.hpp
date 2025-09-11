@@ -6,7 +6,6 @@
 #include "uri.hh"
 #include "visitor_module_bb.hpp"
 
-
 #include <memory>
 
 #include <string>
@@ -56,20 +55,34 @@ namespace diplomat::cache
             std::unordered_map<std::string, const ModuleBlackBox*> _prj_module_to_bb;
             std::unordered_map<std::string, std::set<const ModuleBlackBox*>> _ws_module_to_bb;
 
-            static inline std::filesystem::path _standardize_path(const std::filesystem::path& fpath) 
-            {return std::filesystem::weakly_canonical(fpath);};
+            /** 
+            * Symlink resolution of the workspace path
+            *
+            * When the workspace path goes through a symbolic link, canonical will resolve it.
+            * It leads to a mismatch between VS Code workspace path and Diplomat ones.
+            * The key of this pair is the C++ path (physical absolute) and the second one is 
+            * the VS Code path (absolute, without symlink resolution). 
+             */
+            std::pair<std::string, std::string> _ws_path_mapping;
 
+            
+            
             /**
              * @brief Low level function to bind a blackbox to its file path. 
              * 
              * @param fpath File to target, shall already have been standardized.
              * @param bb Blackbox to record
              */
-            void _bind_bb_and_path(const std::filesystem::path& fpath, const ModuleBlackBox* bb);
+             void _bind_bb_and_path(const std::filesystem::path& fpath, const ModuleBlackBox* bb);
+             
+             public : 
 
-        public : 
-
-            //DiplomatDocumentCache();
+             //DiplomatDocumentCache();
+             
+             void set_workspace_root(uri& path);
+             std::filesystem::path standardize_path(const std::filesystem::path& fpath) const; 
+             std::filesystem::path standardize_path(const std::string& fpath) const; 
+             std::filesystem::path standardize_path(const uri& fpath) const; 
 
             /**
              * @brief Removes references from project files

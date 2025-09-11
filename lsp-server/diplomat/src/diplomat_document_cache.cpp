@@ -33,6 +33,38 @@ void DiplomatDocumentCache::_bind_bb_and_path(const std::filesystem::path& fpath
 	}
 }
 
+std::filesystem::path DiplomatDocumentCache::standardize_path(const std::filesystem::path& fpath) const
+{
+	if(fpath.has_root_directory())
+	{
+		std::string tgt_path = std::filesystem::weakly_canonical(fpath).generic_string();
+		if(tgt_path.starts_with(_ws_path_mapping.first))
+			tgt_path.replace(tgt_path.begin(),tgt_path.begin() + _ws_path_mapping.first.length(),_ws_path_mapping.second);
+		return fs::path(tgt_path);
+	}
+	else 
+	{
+		return fs::path(this->_ws_path_mapping.second) / fpath;
+	}
+}
+
+std::filesystem::path DiplomatDocumentCache::standardize_path(const std::string& fpath) const
+{
+	return standardize_path(fs::path(fpath));
+}
+
+std::filesystem::path DiplomatDocumentCache::standardize_path(const uri& fpath) const
+{
+	return standardize_path(fs::path("/" + fpath.get_path()));
+}
+
+void DiplomatDocumentCache::set_workspace_root(uri& path)
+{
+	fs::path prj_vscode = fs::path("/" + path.get_path());
+	_ws_path_mapping = {fs::weakly_canonical(prj_vscode).generic_string(), prj_vscode.generic_string()};
+}
+
+
 void DiplomatDocumentCache::clear_project()
 {
 	_prj_files.clear();
@@ -68,7 +100,7 @@ void DiplomatDocumentCache::disable_shared_source_manager()
 void DiplomatDocumentCache::record_file(const fs::path& fpath,
 										bool in_prj)
 {
-	fs::path canon_path = _standardize_path(fpath);
+	fs::path canon_path = standardize_path(fpath);
 	if(in_prj)
 	{
 	   _prj_files.insert(canon_path);
@@ -109,7 +141,7 @@ const ModuleBlackBox* DiplomatDocumentCache::get_bb_by_module(const std::string&
 
 const std::vector<const ModuleBlackBox*>* DiplomatDocumentCache::get_bb_by_file(const std::filesystem::path& fpath) const
 {
-	fs::path lu_path = _standardize_path(fpath);
+	fs::path lu_path = standardize_path(fpath);
 
 	if(const auto found = _path_to_bb.find(lu_path); found != _path_to_bb.end() )
 	{
@@ -127,7 +159,7 @@ const std::vector<const ModuleBlackBox*>* DiplomatDocumentCache::get_bb_by_file(
  */
 uri DiplomatDocumentCache::get_uri(const std::filesystem::path& fpath) const
 {
-	fs::path stdpath = _standardize_path(fpath);
+	fs::path stdpath = standardize_path(fpath);
 
 	// Example from https://en.cppreference.com/w/cpp/container/map/find.html
 	if( auto result = _doc_path_to_client_uri.find(stdpath); result != _doc_path_to_client_uri.end())
@@ -141,8 +173,13 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 {
 	bool auto_dispose = ! _sm.get();
 	spdlog::debug("Request for cache processing {}",fpath.generic_string());
-	fs::path curr_path = _standardize_path(fpath);
+	fs::path curr_path = standardize_path(fpath);
 
+	if(! fs::exists(curr_path))
+	{
+		spdlog::error("File not found: {}", fpath.generic_string());
+		return;
+	}
 
 	// If the passed file has been already processed, check if the 
 	// file has been modified before processing it.
@@ -164,7 +201,7 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 	if(auto_dispose)
 		_sm.reset(new slang::SourceManager());
 
-	auto st = slang::syntax::SyntaxTree::fromFile(fpath.generic_string(),*_sm).value();
+	auto st = slang::syntax::SyntaxTree::fromFile(curr_path.generic_string(),*_sm).value();
 	VisitorModuleBlackBox visitor;
 	st->root().visit(visitor);
 
@@ -220,7 +257,7 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
  */
 fs::path DiplomatDocumentCache::record_uri(const uri& client_uri)
 {
-	fs::path tgt_path = _standardize_path(fs::path(client_uri.get_path()));
+	fs::path tgt_path = standardize_path(fs::path("/" + client_uri.get_path()));
 	_doc_path_to_client_uri.insert_or_assign(tgt_path,client_uri);
 	//_doc_path_to_client_uri[tgt_path] = uri(client_uri);
 
@@ -229,7 +266,7 @@ fs::path DiplomatDocumentCache::record_uri(const uri& client_uri)
 
 void DiplomatDocumentCache::remove_file(const std::filesystem::path& fpath)
 {
-	auto path = _standardize_path(fpath);
+	auto path = standardize_path(fpath);
 
 	if(_ws_files.contains(path))
 	{
