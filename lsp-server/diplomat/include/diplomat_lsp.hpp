@@ -90,6 +90,11 @@ class DiplomatLSP : public slsp::BaseLSP
         std::filesystem::path _settings_path;
         slsp::DiplomatLSPWorkspaceSettings _settings;
 
+        /** 
+        * May require further work, represents "includes" for the
+        * current project 
+        */
+        std::vector<std::string> _included_folders;
 
         std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
 

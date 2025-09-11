@@ -65,8 +65,6 @@ namespace diplomat::cache
              */
             std::pair<std::string, std::string> _ws_path_mapping;
 
-            
-            
             /**
              * @brief Low level function to bind a blackbox to its file path. 
              * 
@@ -223,6 +221,8 @@ namespace diplomat::cache
              * @param in_prj If this file is to be recorded, record it in the project
              */
             void process_file(const std::filesystem::path& fpath, bool in_prj = false);
+
+            void process_file(const uri& uri, const bool in_prj = false);
 
             /**
              * @brief Attempt to match an URI with a recorded file in order to fill 

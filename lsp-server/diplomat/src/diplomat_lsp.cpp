@@ -444,6 +444,8 @@ void DiplomatLSP::_compile()
     // Therefore, the client shall also be rebuilt.
     _sm.reset(new slang::SourceManager());
     
+    for(auto dir : _included_folders)
+        _sm->addUserDirectories(dir);
     for(auto dir : _settings.includes.system )
         _sm->addUserDirectories(dir);
     for(auto dir : _settings.includes.user )
@@ -467,7 +469,10 @@ void DiplomatLSP::_compile()
 
     
     if (_settings.top_level)
+    {
+        spdlog::info("Top-level is {}",_settings.top_level.value());
         coptions.topModules = {_settings.top_level.value()};
+    }
     //coptions.flags |= slang::ast::CompilationFlags::IgnoreUnknownModules;
     slang::Bag bag(coptions);
 

@@ -192,7 +192,12 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 			return;
 		}
 		else
+		{
+			// Store the 'in_prj' attribute of the file if it was previously
+			// recorded, otherwise the file will be removed from project.
+			in_prj = _prj_files.contains(curr_path);
 			remove_file(curr_path);
+		}
 	}
 
 	// If the file has never been processed (or need recomputing)
@@ -246,6 +251,10 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 
 }
 
+void DiplomatDocumentCache::process_file(const uri& uri, const bool in_prj)
+{
+	process_file(fs::path("/" + uri.get_path()), in_prj);
+}
 
 /**
  * This function will add a mapping between the standardized path that

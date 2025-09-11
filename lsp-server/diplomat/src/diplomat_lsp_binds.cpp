@@ -85,7 +85,7 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
 
 void DiplomatLSP::_h_didSaveTextDocument(DidSaveTextDocumentParams param)
 {
-	_cache.process_file(fs::path("/" + uri(param.textDocument.uri).get_path()));
+	_cache.process_file(uri(param.textDocument.uri));
 	_compile();
 }
 
@@ -499,13 +499,18 @@ void DiplomatLSP::_h_set_project(DiplomatProject params)
 	spdlog::debug("Set Project requested : {}",json(params).dump(1));
 	_clear_project_tree();
 
-	for(const std::string& filepath : params.sourceList)
+	for(const std::string& file_uri : params.sourceList)
 	{	
-		_cache.process_file(fs::path(filepath),true);
+		_cache.process_file(uri(file_uri),true);
 	}
 
 	// We assume that the project file tree is valid.
 	_project_file_tree_valid = true;
+
+	_included_folders.clear();
+
+	for(const std::string& incpath : params.includeDirs)
+		_included_folders.push_back(_cache.standardize_path(incpath).generic_string());
 
 	if (params.topLevel && params.topLevel->moduleName)
 		set_top_level(params.topLevel->moduleName.value());
