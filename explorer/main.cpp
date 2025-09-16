@@ -262,6 +262,8 @@ int main(int argc, char** argv) {
     driver.runAnalysis(*compilation);
     ok &= driver.reportDiagnostics(false);
 
+    compilation->freeze();
+
     const ast::RootSymbol&  root_symb = compilation->getRoot();
     const ast::Symbol* net = root_symb.lookupName("lock");
     
