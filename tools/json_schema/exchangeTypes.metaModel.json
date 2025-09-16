@@ -1,5 +1,4 @@
 {
-	"$schema": "https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/metaModel/metaModel.schema.json",
 	"metaData": {
 		"version": "3.17.0"
 	},
@@ -25,7 +24,7 @@
 					},
 					"optional": true,
 					"documentation" : "@brief The name of the module to lookup.\nIf not provided, it will be the task of the recipient to try and determine the module based upon the file alone."
-				}
+				}				
 			]
 		},
 		{
@@ -50,10 +49,7 @@
 				},
 				{
 					"name": "topLevel",
-					"type": {
-						"kind": "reference",
-						"name": "HDLModule"
-					},
+					"type": {"kind": "reference", "name": "HDLModule" },
 					"optional": true
 				},
 				{
@@ -74,8 +70,162 @@
 					}
 				}
 			]
+		},
+		{
+			"name" : "BlackBoxParam",
+			"properties" :
+			[
+				{
+					"name" : "name",
+					"type" : {"kind" : "base", "name" : "string"},
+					"documentation" : "HDL Identifier for this parameter"
+				},
+				{
+					"name" : "default_value",
+					"type" : {"kind" :"base", "name" : "string"},
+					"documentation" : "@brief Default value of the parameter, if any.",
+					"optional" : true
+				},
+				{
+					"name" : "type",
+					"type" : {"kind" : "base", "name" : "string"},
+					"documentation" : "@brief Declared type of the parameter"
+				}				
+			]
+		},
+		{
+			"name" : "BlackBoxPort",
+			"properties" : 
+			[
+				{
+					"name" : "name",
+					"type" : {"kind" :"base", "name":"string"},
+					"documentation" : "@brief Port identifier"
+				},
+				{
+					"name" : "type",
+					"type" : {"kind":"base","name":"string"},
+					"documentation" : "@brief Base type of the port"
+				},
+				{
+					"name" : "size",
+					"type" : {"kind":"base","name":"string"},
+					"documentation" : "@brief Size specifier, empty string if no specifier provided."
+				},
+				{
+					"name" : "comment",
+					"type" : {"kind":"base","name":"string"},
+					"optional" : true,
+					"documentation" : "@brief Comment associated with the port, if any"
+				},
+				{
+					"name" : "direction",
+					"type" : {"kind":"reference","name":"PortDirection"},
+					"optional" : true,
+					"documentation" : "@brief Port Direction"
+				}
+			]
+		},
+		{
+			"name" : "ModulePort",
+			"extends" : [
+				{
+					"kind" : "reference",
+					"name" : "BlackBoxPort"
+				}
+			],
+			"properties" : [
+				{	
+					"name" : "is_interface",
+					"type" : {"kind" : "base", "name" : "boolean"}
+				},
+				{
+					"name" : "modport",
+					"type" : {"kind" : "base", "name" : "string"}
+				}
+			]
+		},
+		{
+			"name" : "BaseBlackBox",
+			"properties" : 
+			[
+				{
+					"name" : "name",
+					"type" : {"kind" : "base", "name" : "string"}
+				},
+				{
+					"name" : "parameters",
+					"type" : {"kind" : "array", "element" : { "kind" : "reference", "name" : "BlackBoxParam"}},
+					"documentation" : "@brief Interface parameters list"
+				},
+				{
+					"name" : "ports",
+					"type" : {"kind" : "array", "element" : {"kind":"reference", "name":"BlackBoxPort"}},
+					"documentation" : "@brief List of all ports"
+				}
+
+			]
+		},
+		{
+			"name" : "InterfaceBlackBox",
+			"extends" : [
+				{ "kind" : "reference", "name" : "BaseBlackBox" }
+			],			 
+			"properties" : 
+			[
+				{
+					"name" : "modports",
+					"type":{
+						"kind" : "map",
+						"key" : {"kind" : "base", "name":"string"},
+						"value" : {
+							"kind" : "map",
+							"key" : {"kind" : "base", "name":"string"},
+							"value" : {"kind" : "reference", "name" : "PortDirection"}
+						}
+					},
+					"documentation" : "@brief Modport description (modport to port - direction association)"
+				}
+
+			]
+		
+		},
+		{
+			"name" : "ModuleBlackBox",
+			"extends" : [
+				{ "kind" : "reference", "name" : "BaseBlackBox" }
+			],	
+			"properties" : 
+			[
+				{
+					"name" : "deps",
+					"type" : {"kind" : "array", "element" : {"kind":"base", "name":"string"}},
+					"documentation" : "@brief List of all dependencies"
+				}
+
+			]
 		}
 	],
-	"enumerations": [],
+	"enumerations": [
+		{
+			"name" : "PortDirection",
+			"type" : {"kind" : "base", "name" : "string"},
+			"values" : [
+				{
+					"name" : "input",
+					"value" : "input"
+				},
+				{
+					"name" : "output",
+					"value" : "output"
+				},
+				{
+					"name" : "inout",
+					"value" : "inout"
+				}
+			],
+			"supportsCustomValues": false
+		}
+	],
 	"typeAliases": []
 }
