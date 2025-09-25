@@ -1,26 +1,31 @@
-# 0.3.0-dev
+# 0.3.0
 
 ## Added
 
  - Added support for Mac OS compilation [@threonyl #20]
+ - Added LSP base for server-to-client request (and progress management)
  - Added references to genvar
  - Added scope-aware completion.
  - Added scope lookup by path method in the indexer.
- - Added `--version` management for sv-indexer (same version as LSP)
  - Added statement expension formatter (to split multi-statements).
- - Added Doxygen setup
  - Added new workspace elements (blackboxes) caching backend
+ - Added `--version` management for sv-indexer (same version as LSP)
  - Added `diplomat-server.get-file-bbox` to retrieve infos about a specific file.
+ - Added Doxygen setup.
+ - Added stop and reboot support in TCP mode using --allow-reboot 
+ - Partially add exchange structure to custom metamodel file
  - Partially adds support for wildcard import lookup in the indexer (#18)
 
  
 ## Changed
 
  - Full rework of the indexer.
+ - Performed adaptation to the new architecture of the client.
+ - Updated management of absolute filepath with regards to workspace root.
  - Updated CMakeLists.txt to generate proper semver version strings
+ - Migration toward use of 'project' based workspace.
  - Show versions upon start of LSP and indexer (standalone)
  - Reduced log level in the indexer (use of trace)
- - Handle stop and reboot in TCP mode using --allow-reboot 
  - Update `diplomat-server.set-top` to accept module name instead of file path
  - Move sv-tree as a cmake "module"
 
@@ -32,6 +37,10 @@
 ## Dependencies
 
  - Slang to v9
+
+## Deprecated
+
+ - Deprecate the use of sv-explorer
 
 ## Removed
  
