@@ -1,5 +1,6 @@
 
 #include "lsp.hpp"
+#include <fmt/format.h>
 #include <iostream>
 #include <utility>
 #include <algorithm>
@@ -8,9 +9,11 @@
 #include "lsp_errors.hpp"
 #include "types/structs/LogTraceParams.hpp"
 #include "types/structs/LogMessageParams.hpp"
+#include "types/structs/ProgressParams.hpp"
 #include "types/structs/ShowMessageParams.hpp"
 #include "types/structs/ExecuteCommandParams.hpp"
 #include "types/methods/lsp_reserved_methods.hpp"
+#include "types/structs/WorkDoneProgressCreateParams.hpp"
 #include <random>
 
 
@@ -25,6 +28,15 @@ using json = nlohmann::json;
 // std::string format_as(uri& u) { return u.to_string(); }
 
 namespace slsp{
+
+    BaseLSP::_CallbackContextHandler::~_CallbackContextHandler()
+    {
+        spdlog::debug("Freeing cb ressources through RAII with id {}",id);
+        tgt->_bound_callbacks.erase(id);
+        tgt->_active_req_args.erase(id);
+
+    }
+
     BaseLSP::BaseLSP(std::istream& is, std::ostream& os) : 
     _is_stopping(false),
     _is_stopped(false),
@@ -102,9 +114,18 @@ namespace slsp{
         spdlog::info("Got callback for id {}",id);
 
         auto cb = _bound_callbacks.extract(id);
+        _current_cb_id = id;
         cb.mapped()(params);
     }
 
+    void BaseLSP::_cb_enable_report_token(const nlohmann::json& _)
+    {
+        if(_client_capabilities.window && _client_capabilities.window->workDoneProgress.value_or(false))
+        {
+            slsp::types::WorkDoneProgressCreateParams params = _active_req_args.at(_current_cb_id);
+            _active_progress_tokens.emplace(params.token,false);
+        }
+    }
 
     json BaseLSP::_invoke_request(const std::string& fct, json& params)
     {
@@ -308,9 +329,54 @@ namespace slsp{
         if(! params.is_null())
             to_send["params"] = params;
 
+        _active_req_args.emplace(req_id, params);
         spdlog::info("Sending request {} with id {}", fct, req_id);
         bind_callback(req_id, cb);
         _rpc.send(to_send);
+    }
+
+    const std::string BaseLSP::create_progress_report()
+    {
+        std::string token = uuids::to_string(_uuid());
+        slsp::types::WorkDoneProgressCreateParams params = {.token=token};
+        send_request("window/workDoneProgress/create", LSP_MEMBER_BIND(BaseLSP,_cb_enable_report_token),params);
+        return token;
+    }
+
+    bool BaseLSP::is_work_done_token_valid(const std::string& token) const
+    {
+        return _active_progress_tokens.contains(token);
+    }
+
+    bool BaseLSP::is_work_done_token_active(const std::string& token) const
+    {
+        return _active_progress_tokens.contains(token) && _active_progress_tokens.at(token);
+    }
+
+    void BaseLSP::begin_progress(const std::string& token, const slsp::types::WorkDoneProgressBegin& args)
+    {
+        if(is_work_done_token_valid(token))
+        {
+            send_notification("$/progress",slsp::types::ProgressParams{.token=token,.value=args});
+            _active_progress_tokens[token] = true;
+        }
+    }
+
+    void BaseLSP::report_progress(const std::string& token, const slsp::types::WorkDoneProgressReport& args)
+    {
+        if(is_work_done_token_active(token))
+        {
+            send_notification("$/progress",slsp::types::ProgressParams{.token=token,.value=args});
+        }
+    }
+
+    void BaseLSP::end_progress(const std::string& token, const slsp::types::WorkDoneProgressEnd& args)
+    {
+        if(is_work_done_token_active(token))
+            send_notification("$/progress",slsp::types::ProgressParams{.token=token,.value=args});
+
+        if(is_work_done_token_valid(token))
+            _active_progress_tokens.erase(token);
     }
 
     void BaseLSP::run()
@@ -384,7 +450,11 @@ namespace slsp{
                     }
                     spdlog::stopwatch sw;
                     fct_ret = invoke(method,params);
-                    spdlog::info("Method {} invocation done in {:.3}s",method,sw);
+                    std::string cmd_name = method;
+                    if(method == "workspace/executeCommand")
+                        cmd_name += "/" + params["command"].template get<std::string>();
+                    
+                    spdlog::info("Method {} invocation done in {:.3}s",cmd_name,sw);
                     if(fct_ret)
                         spdlog::debug("Returned:\n{}",fct_ret.value().dump(1));
                 }
@@ -393,8 +463,20 @@ namespace slsp{
                     // Might be the return from a server initiated request.
                     if(_bound_callbacks.contains(id.value()))
                     {
+                        _CallbackContextHandler raii{.id=id.value(),.tgt=this};
+
                         spdlog::debug("Processing callback {}",raw_input.dump(1));
-                        _run_callback(id.value(), raw_input["result"]);
+                        if(raw_input.contains("error"))
+                        {
+                            throw  server_side_base_exception(fmt::format("Client replied to request with an error {} : {}",
+                                raw_input["error"]["code"].template get<int>(), 
+                                raw_input["error"]["message"].template get<std::string>()
+                            ));
+                        }
+                        else 
+                        {
+                            _run_callback(id.value(), raw_input["result"]);
+                        }
                     }
                     else
                     {

@@ -122,6 +122,11 @@ namespace diplomat::index {
 			// }
 			else
 			{
+				if(containing_file->get_syntax_root() == nullptr)
+				{
+					spdlog::debug("Add syntax root from within the design for file {}",containing_file->get_path().generic_string());
+					containing_file->set_syntax_root(stx);
+				}
 				IndexRange scope_range = IndexRange(stx->sourceRange(),*_sm);
 				IndexScope* duplicate = _current_scope()->get_child_by_exact_range(scope_range);
 				if(duplicate) 

@@ -37,7 +37,8 @@ std::filesystem::path DiplomatDocumentCache::standardize_path(const std::filesys
 {
 	if(fpath.has_root_directory())
 	{
-		std::string tgt_path = std::filesystem::weakly_canonical(fpath).generic_string();
+		std::filesystem::path canon_path = std::filesystem::weakly_canonical(fpath);
+		std::string tgt_path = canon_path.generic_string();
 		if(tgt_path.starts_with(_ws_path_mapping.first))
 			tgt_path.replace(tgt_path.begin(),tgt_path.begin() + _ws_path_mapping.first.length(),_ws_path_mapping.second);
 		return fs::path(tgt_path);
@@ -161,10 +162,10 @@ uri DiplomatDocumentCache::get_uri(const std::filesystem::path& fpath) const
 {
 	fs::path stdpath = standardize_path(fpath);
 
-	// Example from https://en.cppreference.com/w/cpp/container/map/find.html
-	if( auto result = _doc_path_to_client_uri.find(stdpath); result != _doc_path_to_client_uri.end())
-		return result->second;
-	else
+	// // Example from https://en.cppreference.com/w/cpp/container/map/find.html
+	// if( auto result = _doc_path_to_client_uri.find(stdpath); result != _doc_path_to_client_uri.end())
+	// 	return result->second;
+	// else
 		return uri(fmt::format("file://{}",stdpath.generic_string()));
 }
 

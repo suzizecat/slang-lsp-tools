@@ -191,7 +191,7 @@
 		
 		},
 		{
-			"name" : "ModuleBlackBox",
+			"name" : "UNUSEDModuleBlackBox",
 			"extends" : [
 				{ "kind" : "reference", "name" : "BaseBlackBox" }
 			],	

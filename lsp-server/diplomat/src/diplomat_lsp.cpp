@@ -537,6 +537,9 @@ void DiplomatLSP::_compile()
                     diplomat::index::ReferenceVisitor ref_visitor(_compilation->getSourceManager(),_index.get());
                     stx->visit(ref_visitor);
                 }
+                else {
+                 spdlog::warn("No syntax node available for {}. No reference processed.", file->get_path().generic_string());
+                }
             }
         }
 

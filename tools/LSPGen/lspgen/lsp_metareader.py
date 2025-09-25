@@ -8,13 +8,14 @@ from lspgen.lsp_property import LSPProperty
 from lspgen.lsp_enum import LSPEnumValue, LSPEnum
 
 import json
+import typing as T
 
 import os
 
 
 class LSPMetareader:
 	def __init__(self):
-		self.data = None
+		self.data : T.Any = None
 
 		self.type_override : _T.Dict[str,LSPType] = dict()
 		self.structures : _T.Dict[str,LSPDefinition] = dict()
@@ -63,7 +64,7 @@ class LSPMetareader:
 		new_struct = LSPDefinition(used_name)
 		if "documentation" in struct:
 			new_struct.documentation = struct["documentation"]
-		for src in ["extends", "mixins"]:
+		for src in ["mixins", "extends"] : 
 			if src in struct:
 				for elt in struct[src]:
 					ext_type = LSPType(elt["name"])
@@ -125,6 +126,7 @@ class LSPMetareader:
 
 		is_combination_nullable = False
 		is_combination_array = False
+		literal_value = None
 
 		prop_name = elt["name"]
 		typename = None
@@ -134,6 +136,7 @@ class LSPMetareader:
 
 		if is_string_litteral:
 			typename = "string"
+			literal_value = f'"{json_type["value"]}"'
 
 		if is_combination:
 			if len(json_type["items"]) == 2:
@@ -166,7 +169,7 @@ class LSPMetareader:
 
 		if typename == master_name :
 			typename = "json"
-		new_prop = LSPProperty(prop_name, typename)
+		new_prop = LSPProperty(prop_name, typename,literal_value)
 		new_prop.type.is_array = is_array
 		new_prop.type.is_nullable = is_combination_nullable
 		if "documentation" in elt:

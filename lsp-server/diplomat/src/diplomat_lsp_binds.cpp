@@ -8,6 +8,7 @@
 #include "types/enums/LSPErrorCodes.hpp"
 #include "types/enums/MessageType.hpp"
 #include "types/structs/HDLModule.hpp"
+#include "types/structs/ReferenceParams.hpp"
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -262,10 +263,10 @@ void DiplomatLSP::_h_initialized(json params)
 	
 
 	slsp::types::ConfigurationItem conf_path;
-	conf_path.section = "diplomatServer.server.configurationPath";
+	conf_path.section = "diplomat.server.configurationPath";
 
 	slsp::types::ConfigurationItem index_ext;
-	index_ext.section = "diplomatServer.index.validExtensions";
+	index_ext.section = "diplomat.index.validExtensions";
 
 	slsp::types::ConfigurationParams conf_request;
 	conf_request.items.push_back(conf_path);
@@ -342,7 +343,7 @@ json DiplomatLSP::_h_references(json _)
 	if (!_assert_index())
 		return {};
 	
-	slsp::types::DefinitionParams params = _;
+	slsp::types::ReferenceParams params = _;
 
 	const di::IndexLocation lu_location = _lsp_to_index_location(params);
 	const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
@@ -353,6 +354,12 @@ json DiplomatLSP::_h_references(json _)
 		for(const auto& range : lu_symb->get_references())
 		{
 			result.push_back(_index_range_to_lsp(range));
+		}
+
+		if (params.context.includeDeclaration) {
+			const auto&  def_location = lu_symb->get_source();
+			if(def_location.has_value())
+				result.push_back(_index_range_to_lsp(def_location.value()));
 		}
 
 		return result;
@@ -691,17 +698,19 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 		const std::string processed_bbname = to_process.extract(to_process.begin()).value();
 		if (processed.contains(processed_bbname))
 			continue;
-
+		
 		const ModuleBlackBox* processed_bb = _cache.get_bb_by_module(processed_bbname);
 		if (!processed_bb)
 			continue;
-
+		spdlog::debug("Adding module {} to the project.",processed_bbname);
 		result.push_back(_cache.get_uri(_cache.get_file_from_module(processed_bb)).to_string());
 
 		for (std::string dep : processed_bb->deps)
 		{
 			to_process.insert(dep);
 		}
+
+		processed.insert(processed_bbname);
 	}
 
 	return result;
@@ -710,7 +719,7 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 void DiplomatLSP::_h_ignore(std::vector<std::string> params)
 {
 	//spdlog::info("{}",params);
-	for (const std::string& _ : params)
+	for (const std::string& _ : params) 
 	{
 		uri path(_);
 		fs::path p = _cache.standardize_path("/" + path.get_path());
@@ -797,8 +806,10 @@ json DiplomatLSP::_h_get_design_hierarchy(json _)
 	{
 		return ret;
 	}
+
 	const slang::ast::RootSymbol& design_root = _compilation->getRoot();
-	HierVisitor hier_visitor(false,_cache.get_uri_bindings());
+	
+	HierVisitor hier_visitor(false,&_cache);
 
 	design_root.visit(hier_visitor);
 
@@ -870,6 +881,7 @@ std::map<std::string,std::vector<slsp::types::Range>> DiplomatLSP::_h_list_symbo
 	for(const auto& symbol : lu_file->get_symbols())
 	{
 		ret[symbol->get_name()] = {};
+		const auto& def_location = symbol->get_source();
 	}
 
 	for(const auto& [loc, refrec] : refs)

@@ -106,6 +106,7 @@ lsp-server/diplomat/src/diplomat_lsp_ws_settings.cpp
 lsp-server/diplomat/src/diplomat_document_cache.cpp
 #lsp-server/diplomat/src/sv_document.cpp
 lsp-server/diplomat/src/visitor_module_bb.cpp
+lsp-server/diplomat/src/hier_visitor.cpp
 #lsp-server/diplomat/src/visitor_index.cpp
 lsp-server/diplomat/src/diagnostic_client.cpp
 #lsp-server/diplomat/src/diplomat_index.cpp
@@ -130,7 +131,7 @@ PRIVATE sockpp-static
 PRIVATE spdlog::spdlog
 PRIVATE nlohmann_json::nlohmann_json
 PRIVATE sv-formatter-lib
-PRIVATE sv-explorer-lib
+# PRIVATE sv-explorer-lib
 PRIVATE sv-indexer-lib
 PUBLIC slang::slang
 )

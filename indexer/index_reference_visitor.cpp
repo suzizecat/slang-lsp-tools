@@ -1,6 +1,7 @@
 #include "index_reference_visitor.hpp"
 #include "index_elements.hpp"
 #include <spdlog/spdlog.h>
+#include <vector>
 namespace diplomat::index
 {
 	bool ReferenceVisitor::_add_reference_from_stx(const slang::SourceRange & loc,
@@ -20,29 +21,40 @@ namespace diplomat::index
 
 		std::string symb_name(name);
 		IndexSymbol* main_symb = ref_scope->lookup_symbol(symb_name);
+
 		if(! main_symb)
 		{
 			const auto* additionnal_scopes = parent_file->get_additionnal_scopes();
-			for(auto& [path, scope] : *additionnal_scopes )
+			if(additionnal_scopes->size() > 0)
 			{
-				IndexScope* studied_scope = scope;
-				if(studied_scope == nullptr)
+				std::vector<std::string> invalid_paths;
+				for(auto& [path, scope] : *additionnal_scopes )
 				{
-					studied_scope = _index->lookup_scope(path);
-					if(studied_scope)
-						parent_file->record_additionnal_lookup_scope(path,studied_scope);
-					else
-						parent_file->invalidate_additionnal_lookup_scope(path);
+					IndexScope* studied_scope = scope;
+					if(studied_scope == nullptr)
+					{
+						studied_scope = _index->lookup_scope(path);
+						if(studied_scope)
+							parent_file->record_additionnal_lookup_scope(path,studied_scope);
+						else
+							// Do not directly invalidate as it messes up the for loop by changing "additionnal_scopes".
+							invalid_paths.push_back(path);
+							
+					}
+
+					if(studied_scope)	
+					{
+						spdlog::trace("         Trying additionnal lookup in {}",studied_scope->get_name());
+						main_symb = studied_scope->lookup_symbol(symb_name);
+					}
+
+					if(main_symb)
+						break;
 				}
 
-				if(studied_scope)	
-				{
-					spdlog::trace("         Trying additionnal lookup in {}",studied_scope->get_name());
-					main_symb = studied_scope->lookup_symbol(symb_name);
-				}
-
-				if(main_symb)
-					break;
+				// Invalidate postponed paths
+				for(const auto& path : invalid_paths)
+					parent_file->invalidate_additionnal_lookup_scope(path);
 			}
 		}
 

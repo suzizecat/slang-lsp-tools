@@ -32,7 +32,7 @@ void HierVisitor::handle(const slang::ast::InstanceSymbol &node)
 
 	if (_cache != nullptr)
 	{
-		_hierarchy[_pointer / "file"] = _cache->get_uri(filepath);	
+		_hierarchy[_pointer / "file"] = _cache->get_uri(filepath).to_string();	
 	}
 	else
 	{

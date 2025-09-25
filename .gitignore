@@ -45,3 +45,5 @@ __pycache__/
 # CMake Cache
 CMakeCache.txt
 cmake.check_cache
+.cache/
+doc/

@@ -5,10 +5,12 @@ from lspgen.lsp_type import LSPType
 
 class LSPProperty(LSPTypedBase):
 
-	def __init__(self,name, typename):
+	def __init__(self,name : str, typename : str, literal_value : str = None ):
 		super().__init__(typename)
 		self.documentation = ""
 		self.name = name
+
+		self.literal_value = literal_value
 
 	def legalize(self):
 		self.documentation.strip()
@@ -20,7 +22,10 @@ class LSPProperty(LSPTypedBase):
 		ret = ""
 		ret += self._doc.as_cpp(idt)
 
-		ret += f"{idt}{self.cpp_type} {self.name};\n"
+		if self.literal_value is not None : 
+			ret += f"{idt}static constexpr {self.cpp_type} {self.name} = {self.literal_value};\n"
+		else : 
+			ret += f"{idt}{self.cpp_type} {self.name};\n"
 		return ret
 
 

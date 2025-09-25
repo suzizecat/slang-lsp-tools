@@ -80,9 +80,11 @@ class LSPDefinition(LSPTypedBase):
 		idt.add_indent_level()
 		ret += f"{idt}j = nlohmann::json();\n"
 		ret +=  self._to_json_bindings(idt)
+
+		defined_properties_names = [x.name for x in self.properties]
 		for ext in self.extend_definitions :
 			ret += f"{idt}// Bindings inherited from {ext.type.type_name}\n"
-			ret += ext._to_json_bindings(idt)
+			ret += ext._to_json_bindings(idt, defined_properties_names)
 		idt.sub_indent_level()
 		ret += f"{idt}}}\n"
 		return ret
@@ -91,22 +93,39 @@ class LSPDefinition(LSPTypedBase):
 		ret = f"{idt}void from_json(const nlohmann::json& j, {self.type.type_name}& s) {{\n"
 		idt.add_indent_level()
 		ret +=  self._from_json_bindings(idt)
+
+		defined_properties_names = [x.name for x in self.properties]
+
 		for ext in self.extend_definitions :
 			ret += f"{idt}// Bindings inherited from {ext.type.type_name}\n"
-			ret += ext._from_json_bindings(idt)
+			ret += ext._from_json_bindings(idt,defined_properties_names)
 		idt.sub_indent_level()
 		ret += f"{idt}}}\n"
 		return ret
 
-	def _to_json_bindings(self, idt):
+	def _to_json_bindings(self, idt, exclude_list : _T.List[str] = None):
 		jsbinding = ""
+		if exclude_list is None :
+			exclude_list = []
+
 		for p in self.properties:
+			
+			if p.name in exclude_list :
+				continue
+
 			jsbinding += p.type.to_json(idt,p.name)
 		return jsbinding
 
-	def _from_json_bindings(self, idt):
+	def _from_json_bindings(self, idt, exclude_list : _T.List[str] = None):
 		jsbinding = ""
+		if exclude_list is None :
+			exclude_list = []
+			
 		for p in self.properties:
+			if p.name in exclude_list :
+				continue
+			if p.literal_value is not None : 
+				continue
 			jsbinding += p.type.from_json(idt,p.name)
 		return jsbinding
 

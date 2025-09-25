@@ -16,7 +16,7 @@ namespace diplomat::index {
 			#ifdef DIPLOMAT_DEBUG
 			eltpair->second->set_kind(kind);
 			#endif
-			add_reference(eltpair->second.get(), eltpair->first);
+			add_reference(eltpair->second.get(), eltpair->first,true);
 		}
 
 		return eltpair->second.get();
@@ -76,15 +76,18 @@ namespace diplomat::index {
 			return nullptr;
 	}
 
-	void IndexFile::add_reference(IndexSymbol* symb, const IndexRange& range)
+	void IndexFile::add_reference(IndexSymbol* symb, const IndexRange& range, bool is_definition)
 	{
 		assert(range.start.file == _filepath);
-		if(! _references.try_emplace(range.start,range,symb).second)
+		if(! _references.try_emplace(range.start,range,symb,is_definition).second)
 		{
 			spdlog::debug("    Duplicate reference to {}", symb->get_name());
 		}
 		else
-			symb->add_reference(range);
+		{
+			if(! is_definition)
+				symb->add_reference(range);
+		}
 	}
 
 	void IndexFile::record_additionnal_lookup_scope(const std::string& path, IndexScope* target)

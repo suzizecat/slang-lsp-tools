@@ -11,9 +11,12 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include "rpc_transport.hpp"
 
 
+#include <climits>
+#include <string>
 #include <unordered_map>
 #include <functional>
 #include <optional>
@@ -26,6 +29,9 @@
 #include "types/enums/MessageType.hpp"
 #include "types/structs/ServerCapabilities.hpp"
 #include "lsp_errors.hpp"
+#include "types/structs/WorkDoneProgressBegin.hpp"
+#include "types/structs/WorkDoneProgressEnd.hpp"
+#include "types/structs/WorkDoneProgressReport.hpp"
 #include "uuid.h"
 
 #include <istream>
@@ -78,6 +84,19 @@ namespace slsp{
         std::unordered_map<std::string, std::function<json(json&)>> _bound_requests;
         std::unordered_map<std::string, std::function<void(json&)>> _bound_notifs;
         std::unordered_map<std::string, std::function<void(json&)>> _bound_callbacks;
+        
+        /** This map contains the requested workDoneTokens and their active state.*/
+        std::unordered_map<std::string, bool> _active_progress_tokens;
+        
+        /** 
+        When the server sends a request, this map records the sent argument to provide
+        the callback with some context 
+        */
+        std::unordered_map<std::string, nlohmann::json> _active_req_args;
+
+        std::string _current_cb_id;
+
+        slsp::types::ClientCapabilities _client_capabilities;
 
         void _filter_invocation(const std::string& fct_name) const;
         void _register_custom_command(const std::string& fct_name);
@@ -88,6 +107,17 @@ namespace slsp{
         virtual void _invoke_notif(const std::string& fct_name, json& args);
         virtual void _run_callback(const std::string& id, json& args);
         
+        void _cb_enable_report_token(const nlohmann::json& args);
+        /**
+         * @brief Implements RAII for CB ressource liberation management
+         * 
+         */
+        struct _CallbackContextHandler {
+            const std::string id;
+            BaseLSP* tgt;
+            ~_CallbackContextHandler();
+        };
+
     public:
         /**
          * @brief Construct a new BaseLSP object
@@ -120,6 +150,14 @@ namespace slsp{
         void show_message(const types::MessageType level, const std::string& message);
         void send_notification(const std::string& fct, nlohmann::json && params = json());
         void send_request(const std::string& fct, std::function<void(json&)> cb, nlohmann::json && params = json());
+        
+        const std::string create_progress_report();
+        bool is_work_done_token_valid(const std::string& token) const;
+        bool is_work_done_token_active(const std::string& token) const;
+        void begin_progress(const std::string& token, const slsp::types::WorkDoneProgressBegin& args);
+        void report_progress(const std::string& token, const slsp::types::WorkDoneProgressReport& args);
+        void end_progress(const std::string& token, const slsp::types::WorkDoneProgressEnd& args);
+
         void run();
 
         types::ServerCapabilities capabilities;

@@ -109,7 +109,7 @@ class DiplomatLSP : public slsp::BaseLSP
 
         std::unique_ptr<slang::ast::Compilation> _compilation;
         std::unique_ptr<slang::SourceLibrary> _default_source_lib;
-        slsp::types::ClientCapabilities _client_capabilities;
+        
 
         slsp::types::Location _slang_to_lsp_location(const slang::SourceRange& sr) const;
         // Needs line-col -> offset which is a bit tricky to do

@@ -15,9 +15,10 @@ namespace diplomat::index
 
     struct ReferenceRecord
     {
-        ReferenceRecord(const IndexRange& loc, IndexSymbol* const& symb) : loc(loc), key(symb) {};
+        ReferenceRecord(const IndexRange& loc, IndexSymbol* const& symb, bool is_definition = false) : loc(loc), key(symb), is_definition(is_definition) {};
         IndexRange loc;
         IndexSymbol* key;
+        bool is_definition;
     };
 
     class IndexFile
@@ -67,7 +68,7 @@ namespace diplomat::index
 
         IndexSymbol* lookup_symbol_by_location(const IndexLocation& loc);
 
-        void add_reference(IndexSymbol* symb, const IndexRange& range );
+        void add_reference(IndexSymbol* symb, const IndexRange& range, bool is_definition = false );
         inline const std::map<IndexLocation, ReferenceRecord>& get_references() const {return _references;};
         inline auto get_symbols() const {return std::views::values(_declarations);};
 
