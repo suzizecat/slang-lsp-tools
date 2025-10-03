@@ -23,7 +23,7 @@ class LSPProperty(LSPTypedBase):
 		ret += self._doc.as_cpp(idt)
 
 		if self.literal_value is not None : 
-			ret += f"{idt}static constexpr {self.cpp_type} {self.name} = {self.literal_value};\n"
+			ret += f"{idt}inline static const {self.cpp_type} {self.name} = {self.literal_value};\n"
 		else : 
 			ret += f"{idt}{self.cpp_type} {self.name};\n"
 		return ret
