@@ -881,13 +881,14 @@ std::map<std::string,std::vector<slsp::types::Range>> DiplomatLSP::_h_list_symbo
 	for(const auto& symbol : lu_file->get_symbols())
 	{
 		ret[symbol->get_name()] = {};
-		const auto& def_location = symbol->get_source();
+		//const auto& def_location = symbol->get_source();
 	}
 
 	for(const auto& [loc, refrec] : refs)
 	{
-		di::IndexRange ref_range(loc,refrec.key->get_name().size());
-		ret.at(refrec.key->get_name()).push_back(_index_range_to_lsp(ref_range).range);
+		di::IndexRange ref_range(loc, refrec.key->get_name().size());
+		if(ret.contains(refrec.key->get_name()))
+			ret.at(refrec.key->get_name()).push_back(_index_range_to_lsp(ref_range).range);
 	}
 
 	// spdlog::debug("{}",json(ret).dump(4));
