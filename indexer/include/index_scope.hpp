@@ -36,8 +36,6 @@
 #include <string>
 #include <unordered_map>
 #include <optional>
-#include <filesystem>
-
 namespace diplomat::index
 {
     
@@ -50,7 +48,7 @@ namespace diplomat::index
     protected:
         std::string _name;
         IndexScope* _parent;
-        std::unordered_map<std::string, std::unique_ptr<IndexScope> > _children;
+        std::unordered_map<std::string, std::shared_ptr<IndexScope> > _children;
         
         /**
          * @brief When two sub scope are refering to the same piece of code,

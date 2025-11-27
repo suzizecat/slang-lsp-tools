@@ -1,12 +1,13 @@
 #pragma once
 #include "index_core.hpp"
-#include <slang/syntax/SyntaxVisitor.h>
+#include "slang/ast/Scope.h"
 #include <slang/syntax/AllSyntax.h>
 #include <slang/ast/ASTVisitor.h>
 
 #include <string>
 #include <string_view>
 #include <stack>
+#include <unordered_map>
 namespace diplomat::index {
 	// Visit statements and bad but not expressions
 	class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,true,true,true>
@@ -16,6 +17,14 @@ namespace diplomat::index {
 			std::unique_ptr<IndexCore> _index;
 
 			std::stack<IndexScope *> _scope_stack;
+
+			/**
+			 * @brief Holds the duplicate scopes as managed by slang.
+			 * Mainly used in order to manage the cache mechanism on InstanceBodySymbols.
+			 * If a  scope is registered here, it means that it already has a scope 
+			 * (that does not requires a new processing)
+			 */
+			std::unordered_map<slang::ast::Scope*, std::shared_ptr<IndexScope>> _duplicate_scopes_map;
 
 
 			void _open_scope(const std::string& name, bool is_virtual = false);
@@ -73,5 +82,7 @@ namespace diplomat::index {
 			void handle(const slang::ast::WildcardImportSymbol& node);
 
 			inline std::unique_ptr<IndexCore> get_index() {return std::move(_index);};
+
+
 	};
 }

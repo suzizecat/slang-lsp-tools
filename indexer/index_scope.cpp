@@ -35,7 +35,8 @@ namespace diplomat::index {
 		if(_children.contains(used_name))
 			return _children.at(used_name).get();
 		
-		std::unique_ptr<IndexScope> up = std::make_unique<IndexScope>(used_name, isvirtual, name.empty());
+		// TODO Care that the shared_ptr is properly multiplied if relevant.
+		std::shared_ptr<IndexScope> up = std::make_shared<IndexScope>(used_name, isvirtual, name.empty());
 		IndexScope* elt = up.get();
 		up->_parent = this;
 		_children[used_name] = std::move(up);
@@ -49,9 +50,12 @@ namespace diplomat::index {
 	IndexScope* IndexScope::add_child_alias(const std::string& ref, const std::string& alias)
 	{
 
+
 		IndexScope* ref_scope = nullptr;
+		// As we handle shared_ptr, we can simply duplicate the child pointer under another name.
 		if(_children.contains(ref))
-			ref_scope = _children.at(ref).get();
+			_children[alias] = _children.at(ref);
+			//ref_scope = _children.at(ref).get();
 		else if(_child_aliases.contains(ref))
 			ref_scope = _child_aliases.at(alias);
 		else
