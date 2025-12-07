@@ -23,7 +23,7 @@ class typename : public rpc_base_exception{\
 };
 
 #define MAKE_BASIC_SRV_EXCEPTION(typename) \
-class typename : public server_side_base_exception{\
+class typename : public slsp::server_side_base_exception{\
     public:\
     typename(const std::string msg) : server_side_base_exception(msg) {};\
 };
@@ -44,14 +44,13 @@ namespace slsp {
         const std::optional<const nlohmann::json> _data;
 
         public:
-        rpc_base_exception(const int code, const std::string msg) : _code(code), _message(msg) {};
+        rpc_base_exception(const int code, const std::string msg) : _code(code), _message(msg), _data() {};
         rpc_base_exception(const int code, const std::string msg, const nlohmann::json& data) : _code(code), _message(msg), _data(data) {};
-
+        rpc_base_exception(const nlohmann::json& j);
         virtual const char* what() const noexcept { return _message.c_str(); };
         const std::string msg() const { return _message; };
         constexpr int code() const { return _code; };
-        std::optional<nlohmann::json> data() const { return _data; };
-        // No need for from_json as we can't really update an exception.
+        const std::optional<const nlohmann::json>& data() const { return _data; };
     };
 
     class server_side_base_exception : public std::runtime_error
@@ -96,6 +95,7 @@ namespace slsp {
     MAKE_BASIC_RPC_EXCEPTION(lsp_request_failed_exception, types::LSPErrorCodes_RequestFailed);
 
     void to_json(nlohmann::json& j, const rpc_base_exception& e);
+    // void from_json( const nlohmann::json& j, rpc_base_exception& e);
    
 
 }
