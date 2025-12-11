@@ -5,8 +5,8 @@
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
-using namespace slsp::types;
-namespace slsp
+using namespace diplomat::lsp::types;
+namespace diplomat::app
 {
     LSPDiagnosticClient::LSPDiagnosticClient(const diplomat::cache::DiplomatDocumentCache & cache_ref, const slang::SourceManager* sm, const LSPDiagnosticClient* prev ) : _cache(cache_ref), _sm{sm}
     {

@@ -96,7 +96,8 @@ lsp-server/rpc/tcp_interface_server.cpp
 lsp-server/rpc/rpc_transport.cpp
 lsp-server/lsp/lsp.cpp
 lsp-server/lsp/lsp_errors.cpp
-lsp-server/lsp/lsp_default_binds.cpp
+lsp-server/lsp/lsp_dispatcher.cpp
+# lsp-server/lsp/lsp_default_binds.cpp
 lsp-server/include/types/src/structs_json_bindings.cpp
 # lsp-server/include/types/src/enums_json_bindings.cpp
 

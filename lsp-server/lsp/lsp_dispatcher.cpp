@@ -1,9 +1,13 @@
 #include "lsp_dispatcher.hpp"
 #include "lsp_errors.hpp"
 #include "types/methods/lsp_reserved_methods.hpp"
+#include "types/structs/ExecuteCommandParams.hpp"
+#include <cassert>
 #include <chrono>
 #include <exception>
 #include <future>
+#include <mutex>
+#include <optional>
 #include <spdlog/spdlog.h>
 #include <stop_token>
 #include <thread>
@@ -14,7 +18,8 @@ namespace diplomat::lsp {
 
 
 	LSPCommandDispatcher::LSPCommandDispatcher(std::istream& is, std::ostream& os) : 
-    _rpc(is,os),
+    _running(true),
+	_rpc(is,os),
 	_inbox(),
 	_cancelled_calls(),
     _uuid(&_rand_engine),
@@ -25,7 +30,7 @@ namespace diplomat::lsp {
 	_work_mutex(),
 	_worker_running(false),
 	_worker_cv(),
-	_ongoing_id(""),
+	_ongoing_id(nullptr),
 	_client_cb_data_available(),
 	_cb_data(),
 	_client_timeout(0)
@@ -46,24 +51,26 @@ namespace diplomat::lsp {
 	{
 		using namespace std::chrono_literals;
 		spdlog::info("Booting the dispatcher");
+		bool started;
 		// TODO Have actual exit strategy
-		while (true) {
+		while (! _rpc.is_closed() && _running ) {
 			// We need to start a worker on the next request.
 			// Either the request has been stored and we use the inbox
 			// or we wait for the next one from the RPC interface.
+			
 			if (! _inbox.empty())
 			{
-				_process_input_message(_inbox.back());
+				started = _process_input_message(_inbox.back());
 				_inbox.pop();
 			}
 			else 
 			{
-				_process_input_message(_rpc.get());
+				started = _process_input_message(_rpc.get());
 			}
 
 			// If the worker has not been actually started (cancelled before start)
 			// for example, then relaunch the start process.
-			if(! _ongoing_id.has_value())
+			if(! started)
 				continue;
 
 			_wait_for_worker_start();
@@ -71,18 +78,18 @@ namespace diplomat::lsp {
 			// Now, we need to actually handle the incoming commands
 			while(_worker_running)
 			{
-				if(! _rpc.have_data())
+				while(_worker_running && ! _rpc.have_data())
 				{
 					// If no data, wait for 0.1s and re-check the worker
 					std::this_thread::sleep_for(100ms);
-					continue;
 				}
 
 				_handle_next_incoming_message();
-
-			spdlog::debug("Worker is done, waiting for an actual function for a restart.");
 			}
+			spdlog::debug("Worker is done, waiting for an actual function for a restart.");
 		}
+		_rpc.close();
+		spdlog::info("Dispatcher exiting.");
 	}
 
 	void LSPCommandDispatcher::_handle_next_incoming_message()
@@ -94,52 +101,64 @@ namespace diplomat::lsp {
 		// ResponseMessage. 
 		// Requests impose the presence of "method", otherwise it is a reply.
 		json new_call = _rpc.get();
+		spdlog::debug("Handling of {}",new_call.dump());
 
 
-		if(! new_call.contains("id"))
-		{
-			spdlog::error("Invalid RPC object: no ID field provided:\n{}",new_call.dump(1));
-			throw slsp::rpc_invalid_request_error("Received a RPC message without 'id' field");
-		}
+		// if(! new_call.contains("id"))
+		// {
+		// 	spdlog::error("Invalid RPC object: no ID field provided:\n{}",new_call.dump(1));
+		// 	throw rpc_invalid_request_error("Received a RPC message without 'id' field");
+		// }
 
 		
-		const std::string tgt_id = new_call.at("id");
+		json tgt_id;
+		if(new_call.contains("id"))
+			tgt_id = new_call.at("id");
+		
+		std::string str_tgt_id = "";
+
+		if( tgt_id.is_number())
+			str_tgt_id = std::to_string(int(tgt_id));
+		else if (tgt_id.is_null())
+			str_tgt_id = "";
+		else
+			str_tgt_id = tgt_id;
 		const std::string method_name = new_call.value("method","");
 		
 		if( method_name == "$/cancelRequest")
 		{
-			if(_ongoing_id.value_or("") == tgt_id)
+			if(_ongoing_id == tgt_id)
 			{
-				spdlog::info("Request cancellation of current worker with id {}",tgt_id);
+				spdlog::info("Request cancellation of current worker with id {}",str_tgt_id);
 				_finish_worker();
 				return;
 			}
 			else 
 			{
-				spdlog::info("Store cancellation of call {}",tgt_id);
-				_cancelled_calls.emplace(tgt_id);
+				spdlog::info("Store cancellation of call {}",str_tgt_id);
+				_cancelled_calls.emplace(str_tgt_id);
 			}
 		}
-		else if (tgt_id == _ongoing_id.value_or("")) 
+		else if (! tgt_id.is_null() && str_tgt_id == _awaited_id.value_or("")) 
 		{
 			if( new_call.contains("result"))
 			{
 				// Handle the result of a request that has been sent by the worker
-				spdlog::debug("Got result for {}",tgt_id);
+				spdlog::debug("Got result for {}",str_tgt_id);
 				_cb_data.set_value(new_call.at("result"));												
 			}
 			else if (new_call.contains("error")) 
 			{
-				spdlog::debug("Got error for {}",tgt_id);
+				spdlog::debug("Got error for {}",str_tgt_id);
 
 				_cb_data.set_exception(std::make_exception_ptr( 
-					slsp::rpc_base_exception(new_call.at("error")) ));
+					rpc_base_exception(new_call.at("error")) ));
 			}
 			else 
 			{
 				_cb_data.set_exception(std::make_exception_ptr(
-					slsp::rpc_invalid_request_error(
-						fmt::format("Received call for in-use id {} but without response payload.",tgt_id),
+					rpc_invalid_request_error(
+						fmt::format("Received call for in-use id {} but without response payload.",str_tgt_id),
 						new_call
 					)));
 			}
@@ -175,6 +194,7 @@ namespace diplomat::lsp {
     {
         if(! allow_override && _bound_requests.contains(fct_name))
             throw std::runtime_error("Tried to add a callback to an already handled request " + fct_name);
+		spdlog::info("Binding handler for request {}", fct_name);
         _bound_requests[fct_name] = cb;
     }
 
@@ -182,56 +202,94 @@ namespace diplomat::lsp {
     {
         if(! allow_override && _bound_notifs.contains(fct_name))
             throw std::runtime_error("Tried to add a callback to an already handled request " + fct_name);
-        _bound_notifs[fct_name] = cb;
+     	spdlog::info("Binding handler for notif   {}", fct_name);
+		_bound_notifs[fct_name] = cb;
     }
 
-	std::string LSPCommandDispatcher::_send_rpc_call(const std::string& method, const json& params,  const std::string& id)
+	void LSPCommandDispatcher::bind_call_filter(std::function< bool(const std::string&, const json&)> filter)
+	{
+		_bound_filter = filter;
+	}
+
+	void LSPCommandDispatcher::_send_rpc_call(const std::string& method, const json& params,  const std::optional<std::string> id)
 	{
 		json to_send;
 		to_send["method"] = method;
 		to_send["params"] = params;
-		to_send["id"] = id;
+
+		if(id)
+			to_send["id"] = id.value();
 		_rpc.send(to_send);
 
-		return id;
 	}
 
 	std::string LSPCommandDispatcher::_send_rpc_call(const std::string& method, const json& params)
 	{
-		return _send_rpc_call(method, params, uuids::to_string(_uuid()));
+		std::string id =  uuids::to_string(_uuid());
+		_send_rpc_call(method, params,id);
+		return id;
 	}
 
 
-	void LSPCommandDispatcher::_process_input_message(const json& data)
+	bool LSPCommandDispatcher::_process_input_message(const json& data)
 	{
 		//If we have an invalid-ish call, just discard it. 
-		// Warning, 'params' is not mandatory.
-		if (! data.contains("method") || ! data.contains("id")) {
+		// Warning, 'params' and id are not mandatory.
+		if (! data.contains("method")) {
 			spdlog::debug("Discard invalid RPC call {}", data.dump(2));
-			return;
+			return false;
 		}
 
 		// Flush the input, in order to get potential cancel request before starting the command.
 		while(_rpc.have_data())
 			_handle_next_incoming_message();
 
-		const std::string& method = data.at("method");
-		const std::string& id = data.at("id");
+		std::string method = data.at("method");
 
-		if (_cancelled_calls.contains(id)) 
+
+		json id;
+		if(data.contains("id"))
+			id = data.at("id");
+		
+		std::string str_id = "";
+
+		if( id.is_number())
+			str_id = std::to_string(int(id));
+		else if (id.is_null())
+			str_id = "";
+		else
+			str_id = id;
+
+		if (_cancelled_calls.contains(str_id)) 
 		{
-			_cancelled_calls.erase(id);
-			return;
+			_cancelled_calls.erase(str_id);
+			return false;
 		}
 
+		
 		json params;
 
 		if(data.contains("params"))
 		{
-			params = data.at("params");
+			// Redirect call of execute command to the underlying command call
+			if(method == "workspace/executeCommand")
+			{
+				types::ExecuteCommandParams ecp = data.at("params");
+				method = ecp.command;
+				params = ecp.arguments;
+			}
+			else
+			{
+				params = data.at("params");
+			}
+
 			if(_unpack_non_standard_args && params.is_array() && is_non_standard_method(method))
 			{
-				if(params.size() == 1)
+				if(params.size() == 0)
+				{
+					params = json();
+				}
+				else if(params.size() == 1)
 				{
 					spdlog::debug("Unpacking params array for {}", method);
 					params = params.at(0);
@@ -248,63 +306,83 @@ namespace diplomat::lsp {
 			_ongoing_params = params;
 			_invoke();
 		}
+		_worker_cv.notify_all();
 		// Initiate the worker call 
-
-		// Ongoing_id should be reset by the end of the worker job.
-		// _ongoing_id.reset();
-
+		// Ongoing_id and other related variables shall be reset 
+		// by the end of the worker job.
+		return true;
 		
 	}
 
 	void LSPCommandDispatcher::_invoke()
 	{
+		spdlog::info("Invoke command {}",_ongoing_method);
 		if(! is_bound(_ongoing_method))
-			forward_exception(slsp::rpc_method_not_found_error(_ongoing_method));
+			forward_exception(rpc_method_not_found_error(_ongoing_method));
 
 		else
 		{
 			_worker_running = true;
-			_worker_cv.notify_all();
-			_worker = std::jthread([this](std::stop_token _){
+			// --------------------------------------------------------
+			// Start of the worker thread
+			_worker = std::jthread([this](std::stop_token tk){
 
 				// Start by acquiring the MUTEX to block all others from accessing
 				// current process variables.
 				
-				std::unique_lock lk(_work_mutex);
+				std::lock_guard<std::mutex> lk(_work_mutex);
+				spdlog::info("Started worked for {}", _ongoing_method);
 				try {
-					
-					if(is_notif(_ongoing_method))
+					if(_bound_filter.has_value() && _bound_filter.value()(_ongoing_method,_ongoing_params))
 					{
-						_bound_notifs[_ongoing_method](_ongoing_params);	
+						if(is_notif(_ongoing_method))
+						{
+							_bound_notifs[_ongoing_method](_ongoing_params,tk);	
+							
+							// For non-standard *notifications*, a return value SHALL be sent back
+							// as the initiating call is workspace/executeCommand which is a request.
+							if(is_non_standard_method(_ongoing_method))
+								forward_result(nullptr);
+						}
+						else
+						{
+							forward_result(_bound_requests[_ongoing_method](_ongoing_params, tk));
+						}
 					}
-					else
+					else 
 					{
-						forward_result(_bound_requests[_ongoing_method](_ongoing_params));
+						spdlog::info("Method call of {} has been filtered out", _ongoing_method);
 					}
-				
-				} catch (const slsp::rpc_base_exception& e) {
+				} catch (const client_cancel_request_exception& e) {
+					spdlog::info("Method {} was stopped by client request", _ongoing_method);
+				} catch (const rpc_base_exception& e) {
 					forward_exception(e);
 				} catch (const std::exception& e) {
-					_ongoing_id.reset();
+					// If any unhandled exception raises during a call to an execute command, 
+					// Just rethrow as an unknown error.
+					spdlog::error("Got unknown error during the handling of {}: {}",_ongoing_method, e.what());
+					spdlog::debug("Arguments were: {}",_ongoing_params.dump(1));
+					forward_exception(lsp_unknown_error(e.what()));
+
+					_ongoing_id = json(nullptr);
 					_worker_running = false;
 					_worker_cv.notify_all();
-
-					throw e;
 				}
-
-				_ongoing_id.reset();
+				spdlog::debug("Worker finished {} [{}]",_ongoing_method, _ongoing_id.dump());
+				_ongoing_id = json(nullptr);
 				_worker_running = false;
 				_worker_cv.notify_all();
-
 			});
+			// End of the worker thread
+			// --------------------------------------------------------
 		}
 	}
 
-	void LSPCommandDispatcher::forward_exception(const slsp::rpc_base_exception& e)
+	void LSPCommandDispatcher::forward_exception(const rpc_base_exception& e)
 	{
 		json ret;
-		if( _ongoing_id.has_value())
-			ret["id"] = _ongoing_id.value();
+		if( ! _ongoing_id.is_null())
+			ret["id"] = _ongoing_id;
 		else 
 			ret["id"] = nullptr;
 
@@ -316,8 +394,8 @@ namespace diplomat::lsp {
 	void LSPCommandDispatcher::forward_result(const nlohmann::json& val)
 	{
 		json ret;
-		if( _ongoing_id.has_value())
-			ret["id"] = _ongoing_id.value();
+		if(! _ongoing_id.is_null())
+			ret["id"] = _ongoing_id;
 		else 
 			ret["id"] = nullptr;
 
@@ -328,7 +406,7 @@ namespace diplomat::lsp {
 
 	void LSPCommandDispatcher::notify_client(const std::string& method, const json& args)
 	{
-		_send_rpc_call(method, args);
+		_send_rpc_call(method, args, {});
 	}
 
 	std::future<json> LSPCommandDispatcher::request_client_future(const std::string& method, const json& args)
@@ -343,14 +421,29 @@ namespace diplomat::lsp {
 	{
 		using namespace std::chrono_literals;
 		auto f = request_client_future(method, args);
-		if (_client_timeout)
+		
+		std::optional<std::stop_token> tk;
+		if(std::this_thread::get_id() == _worker.get_id())
+			tk = _worker.get_stop_token();
+
+		if(_client_timeout || (tk.has_value() && ! tk->stop_requested()))
 		{
-			if(f.wait_for(std::chrono::milliseconds(_client_timeout)) == std::future_status::timeout)
-				throw client_timeout_error(fmt::format("Client timed out on method {}. Timeout was {} ms", method, _client_timeout));
+			const auto call_time = std::chrono::system_clock::now();
+			const auto timeout = _client_timeout > 0 ? (call_time + std::chrono::milliseconds(_client_timeout)) : call_time.max();
+			
+			while (f.wait_for(100ms) == std::future_status::timeout)
+			{
+				if(tk.has_value() && tk->stop_requested())
+					throw client_cancel_request_exception("Request wait cancelled by client");
+				if(std::chrono::system_clock::now() > timeout)
+					throw client_timeout_error(fmt::format("Client timed out on method {}. Timeout was {} ms", method, _client_timeout));
+			}
 		}	
 		else 
+		{
 			f.wait();
-		
+		}
+	
 		return f.get();
 	}
 
@@ -379,6 +472,6 @@ namespace diplomat::lsp {
 
     bool LSPCommandDispatcher::is_non_standard_method(const std::string &fct) const
     {
-		return (! is_bound(fct)) || slsp::types::RESERVED_METHODS.contains(fct);
+		return is_bound(fct) && ! types::RESERVED_METHODS.contains(fct);
     }
 }

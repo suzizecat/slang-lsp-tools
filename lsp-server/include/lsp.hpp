@@ -13,7 +13,7 @@
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "rpc_transport.hpp"
-
+#include "lsp_dispatcher.hpp"
 
 #include <climits>
 #include <string>
@@ -32,16 +32,12 @@
 #include "types/structs/WorkDoneProgressBegin.hpp"
 #include "types/structs/WorkDoneProgressEnd.hpp"
 #include "types/structs/WorkDoneProgressReport.hpp"
-#include "uuid.h"
 
 #include <istream>
 #include <ostream>
 #include <iostream>
-#include <random>
 
-#define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1)
-
-namespace slsp{
+namespace diplomat::lsp{
     using json = nlohmann::json;
 
     /**
@@ -53,20 +49,21 @@ namespace slsp{
     class BaseLSP
     {
     protected:
+
+        /**
+         * @brief Command dispatcher component, handling the effective command
+         * selection and dispatch.
+         *
+         * This component actually makes the call to other functions that will be bound in the 
+         * LSP. 
+         */
+        LSPCommandDispatcher _dispatcher;
+
         bool _is_initialized;
         bool _is_stopping;
         bool _is_stopped;
 
-        /**
-         * @brief Unpack argument arrays when calling custom functions
-         *
-         * When using some clients (vscode) the arguments passed to
-         * a call to a LS function will be wrapped in an array.
-         * The LSP arguments generally are single arguments of the appropriate object type.
-         * thus requiring to manually unpack those values.
-         * When set, the argument will be assumed to be an array and will be unpacked accordingly.
-         */
-        bool _unpack_args_for_customs;
+
         /**
          * @brief Registered trace level 
          * 
@@ -74,49 +71,15 @@ namespace slsp{
          * a trace notification.
          */
         types::TraceValues _trace_level;
-
-
-        rpc::RPCPipeTransport _rpc; 
-
-        std::mt19937 _rand_engine;
-        uuids::uuid_random_generator _uuid;
-
-        std::unordered_map<std::string, std::function<json(json&)>> _bound_requests;
-        std::unordered_map<std::string, std::function<void(json&)>> _bound_notifs;
-        std::unordered_map<std::string, std::function<void(json&)>> _bound_callbacks;
         
         /** This map contains the requested workDoneTokens and their active state.*/
         std::unordered_map<std::string, bool> _active_progress_tokens;
         
-        /** 
-        When the server sends a request, this map records the sent argument to provide
-        the callback with some context 
-        */
-        std::unordered_map<std::string, nlohmann::json> _active_req_args;
 
-        std::string _current_cb_id;
+        types::ClientCapabilities _client_capabilities;
 
-        slsp::types::ClientCapabilities _client_capabilities;
+        bool _filter_invocation(const std::string& fct_name, const json& args) const;
 
-        void _filter_invocation(const std::string& fct_name) const;
-        void _register_custom_command(const std::string& fct_name);
-
-        json _execute_command_handler(json& p);
-
-        virtual json _invoke_request(const std::string& fct_name, json& args);
-        virtual void _invoke_notif(const std::string& fct_name, json& args);
-        virtual void _run_callback(const std::string& id, json& args);
-        
-        void _cb_enable_report_token(const nlohmann::json& args);
-        /**
-         * @brief Implements RAII for CB ressource liberation management
-         * 
-         */
-        struct _CallbackContextHandler {
-            const std::string id;
-            BaseLSP* tgt;
-            ~_CallbackContextHandler();
-        };
 
     public:
         /**
@@ -127,36 +90,34 @@ namespace slsp{
          */
         explicit BaseLSP(std::istream& is = std::cin, std::ostream& os = std::cout);
 
-        void bind_request(const std::string& fct_name, std::function<json(json&)> cb, bool allow_override = false);
-        void bind_notification(const std::string& fct_name, std::function<void(json&)> cb, bool allow_override = false);
-        void bind_callback(const std::string& id, std::function<void(json&)> cb, bool allow_override = false);
-
-        std::optional<json> invoke(const std::string& fct, json& params);
+        void bind_request(const std::string& fct_name, request_handle_t cb, bool allow_override = false);
+        void bind_notification(const std::string& fct_name, notification_handle_t cb, bool allow_override = false);
+        // void bind_callback(const std::string& id, std::function<void(json&)> cb, bool allow_override = false);
         
-        bool is_notif(const std::string& fct) const;
-        bool is_request(const std::string& fct) const;
-        bool is_bound(const std::string& fct) const;
-        bool is_non_standard_command(const std::string& fct) const;
+        // bool is_notif(const std::string& fct) const;
+        // bool is_request(const std::string& fct) const;
+        // bool is_bound(const std::string& fct) const;
+        // bool is_non_standard_command(const std::string& fct) const;
 
         void set_trace_level(const types::TraceValues level);
-        void set_rpc_use_endl(const bool use_endl){_rpc.set_endl(use_endl);};
+        void set_rpc_use_endl(const bool use_endl){_dispatcher.set_rpc_use_endl(use_endl);};
 
         inline void shutdown() {_is_stopping = true;};
-        inline void exit() { _is_stopped = true; };
+        inline void exit() { _is_stopped = true; _dispatcher.stop(); };
         inline void set_initialized(const bool state) { _is_initialized = state; };
 
         void trace(const std::string& message, const std::string verbose = "");
         void log(const types::MessageType level, const std::string& message);
         void show_message(const types::MessageType level, const std::string& message);
         void send_notification(const std::string& fct, nlohmann::json && params = json());
-        void send_request(const std::string& fct, std::function<void(json&)> cb, nlohmann::json && params = json());
+        json send_request(const std::string& fct, nlohmann::json && params = json());
         
         const std::string create_progress_report();
         bool is_work_done_token_valid(const std::string& token) const;
         bool is_work_done_token_active(const std::string& token) const;
-        void begin_progress(const std::string& token, const slsp::types::WorkDoneProgressBegin& args);
-        void report_progress(const std::string& token, const slsp::types::WorkDoneProgressReport& args);
-        void end_progress(const std::string& token, const slsp::types::WorkDoneProgressEnd& args);
+        void begin_progress(const std::string& token, const types::WorkDoneProgressBegin& args);
+        void report_progress(const std::string& token, const types::WorkDoneProgressReport& args);
+        void end_progress(const std::string& token, const types::WorkDoneProgressEnd& args);
 
         void run();
 
@@ -164,6 +125,4 @@ namespace slsp{
         
     };
 
-    typedef std::function<json(json&)> request_handle_t;
-    typedef std::function<void(json&)> notification_handle_t;
 }

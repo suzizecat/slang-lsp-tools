@@ -240,7 +240,7 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
     {
         if (is_closed())
         {
-            throw slsp::server_connection_exception("The server tried to get data from a closed RPC medium.");
+            throw diplomat::lsp::server_connection_exception("The server tried to get data from a closed RPC medium.");
         }
 
         {
@@ -254,16 +254,16 @@ RPCPipeTransport::RPCPipeTransport(std::istream& input, std::ostream& output) :
         }
 
         std::unique_lock lk(_rx_access);
-        spdlog::debug("Await for incomming data...");
+        spdlog::debug("Await for incoming data...");
         _data_available.wait(lk, [this]
                              { return !this->_inbox.empty() || this->is_closed(); });
         if (_closed)
         {
-            throw slsp::client_closed_exception("The client disconnected");
+            throw diplomat::lsp::client_closed_exception("The client disconnected");
         }
         else if (_aborted)
         {
-            throw slsp::server_connection_exception("The server closed the connection");
+            throw diplomat::lsp::server_connection_exception("The server closed the connection");
         }
 
         json ret = _inbox.front();

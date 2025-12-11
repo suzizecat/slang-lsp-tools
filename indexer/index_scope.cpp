@@ -319,17 +319,18 @@ namespace diplomat::index {
 
 
 	void to_json(nlohmann::json &j, const IndexScope &s)
-{
+	{
 
-	j = nlohmann::json{
-		#ifdef DIPLOMAT_DEBUG
-		{"_kind",s._kind},
-		#endif
-		{"name",s._name},
-		{"def",s._source_range},
-		{"virtual",s._is_virtual},
-		{"children",s._children}
-	};
+	j = nlohmann::json(); 
+	// {
+	// 	#ifdef DIPLOMAT_DEBUG
+	// 	{"_kind",s._kind},
+	// 	#endif
+	// 	{"name",s._name},
+	// 	{"def",s._source_range},
+	// 	{"virtual",s._is_virtual},
+	// 	{"children",s._children}
+	// };
 
 	nlohmann::json aliases;
 

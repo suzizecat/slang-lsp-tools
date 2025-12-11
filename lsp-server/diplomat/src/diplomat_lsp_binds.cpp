@@ -51,10 +51,14 @@
 #define DIPLOMADIPLOMAT_VERSION_STRING "custom-build"
 #endif
 
-using namespace slsp::types;
+namespace dlt = diplomat::lsp::types;
 
 namespace fs = std::filesystem;
 namespace di = diplomat::index;
+
+
+namespace diplomat::app {
+
 
 // trim from start (in place)
 inline void ltrim(std::string &s) {
@@ -77,34 +81,34 @@ void trim(std::string& in) {
 }
 
 
-void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
+void DiplomatLSP::_h_didChangeWorkspaceFolders(json _, std::stop_token tk)
 {
-	DidChangeWorkspaceFoldersParams params = _.template get<DidChangeWorkspaceFoldersParams>();
+	dlt::DidChangeWorkspaceFoldersParams params = _.template get<dlt::DidChangeWorkspaceFoldersParams>();
 	_remove_workspace_folders(params.event.removed);
 	_add_workspace_folders(params.event.added);
 }
 
-void DiplomatLSP::_h_didSaveTextDocument(DidSaveTextDocumentParams param)
+void DiplomatLSP::_h_didSaveTextDocument(dlt::DidSaveTextDocumentParams param, std::stop_token tk)
 {
 	_cache.process_file(uri(param.textDocument.uri));
 	_compile();
 }
 
-void DiplomatLSP::_h_didOpenTextDocument(json _)
+void DiplomatLSP::_h_didOpenTextDocument(json _, std::stop_token tk)
 {
-	DidOpenTextDocumentParams params =  _;
+	dlt::DidOpenTextDocumentParams params =  _;
 
 	_save_client_uri(params.textDocument.uri);
 }
 
-void DiplomatLSP::_h_didCloseTextDocument(DidCloseTextDocumentParams _)
+void DiplomatLSP::_h_didCloseTextDocument(dlt::DidCloseTextDocumentParams _, std::stop_token tk)
 {
 	/* Actually nothing to do, only bind to avoid errors*/
 }
 
-json DiplomatLSP::_h_completion(CompletionParams params)
+json DiplomatLSP::_h_completion(dlt::CompletionParams params, std::stop_token tk)
 {
-	CompletionList result;
+	dlt::CompletionList result;
 	result.isIncomplete = false;
 	_assert_index(true);
 
@@ -119,9 +123,9 @@ json DiplomatLSP::_h_completion(CompletionParams params)
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
 				continue;
 
-			CompletionItem record;
+			dlt::CompletionItem record;
 			record.label = symb->get_name();
-			record.kind = CompletionItemKind::CompletionItemKind_Variable;
+			record.kind = dlt::CompletionItemKind::CompletionItemKind_Variable;
 			result.items.push_back(record);
 		}
 	}
@@ -139,9 +143,9 @@ json DiplomatLSP::_h_completion(CompletionParams params)
 			if(symb->get_source_location().value_or(trigger_location) > trigger_location)
 				continue;
 
-			CompletionItem record;
+			dlt::CompletionItem record;
 			record.label = symb->get_name();
-			record.kind = CompletionItemKind::CompletionItemKind_Variable;
+			record.kind = dlt::CompletionItemKind::CompletionItemKind_Variable;
 			result.items.push_back(record);
 		}
 	}
@@ -151,7 +155,7 @@ json DiplomatLSP::_h_completion(CompletionParams params)
 	return result;
 }
 
-json DiplomatLSP::_h_formatting(DocumentFormattingParams params)
+json DiplomatLSP::_h_formatting(dlt::DocumentFormattingParams params, std::stop_token tk)
 {
 	std::string filepath = "/" + uri(params.textDocument.uri).get_path();
 	spdlog::info("Request to format the file {}",filepath);
@@ -164,14 +168,14 @@ json DiplomatLSP::_h_formatting(DocumentFormattingParams params)
 	std::shared_ptr<slang::syntax::SyntaxTree> formatted = fmter.transform(st);
 
 
-	Position end;
+	dlt::Position end;
 	end.line = sm.getLineNumber(st->root().getLastToken().range().end());
 	end.character = sm.getColumnNumber(st->root().getLastToken().range().end());
 
-	Position start = {0,0};
+	dlt::Position start = {0,0};
 	
 	json ret_cont = json::array();
-	TextEdit ret;
+	dlt::TextEdit ret;
 	ret.range = {start,end};
 	ret.newText = slang::syntax::SyntaxPrinter::printFile(*formatted);
 
@@ -181,12 +185,12 @@ json DiplomatLSP::_h_formatting(DocumentFormattingParams params)
 }   
 
 
-void DiplomatLSP::_h_exit(json params)
+void DiplomatLSP::_h_exit(json params, std::stop_token tk)
 {
 	exit();
 }
 
-json DiplomatLSP::_h_initialize(InitializeParams params)
+json DiplomatLSP::_h_initialize(dlt::InitializeParams params, std::stop_token tk)
 {
 	using namespace std::chrono_literals;
 	bool got_workspace = false;
@@ -229,32 +233,32 @@ json DiplomatLSP::_h_initialize(InitializeParams params)
 					std::this_thread::sleep_for(100ms);
 				}
 				spdlog::warn("Client process {} exited, stopping the server.", pid);
-				this->_rpc.close();
+				this->_dispatcher.stop();
 			},
 			params.processId.value()
 		);
 	}
 
-	InitializeResult reply;
+	dlt::InitializeResult reply;
 	reply.capabilities = capabilities;
-	reply.serverInfo = InitializeResult_serverInfo{"Diplomat-LSP",DIPLOMAT_VERSION_STRING};
+	reply.serverInfo = dlt::InitializeResult_serverInfo{"Diplomat-LSP",DIPLOMAT_VERSION_STRING};
 
 	set_initialized(true) ;
 	return reply;
 }
 
-void DiplomatLSP::_h_initialized(json params)
+void DiplomatLSP::_h_initialized(json params, std::stop_token tk)
 {
 	spdlog::info("Client initialization complete.");
 
-	slsp::types::RegistrationParams p;
+	dlt::RegistrationParams p;
 	if (_client_capabilities.workspace 
 	&&  _client_capabilities.workspace.value().didChangeConfiguration
 	&& _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration
 	&& _client_capabilities.workspace.value().didChangeConfiguration.value().dynamicRegistration.value())
 	{
-		slsp::types::Registration didChangeRegistration;
-		didChangeRegistration.id = uuids::to_string(_uuid());
+		dlt::Registration didChangeRegistration;
+		didChangeRegistration.id = _dispatcher.get_uuid();
 		didChangeRegistration.method = "workspace/didChangeConfiguration";
 		p.registrations.push_back(didChangeRegistration);
 	}
@@ -262,32 +266,41 @@ void DiplomatLSP::_h_initialized(json params)
 	// send_notification("client/registerCapability",p);
 	
 
-	slsp::types::ConfigurationItem conf_path;
+	dlt::ConfigurationItem conf_path;
 	conf_path.section = "diplomat.server.configurationPath";
 
-	slsp::types::ConfigurationItem index_ext;
+	dlt::ConfigurationItem index_ext;
 	index_ext.section = "diplomat.index.validExtensions";
 
-	slsp::types::ConfigurationParams conf_request;
+	dlt::ConfigurationParams conf_request;
 	conf_request.items.push_back(conf_path);
 	conf_request.items.push_back(index_ext);
 	
 	if (_client_capabilities.workspace
-		&& _client_capabilities.workspace.value_or(slsp::types::WorkspaceClientCapabilities{}).configuration.value_or(false)
+		&& _client_capabilities.workspace.value_or(dlt::WorkspaceClientCapabilities{}).configuration.value_or(false)
 		&& _client_capabilities.workspace.value().configuration.value())
-		send_request("workspace/configuration", LSP_MEMBER_BIND(DiplomatLSP, _h_get_configuration_on_init), conf_request);
+		{
+			json clientinfo = send_request("workspace/configuration", conf_request);
+			_accepted_extensions.clear();
+			for(const std::string& ext : clientinfo[1])
+			{
+				_accepted_extensions.emplace(ext);
+				spdlog::debug("Add accepted extension {}",ext);
+			}  
+		}
+		
 
 }
 
-void DiplomatLSP::_h_setTrace(json params)
+void DiplomatLSP::_h_setTrace(json params, std::stop_token tk)
 {
-	SetTraceParams p = params;
+	dlt::SetTraceParams p = params;
 	spdlog::info("Set trace through params {}",params.dump());
-	log(MessageType::MessageType_Log,"Setting trace level to " + params.at("value").template get<std::string>());
+	log(dlt::MessageType::MessageType_Log,"Setting trace level to " + params.at("value").template get<std::string>());
 	set_trace_level(p.value);
 }
 
-json DiplomatLSP::_h_shutdown(json params)
+json DiplomatLSP::_h_shutdown(json params, std::stop_token tk)
 {
 	shutdown();
 	//exit();
@@ -295,12 +308,12 @@ json DiplomatLSP::_h_shutdown(json params)
 }
 
 
-json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
+json DiplomatLSP::_h_gotoDefinition(dlt::DefinitionParams params, std::stop_token tk)
 {
 	if (!_assert_index())
 		return {};
 	
-	slsp::types::Location result;
+	dlt::Location result;
 
 	const di::IndexLocation lu_location = _lsp_to_index_location(params);
 	const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
@@ -308,13 +321,13 @@ json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
 	if(lu_symb)
 	{
 
-		log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookuped up definition for {}", lu_symb->get_name()));
+		log(dlt::MessageType::MessageType_Log, fmt::format("Lookuped up definition for {}", lu_symb->get_name()));
 		// If Symbol has been looked up, it has a source, hence no check.
 		return _index_range_to_lsp(lu_symb->get_source().value());
 	} 
 	else
 	{
-		log(slsp::types::MessageType::MessageType_Log, "Unable to get a symbol from position");
+		log(dlt::MessageType::MessageType_Log, "Unable to get a symbol from position");
 		return {};
 	}
 	
@@ -322,7 +335,7 @@ json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
 	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1 , params.position.character +1);
 	// if (syntax)
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
 	// 	slang::SourceRange return_range = _index->get_definition(syntax->range());
 	// 	spdlog::info("Found definition.");
 
@@ -330,27 +343,27 @@ json DiplomatLSP::_h_gotoDefinition(slsp::types::DefinitionParams params)
 	// }
 	// else
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
 	// 	spdlog::info("Definition not found.");
 	// 	return {};
 	// }
 }
 
 
-json DiplomatLSP::_h_references(json _)
+json DiplomatLSP::_h_references(json _, std::stop_token tk)
 {
 
 	if (!_assert_index())
 		return {};
 	
-	slsp::types::ReferenceParams params = _;
+	dlt::ReferenceParams params = _;
 
 	const di::IndexLocation lu_location = _lsp_to_index_location(params);
 	const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
 
 	if(lu_symb)
 	{
-		std::vector<Location> result;
+		std::vector<dlt::Location> result;
 		for(const auto& range : lu_symb->get_references())
 		{
 			result.push_back(_index_range_to_lsp(range));
@@ -370,15 +383,15 @@ json DiplomatLSP::_h_references(json _)
 
 	// if (!_assert_index())
 	// 	return {};
-	// slsp::types::DefinitionParams params = _;
-	// slsp::types::Location result;
+	// dlt::DefinitionParams params = _;
+	// dlt::Location result;
 
 	// fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
 
 	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
 	// if (syntax)
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
 	// 	std::vector<slang::SourceRange> return_range = _index->get_references(CONST_TOKNODE_SR(*syntax));
 	// 	spdlog::info("Found references.");
 
@@ -390,19 +403,19 @@ json DiplomatLSP::_h_references(json _)
 	// }
 	// else
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
 	// 	spdlog::info("References not found.");
 	// 	return {};
 	// }
 }
 
-json DiplomatLSP::_h_rename(json _)
+json DiplomatLSP::_h_rename(json _, std::stop_token tk)
 {
 
 		_assert_index(true);
 		
-		slsp::types::RenameParams params = _;
-		slsp::types::WorkspaceEdit result;
+		dlt::RenameParams params = _;
+		dlt::WorkspaceEdit result;
 
 		const di::IndexLocation lu_location = _lsp_to_index_location(params);
 		const di::IndexSymbol* lu_symb = _index->get_symbol_by_position(lu_location);
@@ -411,17 +424,17 @@ json DiplomatLSP::_h_rename(json _)
 		{
 
 			std::size_t curr_name_len = lu_symb->get_name().size();
-			std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
+			std::unordered_map<std::string,std::vector<dlt::TextEdit>> edits;
 
 			for(const auto& range : lu_symb->get_references())
 			{
-				slsp::types::Location edit_location = _index_range_to_lsp(range);
+				dlt::Location edit_location = _index_range_to_lsp(range);
 				
 				if (! edits.contains(edit_location.uri))
 					edits[edit_location.uri] = {};
 
 				edits.at(edit_location.uri).push_back(
-				slsp::types::TextEdit{
+				dlt::TextEdit{
 					edit_location.range,
 					fmt::format("{:{}s}",params.newName,curr_name_len)
 				}
@@ -432,21 +445,21 @@ json DiplomatLSP::_h_rename(json _)
 			return result;
 		}
 
-		throw slsp::lsp_request_failed_exception("Selected area did not returned a significant symbol");
+		throw lsp::lsp_request_failed_exception("Selected area did not returned a significant symbol");
 		return {}; // To avoid missing return
 
 
 	
 	// _assert_index(true);
-	// slsp::types::RenameParams params = _;
-	// slsp::types::WorkspaceEdit result;
+	// dlt::RenameParams params = _;
+	// dlt::WorkspaceEdit result;
 
 	// fs::path source_path = fs::canonical(fs::path("/" + uri(params.textDocument.uri).get_path()));
 
 	// auto syntax = _index->get_syntax_from_position(source_path, params.position.line +1, params.position.character+1);
 	// if (syntax)
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Lookup definition from position {}:{}:{}", source_path.generic_string(), params.position.line, params.position.character));
 
 	// 	slang::SourceRange origin_sr = CONST_TOKNODE_SR(*syntax);
 	// 	int origin_len = origin_sr.end() - origin_sr.start();
@@ -454,16 +467,16 @@ json DiplomatLSP::_h_rename(json _)
 	// 	std::vector<slang::SourceRange> return_range = _index->get_references(origin_sr);
 	// 	spdlog::info("Perform rename.");
 
-	// 	std::unordered_map<std::string,std::vector<slsp::types::TextEdit>> edits;
+	// 	std::unordered_map<std::string,std::vector<dlt::TextEdit>> edits;
 
 	// 	for(const auto& range : return_range)
 	// 	{
-	// 		slsp::types::Location edit_change = _slang_to_lsp_location(range);
+	// 		dlt::Location edit_change = _slang_to_lsp_location(range);
 	// 		if (! edits.contains(edit_change.uri))
 	// 			edits[edit_change.uri] = {};
 
 	// 		edits.at(edit_change.uri).push_back(
-	// 			slsp::types::TextEdit{
+	// 			dlt::TextEdit{
 	// 				edit_change.range,
 	// 				fmt::format("{:{}s}",params.newName,origin_len)
 	// 			}
@@ -474,18 +487,18 @@ json DiplomatLSP::_h_rename(json _)
 	// }
 	// else
 	// {
-	// 	log(slsp::types::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
+	// 	log(dlt::MessageType::MessageType_Log, fmt::format("Unable to get a syntax node from position {}:{}:{}",source_path.generic_string(), params.position.line, params.position.character));
 	// 	spdlog::info("References not found.");
-	// 	throw slsp::lsp_request_failed_exception("Selected area did not returned a significant syntax node.");
+	// 	throw dlt::lsp_request_failed_exception("Selected area did not returned a significant syntax node.");
 	// }
 }
 
 
 
-// void DiplomatLSP::_h_save_config(json params)
+// void DiplomatLSP::_h_save_config(json params, std::stop_token tk)
 // {
 // 	spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
-// 	log(slsp::types::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
+// 	log(dlt::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
 // 	std::ofstream out(_settings_path);
 // 	json j = _settings;
 // 	out << j.dump(4);
@@ -501,7 +514,7 @@ json DiplomatLSP::_h_rename(json _)
  * @param json structure matching a list with only a single element in it, being 
  * the image of diplomat-vscode/exchange_types.ts:DiplomatProject
  */
-void DiplomatLSP::_h_set_project(DiplomatProject params)
+void DiplomatLSP::_h_set_project(dlt::DiplomatProject params, std::stop_token tk)
 {
 	spdlog::debug("Set Project requested : {}",json(params).dump(1));
 	_clear_project_tree();
@@ -529,16 +542,16 @@ void DiplomatLSP::_h_set_project(DiplomatProject params)
 /**
  * @brief Pushing configuration, from client to server.
  * 
- * @param configuration, from slsp::DiplomatLSPWorkspaceSettings
+ * @param configuration, from dlt::DiplomatLSPWorkspaceSettings
  */
-void DiplomatLSP::_h_push_config(slsp::DiplomatLSPWorkspaceSettings params)
+void DiplomatLSP::_h_push_config(DiplomatLSPWorkspaceSettings params, std::stop_token tk)
 {
 	spdlog::info("Received configuration from client");
-	log(slsp::types::MessageType::MessageType_Info,"Received configuration from client");
+	log(dlt::MessageType::MessageType_Info,"Received configuration from client");
 	spdlog::debug("Config is {}",json(params).dump(1));
 	_settings = params;
 
-	show_message(slsp::types::MessageType::MessageType_Info,"Configuration successfully loaded by the server.");
+	show_message(dlt::MessageType::MessageType_Info,"Configuration successfully loaded by the server.");
 	_compile();
 
 }
@@ -549,10 +562,10 @@ void DiplomatLSP::_h_push_config(slsp::DiplomatLSPWorkspaceSettings params)
  * 
  * @param params, unused.
  */
-json DiplomatLSP::_h_pull_config(json _)
+json DiplomatLSP::_h_pull_config(json _, std::stop_token tk)
 {
 	spdlog::info("Send configuration to the client.");
-	log(slsp::types::MessageType::MessageType_Info,"Configuration pulled from server");
+	log(dlt::MessageType::MessageType_Info,"Configuration pulled from server");
 	json j = _settings;
 	return j;
 }
@@ -563,7 +576,7 @@ json DiplomatLSP::_h_pull_config(json _)
  * @param params One single URI
  * @return json Array of BB (may be empty)
  */
-const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::string params)
+const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::string params, std::stop_token tk)
 {
 	spdlog::debug("Get BBOX on {}",params);
 	uri target_file =  uri(params);
@@ -577,28 +590,28 @@ const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::stri
 	}
 
 	if(bb_list == nullptr)
-		throw slsp::lsp_request_failed_exception("File processing failed");
+		throw lsp::lsp_request_failed_exception("File processing failed");
 
 	return *bb_list;
 
 }
 
-std::vector<slsp::types::HDLModule> DiplomatLSP::_h_get_modules(json _)
+std::vector<dlt::HDLModule> DiplomatLSP::_h_get_modules(json _, std::stop_token tk)
 {
 	_read_workspace_modules();
-	std::vector<slsp::types::HDLModule> ret;
+	std::vector<dlt::HDLModule> ret;
 
 	for (const auto& [path, bb_list] : _cache.get_modules())
 	{
 		for(const auto& name : bb_list 
 			| std::views::transform([](const ModuleBlackBox* p){return p->module_name;}))
-			ret.push_back(HDLModule{.file = _cache.get_uri(path).to_string(), .moduleName=name});
+			ret.push_back(dlt::HDLModule{.file = _cache.get_uri(path).to_string(), .moduleName=name});
 	}
 	return ret;
 }
 
 
-const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(slsp::types::HDLModule params)
+const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(dlt::HDLModule params, std::stop_token tk)
 {
 	const std::string target_file = params.file;
 	spdlog::info("Return information for file {}",target_file );
@@ -632,7 +645,7 @@ const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(slsp::t
  * 
  * @param params an array of size 1 containing only the new top-level module name
  */
-void DiplomatLSP::_h_set_top_module(std::optional<std::string> params)
+void DiplomatLSP::_h_set_top_module(std::string params, std::stop_token tk)
 {
 	_settings.top_level = params;
 	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
@@ -646,10 +659,10 @@ void DiplomatLSP::_h_set_top_module(std::optional<std::string> params)
  * 
  * This list is built using the dependencies scanning capabilities of the {@link VisitorModuleBlackBox}.
  *
- * @param params is a JSON array containing a single {@link slsp::types::HDLModule}
+ * @param params is a JSON array containing a single {@link dlt::HDLModule}
  * @returns a list of URI matching the required files
  */
-std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requested_root_module)
+std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(dlt::HDLModule requested_root_module, std::stop_token tk)
 {
 	_read_workspace_modules();
 	uri target_uri(requested_root_module.file);
@@ -659,8 +672,8 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 	const std::vector<const ModuleBlackBox*> * target_bb_list = _cache.get_bb_by_file(fs::path("/" + target_uri.get_path()));
 	if(target_bb_list == nullptr)
 	{
-		log(slsp::types::MessageType_Error, fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
-		throw slsp::lsp_request_failed_exception(fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
+		log(dlt::MessageType_Error, fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
+		throw lsp::lsp_request_failed_exception(fmt::format("Unable to retrieve a module from the file {}",requested_root_module.file));
 	}
 	else
 	{
@@ -676,8 +689,8 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 
 	if(! target)
 	{
-		log(slsp::types::MessageType_Error, fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
-		throw slsp::lsp_request_failed_exception(fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
+		log(dlt::MessageType_Error, fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
+		throw lsp::lsp_request_failed_exception(fmt::format("Unable to find module {} in file {}",requested_root_module.moduleName.value_or("None"), requested_root_module.file));
 	}
 
 	// Here, we have the proper target file.
@@ -716,7 +729,7 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(HDLModule requ
 	return result;
 }
 
-void DiplomatLSP::_h_ignore(std::vector<std::string> params)
+void DiplomatLSP::_h_ignore(std::vector<std::string> params, std::stop_token tk)
 {
 	//spdlog::info("{}",params);
 	for (const std::string& _ : params) 
@@ -736,7 +749,7 @@ void DiplomatLSP::_h_ignore(std::vector<std::string> params)
  * 
  * @param params 
  */
-void DiplomatLSP::_h_add_to_include(json params)
+void DiplomatLSP::_h_add_to_include(json params, std::stop_token tk)
 {
 	for (const json& record : params.at(1))
 	{
@@ -746,7 +759,7 @@ void DiplomatLSP::_h_add_to_include(json params)
 	}
 }
 
-void DiplomatLSP::_h_force_clear_index(json _)
+void DiplomatLSP::_h_force_clear_index(json _, std::stop_token tk)
 {
 	_project_file_tree_valid = false;
 	_compilation.reset();
@@ -762,10 +775,10 @@ void DiplomatLSP::_h_force_clear_index(json _)
  * @param params JSON structure equivalent to a list of hierarchical paths
  * @return json association initial path => Location. Return null on unresolved paths.
  */
-std::map<std::string,std::optional<Location>> DiplomatLSP::_h_resolve_hier_path(std::vector<std::string> params)
+std::map<std::string,std::optional<dlt::Location>> DiplomatLSP::_h_resolve_hier_path(std::vector<std::string> params, std::stop_token tk)
 {
 	// Params will be a list of hier paths to resolve.
-	std::map<std::string,std::optional<Location>> ret;
+	std::map<std::string,std::optional<dlt::Location>> ret;
 	if(! _assert_index())
 		return ret;
 	
@@ -798,7 +811,7 @@ std::map<std::string,std::optional<Location>> DiplomatLSP::_h_resolve_hier_path(
  *
  * @todo define a proper type as a metamodel.
  */
-json DiplomatLSP::_h_get_design_hierarchy(json _)
+json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
 {
 	json ret;
 
@@ -817,35 +830,35 @@ json DiplomatLSP::_h_get_design_hierarchy(json _)
 
 }
 
-void DiplomatLSP::_h_get_configuration(json &clientinfo)
-{
-	//TODO Cleanup
-	// _settings_path = fs::path(clientinfo[0]);
+// void DiplomatLSP::_h_get_configuration(json &clientinfo, std::stop_token tk)
+// {
+// 	//TODO Cleanup
+// 	// _settings_path = fs::path(clientinfo[0]);
 	
-	_accepted_extensions.clear();
-	for(const std::string& ext : clientinfo[1])
-	{
-		_accepted_extensions.emplace(ext);
-		spdlog::debug("Add accepted extension {}",ext);
-	}   
-}
+// 	_accepted_extensions.clear();
+// 	for(const std::string& ext : clientinfo[1])
+// 	{
+// 		_accepted_extensions.emplace(ext);
+// 		spdlog::debug("Add accepted extension {}",ext);
+// 	}   
+// }
 
-void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)
-{
-	_h_get_configuration(clientinfo);
-	//_compile();
-}
+// void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo, std::stop_token tk)
+// {
+// 	_h_get_configuration(clientinfo,tk);
+// 	//_compile();
+// }
 
-void DiplomatLSP::_h_update_configuration(json &params)
-{
-	spdlog::info("Update configuration received {}",params.dump(1));
-	slsp::types::ConfigurationItem conf_path;
-	conf_path.section = "diplomatServer.server.configurationPath";
+// void DiplomatLSP::_h_update_configuration(json &params, std::stop_token tk)
+// {
+// 	spdlog::info("Update configuration received {}",params.dump(1));
+// 	dlt::ConfigurationItem conf_path;
+// 	conf_path.section = "diplomatServer.server.configurationPath";
 
-	slsp::types::ConfigurationParams conf_request;
-	conf_request.items.push_back(conf_path);
-	send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
-}
+// 	dlt::ConfigurationParams conf_request;
+// 	conf_request.items.push_back(conf_path);
+// 	send_request("workspace/configuration",LSP_MEMBER_BIND(DiplomatLSP,_h_get_configuration),conf_request);
+// }
 
 
 /**
@@ -857,9 +870,9 @@ void DiplomatLSP::_h_update_configuration(json &params)
  * @param params An array with only one string, the hierarchical path of the scope to lookup.
  * @return json A map `symbol_name` to `references_ranges[]`
  */
-std::map<std::string,std::vector<slsp::types::Range>> DiplomatLSP::_h_list_symbols(std::string path)
+std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::string path, std::stop_token tk)
 {
-	std::map<std::string,std::vector<slsp::types::Range>> ret;
+	std::map<std::string,std::vector<dlt::Range>> ret;
 	
 	const di::IndexScope* lu_scope = _index->lookup_scope(path);
 	
@@ -895,3 +908,4 @@ std::map<std::string,std::vector<slsp::types::Range>> DiplomatLSP::_h_list_symbo
 
 	return ret;
 }
+} // namespace diplomat::app

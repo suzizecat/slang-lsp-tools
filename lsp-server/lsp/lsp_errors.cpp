@@ -1,7 +1,7 @@
 #include "lsp_errors.hpp"
 #include "nlohmann/json_fwd.hpp"
 
-namespace slsp {
+namespace diplomat::lsp {
     void to_json(nlohmann::json& j, const rpc_base_exception& e)
     {
         j = nlohmann::json({ {"code",e.code()},{"message",e.msg()} });

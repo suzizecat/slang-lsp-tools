@@ -1,15 +1,15 @@
 #include "spdlog/sinks/base_sink.h"
 #include "lsp.hpp"
 
-namespace slsp
+namespace diplomat::app
 {
     template<typename Mutex>
     class lsp_spdlog_sink : public spdlog::sinks::base_sink <Mutex>
     {
     public:
-        inline void set_target_lsp(BaseLSP* lsp) {_lsp = lsp;};
+        inline void set_target_lsp(lsp::BaseLSP* lsp) {_lsp = lsp;};
     protected:
-        BaseLSP* _lsp;
+        lsp::BaseLSP* _lsp;
         std::string _buffer;
         void sink_it_(const spdlog::details::log_msg& msg) override
         {
@@ -29,15 +29,15 @@ namespace slsp
 
         void flush_() override 
         {
-        _lsp->log(types::MessageType::MessageType_Log,_buffer);
+        _lsp->log(lsp::types::MessageType::MessageType_Log,_buffer);
         _buffer = "";
         }
     };
 }
 #include "spdlog/details/null_mutex.h"
 #include <mutex>
-namespace slsp
+namespace diplomat::app
 {
-using lsp_spdlog_sink_mt = lsp_spdlog_sink<std::mutex>;
-using lsp_spdlog_sink_st = lsp_spdlog_sink<spdlog::details::null_mutex>;
+using lsp_spdlog_sink_mt = diplomat::app::lsp_spdlog_sink<std::mutex>;
+using lsp_spdlog_sink_st = diplomat::app::lsp_spdlog_sink<spdlog::details::null_mutex>;
 }

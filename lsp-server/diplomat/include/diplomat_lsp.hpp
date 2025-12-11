@@ -23,51 +23,53 @@
 #include <filesystem>
 #include <thread>
 
+#include <stop_token>
 
 
 using json = nlohmann::json;
 
 
+namespace diplomat::app 
+{
 
-
-class DiplomatLSP : public slsp::BaseLSP
+class DiplomatLSP : public lsp::BaseLSP
 {
     protected:
 
-        void _h_didChangeWorkspaceFolders(json params);
-        void _h_didSaveTextDocument(slsp::types::DidSaveTextDocumentParams params);
-        void _h_didOpenTextDocument(json params);
-        void _h_didCloseTextDocument(slsp::types::DidCloseTextDocumentParams params);
-        json _h_completion(slsp::types::CompletionParams params);
-        json _h_formatting(slsp::types::DocumentFormattingParams params);
-        json _h_gotoDefinition(slsp::types::DefinitionParams params);
-        json _h_references(json params);
-        json _h_rename(json params);
-        void _h_exit(json params);
-        json _h_initialize(slsp::types::InitializeParams params);
-        void _h_initialized(json params);
-        void _h_setTrace(json params);
-        json _h_shutdown(json params);
+        void _h_didChangeWorkspaceFolders(json params, std::stop_token tk);
+        void _h_didSaveTextDocument(lsp::types::DidSaveTextDocumentParams params, std::stop_token tk);
+        void _h_didOpenTextDocument(json params, std::stop_token tk);
+        void _h_didCloseTextDocument(lsp::types::DidCloseTextDocumentParams params, std::stop_token tk);
+        json _h_completion(lsp::types::CompletionParams params, std::stop_token tk);
+        json _h_formatting(lsp::types::DocumentFormattingParams params, std::stop_token tk);
+        json _h_gotoDefinition(lsp::types::DefinitionParams params, std::stop_token tk);
+        json _h_references(json params, std::stop_token tk);
+        json _h_rename(json params, std::stop_token tk);
+        void _h_exit(json params, std::stop_token tk);
+        json _h_initialize(lsp::types::InitializeParams params, std::stop_token tk);
+        void _h_initialized(json params, std::stop_token tk);
+        void _h_setTrace(json params, std::stop_token tk);
+        json _h_shutdown(json params, std::stop_token tk);
 
-        void _h_set_project(slsp::types::DiplomatProject params);
+        void _h_set_project(lsp::types::DiplomatProject params, std::stop_token tk);
 
-        void _h_push_config(slsp::DiplomatLSPWorkspaceSettings params);
-        json _h_pull_config(json params);
-        void _h_get_configuration(json& params);
-        void _h_get_configuration_on_init(json& params);
-        void _h_update_configuration(json& params);
-        const std::vector< const ModuleBlackBox*>  _h_get_file_bb(std::string params);
-        std::vector<slsp::types::HDLModule> _h_get_modules(json _);
-        const std::vector< const ModuleBlackBox*> _h_get_module_bbox(slsp::types::HDLModule params);
-        void _h_set_top_module(std::optional<std::string> params);
-        std::vector<std::string> _h_project_tree_from_module(slsp::types::HDLModule params);
-        void _h_ignore(std::vector<std::string> params);
-        void _h_add_to_include(json params);
-        void _h_force_clear_index(json params);
+        void _h_push_config(DiplomatLSPWorkspaceSettings params, std::stop_token tk);
+        json _h_pull_config(json params, std::stop_token tk);
+        // void _h_get_configuration(json& params, std::stop_token tk);
+        // void _h_get_configuration_on_init(json& params, std::stop_token tk);
+        // void _h_update_configuration(json& params, std::stop_token tk);
+        const std::vector< const ModuleBlackBox*>  _h_get_file_bb(std::string params, std::stop_token tk);
+        std::vector<lsp::types::HDLModule> _h_get_modules(json _, std::stop_token tk);
+        const std::vector< const ModuleBlackBox*> _h_get_module_bbox(lsp::types::HDLModule params, std::stop_token tk);
+        void _h_set_top_module(std::string params, std::stop_token tk);
+        std::vector<std::string> _h_project_tree_from_module(lsp::types::HDLModule params, std::stop_token tk);
+        void _h_ignore(std::vector<std::string> params, std::stop_token tk);
+        void _h_add_to_include(json params, std::stop_token tk);
+        void _h_force_clear_index(json params, std::stop_token tk);
 
-        std::map<std::string,std::optional<slsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params);
-        json _h_get_design_hierarchy(json params);
-        std::map<std::string,std::vector<slsp::types::Range>> _h_list_symbols(std::string params);
+        std::map<std::string,std::optional<lsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params, std::stop_token tk);
+        json _h_get_design_hierarchy(json params, std::stop_token tk);
+        std::map<std::string,std::vector<lsp::types::Range>> _h_list_symbols(std::string params, std::stop_token tk);
 
         void _bind_methods();
 
@@ -88,7 +90,7 @@ class DiplomatLSP : public slsp::BaseLSP
         
         std::unordered_set<std::string> _accepted_extensions;
         std::filesystem::path _settings_path;
-        slsp::DiplomatLSPWorkspaceSettings _settings;
+        DiplomatLSPWorkspaceSettings _settings;
 
         /** 
         * May require further work, represents "includes" for the
@@ -96,7 +98,7 @@ class DiplomatLSP : public slsp::BaseLSP
         */
         std::vector<std::string> _included_folders;
 
-        std::shared_ptr<slsp::LSPDiagnosticClient> _diagnostic_client;
+        std::shared_ptr<LSPDiagnosticClient> _diagnostic_client;
 
         std::unique_ptr<diplomat::index::IndexCore> _index;
 
@@ -111,16 +113,16 @@ class DiplomatLSP : public slsp::BaseLSP
         std::unique_ptr<slang::SourceLibrary> _default_source_lib;
         
 
-        slsp::types::Location _slang_to_lsp_location(const slang::SourceRange& sr) const;
+        lsp::types::Location _slang_to_lsp_location(const slang::SourceRange& sr) const;
         // Needs line-col -> offset which is a bit tricky to do
         // Needs filepath -> BufferID() which is tricky.
-        // slang::SourceRange _lsp_to_slang_location(const slsp::types::Location& loc) const;
+        // slang::SourceRange _lsp_to_slang_location(const lsp::types::Location& loc) const;
 
-        static diplomat::index::IndexLocation _lsp_to_index_location(const slsp::types::TextDocumentPositionParams& loc);
-        slsp::types::Location _index_range_to_lsp(const diplomat::index::IndexRange& loc) const;
+        static diplomat::index::IndexLocation _lsp_to_index_location(const lsp::types::TextDocumentPositionParams& loc);
+        lsp::types::Location _index_range_to_lsp(const diplomat::index::IndexRange& loc) const;
 
-        void _add_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_add);
-        void _remove_workspace_folders(const std::vector<slsp::types::WorkspaceFolder>& to_rm);
+        void _add_workspace_folders(const std::vector<lsp::types::WorkspaceFolder>& to_add);
+        void _remove_workspace_folders(const std::vector<lsp::types::WorkspaceFolder>& to_rm);
 
         void _read_workspace_modules();
         void _read_filetree_modules();
@@ -146,10 +148,12 @@ class DiplomatLSP : public slsp::BaseLSP
         
         //void read_config(std::filesystem::path& filepath);
         void hello(json params);
-        void dump_index(json params);
+        void dump_index(json params, std::stop_token tk);
 
         void set_top_level(const std::string& new_top);
 
         inline void set_watch_client_pid(bool new_value) {_watch_client_pid = new_value;};
 
 };
+
+}

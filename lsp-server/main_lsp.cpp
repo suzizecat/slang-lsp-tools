@@ -9,7 +9,6 @@
 #include "nlohmann/json.hpp"
 #include "diplomat_lsp.hpp"
 #include "lsp_spdlog_sink.hpp"
-#include "lsp_default_binds.hpp"
 #include "rpc_transport.hpp"
 
 #include "types/structs/_InitializeParams.hpp"
@@ -25,54 +24,7 @@
 
 
 using json = nlohmann::json;
-using namespace slsp::types;
-void say_hello(slsp::BaseLSP* lsp, json& params)
-{
-    std::string name = params["name"].template get<std::string>();
-    lsp->show_message(MessageType::MessageType_Info,fmt::format("Hello {} !",name));
-    spdlog::info("Saying hello to {}",name);
-}
-
-void test_function(slsp::BaseLSP* lsp, json& params)
-{
-    lsp->show_message(MessageType::MessageType_Info,"Hello world !");
-    lsp->log(MessageType::MessageType_Info,"Somebody required to say hello.");
-    spdlog::info("Hello world !");
-}
-
-json adder(slsp::BaseLSP* lsp, json& params)
-{
-    int result = params["a"].template get<int>() + params["b"].template get<int>();
-    json ret;
-    ret["result"] = result;
-    return ret;
-}
-
-json initialize(slsp::BaseLSP* lsp, json& params)
-{
-    _InitializeParams p = params.template get<_InitializeParams>();
-    InitializeResult reply;
-    reply.capabilities = lsp->capabilities;
-    reply.serverInfo = InitializeResult_serverInfo{"Slang-LSP","0.0.1"};
-
-    TextDocumentSyncOptions sync;
-    sync.openClose = true;
-    sync.save = true;
-    sync.change = TextDocumentSyncKind::TextDocumentSyncKind_None;
-    reply.capabilities.textDocumentSync = sync;
-
-    lsp->set_initialized(true) ;
-    return reply;
-}
-
-
-void runner(slsp::BaseLSP& lsp)
-{
-    slsp::perform_default_binds(lsp);
-    
-    lsp.run();
-    spdlog::info("Clean exit.");
-}
+using namespace diplomat::lsp::types;
 
 int main(int argc, char** argv) {
     argparse::ArgumentParser prog("slang Language server", DIPLOMAT_VERSION_STRING );
@@ -126,17 +78,20 @@ int main(int argc, char** argv) {
     }
     
     // Setup SPDLOG
-    auto fwd_sink = std::make_shared<slsp::lsp_spdlog_sink_mt>();
+    auto fwd_sink = std::make_shared<diplomat::app::lsp_spdlog_sink_mt>();
 
     auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(prog.get<std::string>("--log"),true);
     file_sink->set_level(spdlog::get_level());
 
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_level(spdlog::get_level());
+    console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%t] [%n] [%^%-5!l%$] %v");
 
     auto logger = std::make_shared<spdlog::logger>("main");
     logger->set_level(spdlog::get_level());
     logger->flush_on(logger->level());
+
+    
 
     spdlog::set_default_logger(logger);
 
@@ -148,6 +103,7 @@ int main(int argc, char** argv) {
 
         if(prog.get<bool>("--forward-log"))
             spdlog::default_logger()->sinks().push_back(fwd_sink);
+        
         
         do
         {
@@ -162,14 +118,15 @@ int main(int argc, char** argv) {
                 std::istream tcp_input(&itf);
                 std::ostream tcp_output(&itf);
 
-                DiplomatLSP lsp(tcp_input,tcp_output);
+                diplomat::app::DiplomatLSP lsp(tcp_input,tcp_output);
 
                 if(prog.get<bool>("--forward-log"))
                 {
                     fwd_sink->set_target_lsp(&lsp);
                 }
                 
-                runner(lsp);
+                lsp.run();
+                spdlog::info("Clean exit.");
             }
             
             if(prog.get<bool>("--allow-reboot"))
@@ -193,7 +150,7 @@ int main(int argc, char** argv) {
         logger->info("Start new log.");
 
 
-        DiplomatLSP lsp = DiplomatLSP();
+        diplomat::app::DiplomatLSP lsp = diplomat::app::DiplomatLSP();
         lsp.set_rpc_use_endl(false);
         lsp.set_watch_client_pid(false);
 
@@ -206,7 +163,8 @@ int main(int argc, char** argv) {
             spdlog::default_logger()->sinks().push_back(fwd_sink);
         }
         spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
-        runner(lsp);
+        lsp.run();
+        spdlog::info("Clean exit.");
     }
     return 0;
 }

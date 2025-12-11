@@ -11,7 +11,7 @@ namespace slsp {
     int TCPInterfaceServer::_read_data()
     {
         int n = 0;
-        spdlog::trace("Read data from TCP");
+        // spdlog::trace("Read data from TCP");
         if(gptr() != egptr())
         {
             n = _sock.read(gptr(),_rx.end() - gptr());
@@ -22,8 +22,8 @@ namespace slsp {
             n = _sock.read(_rx.begin(),_rx.size());
             setg(_rx.begin(),_rx.begin(),_rx.begin()+n);
         }
-        spdlog::trace("Read data from TCP done, {} bytes read.",n);
-        spdlog::trace("{} bytes available in stream.",in_avail());
+        // spdlog::trace("Read data from TCP done, {} bytes read.",n);
+        // spdlog::trace("{} bytes available in stream.",in_avail());
         return n;
     }
 
@@ -36,7 +36,7 @@ namespace slsp {
 
         if (n > 0)
         {
-            spdlog::trace("Underflow, read data {}",std::string(buff));
+            // spdlog::trace("Underflow, read data {}",std::string(buff));
             return *gptr();
         }
         else

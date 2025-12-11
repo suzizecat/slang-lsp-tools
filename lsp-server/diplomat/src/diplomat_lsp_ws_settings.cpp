@@ -30,7 +30,7 @@
 // }
 
 
-namespace slsp
+namespace diplomat::app
 {
 
     SlangDiagDesignator::operator slang::DiagCode() const

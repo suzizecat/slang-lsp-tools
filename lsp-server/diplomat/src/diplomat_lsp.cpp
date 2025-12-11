@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <stdexcept>
+#include "types/structs/ExecuteCommandOptions.hpp"
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
@@ -31,7 +32,7 @@
 
 #include "uri.hh"
 
-using namespace slsp::types;
+using namespace diplomat::lsp::types;
 
 namespace fs = std::filesystem;
 
@@ -39,10 +40,12 @@ namespace fs = std::filesystem;
 /**
  * @brief Checks that the index is in a working state and may be used.
  * 
- * @param always_throw if set, throw on each call instead of the first failing one
+ * @param always_throw if sed::tt, throw on each call instead of the first failing one
  * @return true if the index is in a working state
  * @return false otherwise.
  */
+namespace diplomat::app 
+{
 bool DiplomatLSP::_assert_index(bool always_throw)
 {
     if (_index == nullptr)
@@ -50,12 +53,12 @@ bool DiplomatLSP::_assert_index(bool always_throw)
         if (!_broken_index_emitted || always_throw)
         {
             _broken_index_emitted = true;
-            throw slsp::lsp_request_failed_exception(
+            throw lsp::lsp_request_failed_exception(
                 "Request failed due to broken index."
                 "Try fixing any diagnostic before re - running.");
             
         }
-        log(slsp::types::MessageType::MessageType_Error, "Request failed due to broken index.");
+        log(lsp::types::MessageType::MessageType_Error, "Request failed due to broken index.");
         return false;
     }
     return true;
@@ -70,12 +73,12 @@ bool DiplomatLSP::_assert_index(bool always_throw)
  */
 DiplomatLSP::DiplomatLSP(std::istream &is, std::ostream &os, bool watch_client_pid) : BaseLSP(is, os), 
 _sm(new slang::SourceManager()),
-_diagnostic_client(new slsp::LSPDiagnosticClient(_cache,_sm.get())),
+_diagnostic_client(new LSPDiagnosticClient(_cache,_sm.get())),
 _watch_client_pid(watch_client_pid),
 _project_file_tree_valid(false),
 _broken_index_emitted(true)
 {
-    _unpack_args_for_customs = true;
+    _dispatcher.set_unpack_nonstandards_params(true);
     
     TextDocumentSyncOptions sync;
     sync.openClose = true;
@@ -101,17 +104,22 @@ _broken_index_emitted(true)
     capabilities.completionProvider = sc_completion;
 
     _bind_methods();    
+
+    // Actually advertise the available methods to the client.
+    ExecuteCommandOptions cmd_provider;
+    _dispatcher.transfer_supported_nonstandard_methods(cmd_provider.commands);
+    capabilities.executeCommandProvider = cmd_provider;
 }
 
 /**
  * @brief Convert a slang `SourceRange` to a LSP `Location` object.
  * 
  * @param sr Source range to convert
- * @return slsp::types::Location that matches.
+ * @return lsp::types::Location that matches.
  */
-slsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRange& sr) const
+lsp::types::Location DiplomatLSP::_slang_to_lsp_location(const slang::SourceRange& sr) const
 {
-    slsp::types::Location result;
+    lsp::types::Location result;
     result.range.start.line      = _sm->getLineNumber(sr.start()) -1;
     result.range.start.character = _sm->getColumnNumber(sr.start()) -1;
     
@@ -169,7 +177,7 @@ void DiplomatLSP::_bind_methods()
     bind_notification("$/setTrace", LSP_MEMBER_BIND(DiplomatLSP,_h_setTrace));
 
     bind_notification("initialized", LSP_MEMBER_BIND(DiplomatLSP,_h_initialized));
-    bind_notification("workspace/didChangeConfiguration", LSP_MEMBER_BIND(DiplomatLSP,_h_update_configuration));
+    // bind_notification("workspace/didChangeConfiguration", LSP_MEMBER_BIND(DiplomatLSP,_h_update_configuration));
     bind_notification("exit", LSP_MEMBER_BIND(DiplomatLSP,_h_exit));
         
     bind_request("shutdown", LSP_MEMBER_BIND(DiplomatLSP, _h_shutdown));
@@ -183,7 +191,7 @@ void DiplomatLSP::_bind_methods()
     bind_request("textDocument/references", LSP_MEMBER_BIND(DiplomatLSP, _h_references));
     bind_request("textDocument/rename", LSP_MEMBER_BIND(DiplomatLSP, _h_rename));
     bind_notification("workspace/didChangeWorkspaceFolders", LSP_MEMBER_BIND(DiplomatLSP, _h_didChangeWorkspaceFolders));
-    bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
+    //bind_request("workspace/executeCommand", LSP_MEMBER_BIND(DiplomatLSP,_execute_command_handler));
 }
 
 
@@ -220,15 +228,15 @@ void DiplomatLSP::_erase_diagnostics()
 
 }
 
-diplomat::index::IndexLocation DiplomatLSP::_lsp_to_index_location(const slsp::types::TextDocumentPositionParams& loc)
+diplomat::index::IndexLocation DiplomatLSP::_lsp_to_index_location(const lsp::types::TextDocumentPositionParams& loc)
 {
     fs::path source_path = fs::path("/" + uri(loc.textDocument.uri).get_path());
 	return diplomat::index::IndexLocation(source_path,loc.position.line +1, loc.position.character +1);
 }
 
-slsp::types::Location DiplomatLSP::_index_range_to_lsp(const diplomat::index::IndexRange& loc) const
+lsp::types::Location DiplomatLSP::_index_range_to_lsp(const diplomat::index::IndexRange& loc) const
 {
-    slsp::types::Location result;
+    lsp::types::Location result;
     result.range.start.line      = loc.start.line -1;
     result.range.start.character = loc.start.column -1;
     
@@ -451,7 +459,7 @@ void DiplomatLSP::_compile()
     for(auto dir : _settings.includes.user )
         _sm->addUserDirectories(dir);
 
-    _diagnostic_client.reset(new slsp::LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
+    _diagnostic_client.reset(new LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
 
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
@@ -662,7 +670,7 @@ void DiplomatLSP::hello(json _)
     log(MessageType_Info,"I said hello !");
 }
 
-void DiplomatLSP::dump_index(json _)
+void DiplomatLSP::dump_index(json _, std::stop_token _2 )
 {
     if(! _index)
     {
@@ -679,3 +687,4 @@ void DiplomatLSP::dump_index(json _)
         spdlog::info("Dumped internal index to {}",opath.generic_string());
     }
 }
+} //namespace diplomat::app

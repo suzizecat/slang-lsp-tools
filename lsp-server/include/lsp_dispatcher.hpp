@@ -28,6 +28,7 @@
 
 #include <optional>
 #include <thread>
+#include <stop_token>
 #include <future>
 #include <mutex>
 
@@ -45,30 +46,51 @@
 
 #include "lsp_errors.hpp"
 
-
 using json = nlohmann::json;
 
 
+#define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1, std::placeholders::_2)
 
 namespace diplomat::lsp {
 
-	typedef std::function<json(const json&)> request_handle_t;
-    typedef std::function<void(const json&)> notification_handle_t;
+	/** 
+	* A request is a function, taking a json object as its parameter and a stop token in order to 
+	* react to cancellation request (if relevant).
+	* Such function shall return a JSON object as a value (depending on the actual request).
+	*/
+	typedef std::function<json(const json&, std::stop_token)> request_handle_t;
+	/**
+	 * A notification is a function that takes JSON as an argument but is not expected to return any value.
+	 * It also includes a stop token to react to cancellation.
+	 */
+    typedef std::function<void(const json&, std::stop_token)> notification_handle_t;
 
 	MAKE_BASIC_SRV_EXCEPTION(client_timeout_error);
+
+	/**
+	 * @brief Exception produced when a cancel request is produced for easy exit of current processing.
+	 */
+	MAKE_BASIC_SRV_EXCEPTION(client_cancel_request_exception);
 
 	/**
 	 * @brief This class implements a generic command dispatcher
 	 * 
 	 * It is expected that the server only handle one client command at a time.
 	 * However, it is very much possible to request multiple requests before completion of an expensive operation.
-	 * Therefore, it is mandatory to handle multiples incomming requests.
+	 * Therefore, it is mandatory to handle multiples incoming requests.
 	 *
 	 * Also, the dispatcher shall be able to handle the cancellation requests and reverse requests (from the server to the client).
 	 */
 	class LSPCommandDispatcher {
 		protected:
-
+			/**
+			 * @brief The running flag of the dispatcher.
+			 *
+			 * It is set to true by the constructor and cleared by the #stop() command.
+			 * Setting it to false will allow exiting the #run() function.
+			 * In this case, the dispatcher should be discarded.
+			 */
+			bool _running; 
 			/** The attached command interface */
 			rpc::RPCPipeTransport _rpc;
 
@@ -89,10 +111,20 @@ namespace diplomat::lsp {
 			std::unordered_map<std::string, request_handle_t> _bound_requests;
 			/** Stored handlers for notifications (functions without return values) */
 			std::unordered_map<std::string, notification_handle_t> _bound_notifs;
-
 			/** 
-			* When receiving non-standards commands, some client (VSCode) will send arrays
-			* instead of a single argument object. If true, unpack those arguments
+			* Function that is always executed *before* the actual handling of any command
+            *
+			* Returning false will silently discard the call, while throwing a diplomat::lsp::rpc_base_exception or derived will
+			* propagate it appropriately.
+			* If unbound, assume that there is no filtering. 
+			*/
+			std::optional<std::function< bool(const std::string&, const json&)>> _bound_filter;
+			
+			/** 
+			* When receiving non-standards commands (through workspace/executeCommand) the arguments will be 
+			* transmitted as an array of objects.
+			* If true, unpack this array if only one argument is found.
+			* Otherwise, return an empty JSON (if empty array) or the array itself.
 			*/
 			bool _unpack_non_standard_args;
 
@@ -101,10 +133,10 @@ namespace diplomat::lsp {
 			std::jthread _worker;
 			/** Worker running wrapper */
 			std::mutex _work_mutex;
-			bool _worker_running;
+			volatile bool _worker_running;
 			std::condition_variable _worker_cv;
 			/** Ongoing ID used for cancellation*/
-			std::optional<std::string> _ongoing_id;
+			json _ongoing_id;
 			std::string _ongoing_method;
 			nlohmann::json _ongoing_params;
 
@@ -141,9 +173,8 @@ namespace diplomat::lsp {
 			 * @param method method name to invoke
 			 * @param params parameter object to send.
 			 * @param id id for the transaction, see the LSP specification for more details.
-			 * @return std::string return the ID. Will be equivalent to #id for a better interface without the ID argument.
 			 */
-			std::string _send_rpc_call(const std::string& method, const json& params, const std::string& id);
+			void _send_rpc_call(const std::string& method, const json& params, const std::optional<std::string> id);
 
 			/**
 			 * @brief Invoke a registered method, regardless of the fact that it is a notification
@@ -161,7 +192,7 @@ namespace diplomat::lsp {
 			 * 
 			 * @param _data JSON message to handle
 			 */
-			void _process_input_message(const json& data ); 
+			bool _process_input_message(const json& data ); 
 
 			/**
 			 * @brief Read the input, act on it for specific messages (replies and cancellations) 
@@ -176,6 +207,17 @@ namespace diplomat::lsp {
 			/**
 			 * @brief Construct a new LSPCommandDispatcher connected to the client through 
 			 * the provided streams.
+			 *
+			 * Recommended usage is: 
+			 * \code {.cpp}
+			 *	// some code ... 
+			 *	{
+			 *		LSPCommandDispatcher dispatcher(in, out); 
+			 *		dispatcher.run(); 
+			 *		// run() is a blocking call, upon exiting, the whole dispatcher should be deleted.
+			 *	}
+			 *	// some other code, cleanup and stuff.
+			 * \endcode
 			 * 
 			 * @param is Input stream (from client to server)
 			 * @param os output stream (from server to client)
@@ -199,6 +241,15 @@ namespace diplomat::lsp {
 			 * @param allow_override Allow replacing an already bound handler.
 			 */
 			void bind_notification(const std::string& fct_name, notification_handle_t cb, bool allow_override = false);
+			
+			/**
+			 * @brief Bind a filtering function in order to allow rejecting all calls before their execution.
+			 * 
+			 * @sa #_bound_filter
+			 * @param filter Filtering function, returning false in order to silently ignore a call or 
+			 * throwing an exception for a non-silent rejection.
+			 */
+			void bind_call_filter(std::function< bool(const std::string&, const json&)> filter);
 
 			/**
 			 * @brief Sends a notification to the client
@@ -215,7 +266,10 @@ namespace diplomat::lsp {
 			 * 
 			 * @param method Method to invoke
 			 * @param args Arguments object to send
+
 			 * @return json Return value
+			 * @throws client_cancel_request_exception when interrupted by client request.
+			 * @throws client_timeout_error when upon reaching timeout
 			 */
 			json request_client(const std::string& method, const json& args);
 
@@ -245,7 +299,7 @@ namespace diplomat::lsp {
 			 *
 			 * @param e the exception to forward as an error message.
 			 */
-			void forward_exception(const slsp::rpc_base_exception& e);
+			void forward_exception(const rpc_base_exception& e);
 
 			/**
 			 * @brief Forward result to the client
@@ -256,6 +310,23 @@ namespace diplomat::lsp {
 			 */
 			void forward_result(const nlohmann::json& val); 
 			
+			/**
+			 * @brief Set the additional endl inserted at the end of RPC messages.
+			 * Used for debug and/or compatibility.
+			 * 
+			 * @param use_endl : new value.
+			 */
+			inline void set_rpc_use_endl(const bool use_endl){_rpc.set_endl(use_endl);};
+
+			/**
+			 * @brief Set the unpack non-standards params property
+			 *
+			 * When set, the parameters for non-standards calls will be unpacked if they were in an array
+			 * 
+			 * @param unpack set to true to enable the unpacking
+			 */
+			inline void set_unpack_nonstandards_params(const bool unpack){_unpack_non_standard_args = unpack;};
+
 			/**
 			 * @brief Push the name of all non-LSP standard method bound to this dispatcher.
 			 * 
@@ -315,5 +386,19 @@ namespace diplomat::lsp {
 			 * Meaning that the server is shutting down.
 			 */
 			void run();
+
+			/**
+			 * @brief Request an exit from the dispatcher running function, meaning putting it out of service.
+			 * @sa #_running
+			 */
+			inline void stop() {_running = false;};
+
+			/**
+			 * @brief Generate an UUID through the internal UUID generator
+			 * 
+			 * @note this is made public as a convenience to avoid rebuilding the UUID infrastructure
+			 * @return std::string generated UUID
+			 */
+			inline std::string get_uuid() { return uuids::to_string(_uuid());}
 	};
 }

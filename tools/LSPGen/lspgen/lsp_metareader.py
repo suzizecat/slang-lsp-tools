@@ -30,6 +30,12 @@ class LSPMetareader:
 		# Manually added mixins for elements. Keyed by elements name.
 		self.added_mixins :   _T.Dict[str,_T.List[str]] = dict()
 
+		self.target_namespace = ["diplomat","lsp","types"]
+
+
+	@property
+	def namespace_string(self) :
+		return "::".join(self.target_namespace)
 
 	def read(self, path):
 		with open(path, "r",encoding="utf-8") as f:
@@ -201,14 +207,14 @@ class LSPMetareader:
 			with open(f"{struct_path}/{d.type.type_name}.hpp","w") as f :
 				generated_list.append(f.name)
 				include_list.append(f"../structs/{d.type.type_name}.hpp")
-				f.write(d.as_cpp_file(None,["slsp","types"]))
+				f.write(d.as_cpp_file(None,self.target_namespace))
 		print(f"Processed {len(self.structures)} structures")
 
 		with open(f"{sources_path}/structs_json_bindings.cpp","w") as f :
 			includes = "\n".join([f'#include "{x}"' for x in include_list])
 			idt = IndentHandler()
 			f.write(includes)
-			f.write(f"\n\n{idt}namespace slsp::types {{\n")
+			f.write(f"\n\n{idt}namespace {self.namespace_string} {{\n")
 			idt.add_indent_level()
 			for s in self.structures.values():
 				f.write(s.json_binding(idt))
@@ -221,7 +227,7 @@ class LSPMetareader:
 				generated_list.append(f.name)
 				if e.require_json_bindings :
 					enum_list.append(e)
-				f.write(e.as_cpp_file(None,["slsp","types"]))
+				f.write(e.as_cpp_file(None,self.target_namespace))
 		
 		
 		with open(f"{sources_path}/enums_json_bindings.cpp","w") as f :
@@ -229,7 +235,7 @@ class LSPMetareader:
 			includes = "\n".join([f'#include "{x}"' for x in include_list])
 			idt = IndentHandler()
 			f.write(includes)
-			f.write(f"\n\n{idt}namespace slsp::types {{\n")
+			f.write(f"\n\n{idt}namespace {self.namespace_string} {{\n")
 			idt.add_indent_level()
 			for e in enum_list:
 				f.write(e.as_cpp_to_json(idt))
@@ -243,7 +249,7 @@ class LSPMetareader:
 
 		with open(f"{methods_path}/lsp_reserved_methods.hpp","w") as f :
 			generated_list.append(f.name)
-			f.write(self.methods.as_cpp_file(None,["slsp","types"]))
+			f.write(self.methods.as_cpp_file(None,self.target_namespace))
 		print(f"Processed {len(self.methods.content)} methods")
 
 		with open(f"{root}/generated_headers.cmake","w") as f:

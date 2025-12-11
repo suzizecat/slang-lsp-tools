@@ -23,12 +23,12 @@ class typename : public rpc_base_exception{\
 };
 
 #define MAKE_BASIC_SRV_EXCEPTION(typename) \
-class typename : public slsp::server_side_base_exception{\
+class typename : public server_side_base_exception{\
     public:\
     typename(const std::string msg) : server_side_base_exception(msg) {};\
 };
 
-namespace slsp {
+namespace diplomat::lsp {
 
     /**
      * @brief Base class for RPC exception (and, by extension any LSP exception)

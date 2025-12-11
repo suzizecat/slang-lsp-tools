@@ -10,7 +10,7 @@
 #include "nlohmann/json.hpp"
 #include "slang/diagnostics/Diagnostics.h"
 
-namespace slsp
+namespace diplomat::app
 {
 
 	typedef struct SlangDiagDesignator
