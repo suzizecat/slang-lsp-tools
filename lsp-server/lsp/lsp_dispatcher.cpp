@@ -100,15 +100,11 @@ namespace diplomat::lsp {
 		// Here we have either a new function call (cancelRequest included) or a 
 		// ResponseMessage. 
 		// Requests impose the presence of "method", otherwise it is a reply.
+		//
+		// ID is *not* mandatory, as you may have a notification
 		json new_call = _rpc.get();
 		spdlog::debug("Handling of {}",new_call.dump());
 
-
-		// if(! new_call.contains("id"))
-		// {
-		// 	spdlog::error("Invalid RPC object: no ID field provided:\n{}",new_call.dump(1));
-		// 	throw rpc_invalid_request_error("Received a RPC message without 'id' field");
-		// }
 
 		
 		json tgt_id;
