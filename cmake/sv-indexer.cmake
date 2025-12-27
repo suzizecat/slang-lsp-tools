@@ -4,6 +4,7 @@ LIB_SRC
     PRIVATE indexer/index_symbols.cpp
     PRIVATE indexer/index_file.cpp
     PRIVATE indexer/index_scope.cpp
+    PRIVATE indexer/index_scopetree_node.cpp
     PRIVATE indexer/index_core.cpp
     PRIVATE indexer/index_visitor.cpp
     PRIVATE indexer/index_reference_visitor.cpp

@@ -15,6 +15,12 @@
 
 #include "nlohmann/json.hpp"
 
+/**
+ * @brief The index namespace contains all the structures required 
+ * to hold the source index used by diplomat.
+ * 
+ * As diplomat works with slang as a base, it will also include the visitors for the AST and CST.
+ */
 namespace diplomat::index
 {
 	

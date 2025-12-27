@@ -85,7 +85,7 @@ index::IndexRange::IndexRange(const IndexLocation& base, std::size_t nchars, std
 	end.line += nlines;
 }
 
-bool IndexRange::contains(const IndexLocation& loc)
+bool IndexRange::contains(const IndexLocation& loc) const 
 {
 	if(loc.file != start.file)
 		return false;
@@ -103,7 +103,7 @@ bool IndexRange::contains(const IndexLocation& loc)
 
 }
 
-bool IndexRange::contains(const IndexRange &loc)
+bool IndexRange::contains(const IndexRange &loc) const
 {
 	if(loc.start.file != start.file)
 		return false;

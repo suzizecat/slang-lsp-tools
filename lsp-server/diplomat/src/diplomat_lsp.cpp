@@ -37,15 +37,10 @@ using namespace diplomat::lsp::types;
 namespace fs = std::filesystem;
 
 
-/**
- * @brief Checks that the index is in a working state and may be used.
- * 
- * @param always_throw if sed::tt, throw on each call instead of the first failing one
- * @return true if the index is in a working state
- * @return false otherwise.
- */
 namespace diplomat::app 
 {
+
+
 bool DiplomatLSP::_assert_index(bool always_throw)
 {
     if (_index == nullptr)
@@ -453,11 +448,14 @@ void DiplomatLSP::_compile()
     _sm.reset(new slang::SourceManager());
     
     for(auto dir : _included_folders)
-        _sm->addUserDirectories(dir);
+        if(_sm->addUserDirectories(dir))
+            spdlog::error("Invalid include directory (might not exist or is not accessible): {}", dir);
     for(auto dir : _settings.includes.system )
-        _sm->addUserDirectories(dir);
+        if(_sm->addSystemDirectories(dir))
+            spdlog::error("Invalid include directory (might not exist or is not accessible): {}", dir);
     for(auto dir : _settings.includes.user )
-        _sm->addUserDirectories(dir);
+        if(_sm->addUserDirectories(dir))
+            spdlog::error("Invalid include directory (might not exist or is not accessible): {}", dir);
 
     _diagnostic_client.reset(new LSPDiagnosticClient(_cache,_sm.get(),_diagnostic_client.get()));
 

@@ -110,8 +110,8 @@ namespace index
 		IndexRange(const IndexLocation& base, std::size_t nchars, std::size_t nlines = 0);
 		
 
-		bool contains(const IndexLocation& loc);
-		bool contains(const IndexRange& loc);
+		bool contains(const IndexLocation& loc) const;
+		bool contains(const IndexRange& loc) const ;
 
 		bool operator==(const IndexRange& rhs) const;
 	};

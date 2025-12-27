@@ -234,6 +234,7 @@ namespace diplomat::index
         inline void set_source(const IndexRange& range) {_source_range = range;};
         inline const std::optional<IndexRange>& get_source_range() const { return _source_range;};
         inline bool is_anonymous() const { return _anonymous;};
+        inline bool is_virtual() const { return _is_virtual;};
     };  
 
 
