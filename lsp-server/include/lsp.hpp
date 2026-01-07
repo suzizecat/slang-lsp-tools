@@ -59,6 +59,7 @@ namespace diplomat::lsp{
          */
         LSPCommandDispatcher _dispatcher;
 
+
         bool _is_initialized;
         bool _is_stopping;
         bool _is_stopped;

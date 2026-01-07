@@ -1,5 +1,7 @@
 #include "index_reference_visitor.hpp"
 #include "index_elements.hpp"
+#include "index_scopetree_node.hpp"
+#include "index_symbols.hpp"
 #include <spdlog/spdlog.h>
 #include <vector>
 namespace diplomat::index
@@ -11,7 +13,7 @@ namespace diplomat::index
 		spdlog::trace("    Found reference for name {} at {}", name, node_loc.start.to_string());
 		IndexFile* parent_file = _index->add_file(node_loc.start.file);
 
-		IndexScope* ref_scope = parent_file->lookup_scope_by_range(node_loc);
+		IndexScopeTreeNode* ref_scope = parent_file->lookup_scope_by_range(node_loc);
 		if(! ref_scope)
 		{
 			spdlog::trace("        Reference dropped: missing scope");
@@ -24,38 +26,38 @@ namespace diplomat::index
 
 		if(! main_symb)
 		{
-			const auto* additionnal_scopes = parent_file->get_additionnal_scopes();
-			if(additionnal_scopes->size() > 0)
-			{
-				std::vector<std::string> invalid_paths;
-				for(auto& [path, scope] : *additionnal_scopes )
-				{
-					IndexScope* studied_scope = scope;
-					if(studied_scope == nullptr)
-					{
-						studied_scope = _index->lookup_scope(path);
-						if(studied_scope)
-							parent_file->record_additionnal_lookup_scope(path,studied_scope);
-						else
-							// Do not directly invalidate as it messes up the for loop by changing "additionnal_scopes".
-							invalid_paths.push_back(path);
+			// const auto* additionnal_scopes = parent_file->get_additionnal_scopes();
+			// if(additionnal_scopes->size() > 0)
+			// {
+			// 	std::vector<std::string> invalid_paths;
+			// 	for(auto& [path, scope] : *additionnal_scopes )
+			// 	{
+			// 		IndexScope* studied_scope = scope;
+			// 		if(studied_scope == nullptr)
+			// 		{
+			// 			studied_scope = _index->lookup_scope(path);
+			// 			if(studied_scope)
+			// 				parent_file->record_additionnal_lookup_scope(path,studied_scope);
+			// 			else
+			// 				// Do not directly invalidate as it messes up the for loop by changing "additionnal_scopes".
+			// 				invalid_paths.push_back(path);
 							
-					}
+			// 		}
 
-					if(studied_scope)	
-					{
-						spdlog::trace("         Trying additionnal lookup in {}",studied_scope->get_name());
-						main_symb = studied_scope->lookup_symbol(symb_name);
-					}
+			// 		if(studied_scope)	
+			// 		{
+			// 			spdlog::trace("         Trying additionnal lookup in {}",studied_scope->get_name());
+			// 			main_symb = studied_scope->lookup_symbol(symb_name);
+			// 		}
 
-					if(main_symb)
-						break;
-				}
+			// 		if(main_symb)
+			// 			break;
+			// 	}
 
-				// Invalidate postponed paths
-				for(const auto& path : invalid_paths)
-					parent_file->invalidate_additionnal_lookup_scope(path);
-			}
+			// 	// Invalidate postponed paths
+			// 	for(const auto& path : invalid_paths)
+			// 		parent_file->invalidate_additionnal_lookup_scope(path);
+			// }
 		}
 
 		if(! main_symb)
@@ -74,14 +76,14 @@ namespace diplomat::index
 	void ReferenceVisitor::_select_instance_scope(const IndexLocation& curr_scope_loc,
 	                                              const ::std::string_view& next_scope)
 	{
-		IndexScope* curr_scope = _index->get_scope_by_position(curr_scope_loc);
+		IndexScopeTreeNode* curr_scope = _index->get_scope_by_position(curr_scope_loc);
 		if(! curr_scope)
 		{
 			_instance_scope = nullptr;
 		}
 		else
 		{
-			IndexScope* new_scope = curr_scope->get_scope_by_name(next_scope);
+			IndexScopeTreeNode* new_scope = curr_scope->get_scope_by_name(next_scope);
 			_instance_scope = new_scope ? new_scope : curr_scope; 
 		}
 	}

@@ -1,12 +1,18 @@
 #include "index_core.hpp"
+#include "index_exceptions.hpp"
 #include "index_reference_visitor.hpp"
+#include "index_scopetree_node.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <memory>
 #include <spdlog/spdlog.h>
 
 namespace diplomat::index {
-	IndexScope* IndexCore::set_root_scope(const std::string name)
+	IndexScopeTreeNode* IndexCore::set_root_scope(const std::string name)
 	{
-		_root.reset(new IndexScope(name,false));
+		_root.reset(new IndexScopeTreeNode(nullptr, name,nullptr,false));
 		return _root.get();
 	}
 
@@ -42,11 +48,45 @@ namespace diplomat::index {
 		return _files.at(lookup_path).get();
 	}
 
-	IndexSymbol *IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind)
+	IndexSymbol* IndexCore::add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind)
 	{
 		IndexFile* f = add_file(src_range.start.file);
-		IndexSymbol* s = f->add_symbol(name,src_range,kind);
+		IndexScopeTreeNode* scope = f->lookup_scope_by_range(src_range);
+		if(! scope)
+			return nullptr;
+
+		
+		IndexSymbol* s = scope->add_symbol(std::make_unique<IndexSymbol>(name, src_range));
+		f->add_symbol(s);
 		return s;
+	}
+
+	IndexSymbol* IndexCore::add_symbol(IndexSymbol* symb, const std::string_view& kind)
+	{
+		if(symb->get_source())
+		{
+			IndexFile* f = add_file(symb->get_source_location()->file);
+			f->add_symbol(symb);
+		}
+		else {
+			throw index_exception("Tried to register a symbol without location");
+		}
+		return symb;
+	}
+
+	IndexScopeTreeNode* IndexCore::get_cached_scope(const uintptr_t ref_ptr)
+	{
+		auto lu_result = _cached_scopes.find(ref_ptr);
+		return lu_result == _cached_scopes.end() ? nullptr : lu_result->second;
+	}
+
+	void IndexCore::cache_scope(const uintptr_t ref_ptr, IndexScopeTreeNode* const scope)
+	{
+		auto lu_result = _cached_scopes.find(ref_ptr);
+		if(lu_result != _cached_scopes.end())
+			throw index_exception(fmt::format("Tried to cache a scope multiple times. Tried to cache {}, had {}", scope->get_full_path(), lu_result->second->get_full_path()));
+		else
+			_cached_scopes.emplace(ref_ptr, scope);
 	}
 
 	nlohmann::json IndexCore::dump_symbol_list() const
@@ -66,7 +106,7 @@ namespace diplomat::index {
 		return ret;
 	}
 
-	IndexScope* IndexCore::get_scope_by_position(const IndexLocation& pos)
+	IndexScopeTreeNode* IndexCore::get_scope_by_position(const IndexLocation& pos)
 	{
 		if(! _files.contains(pos.file))
 			return nullptr;
@@ -82,7 +122,7 @@ namespace diplomat::index {
 		return ref_file->lookup_symbol_by_location(pos);
 	}
 
-	IndexScope* IndexCore::lookup_scope(const std::string_view& path)
+	IndexScopeTreeNode* IndexCore::lookup_scope(const std::string_view& path)
 	{
 		return _root->resolve_scope(path);
 	}

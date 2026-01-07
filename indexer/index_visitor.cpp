@@ -1,6 +1,13 @@
 #include "index_visitor.hpp"
+#include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include "fmt/format.h"
+#include "index_elements.hpp"
+#include "index_exceptions.hpp"
+#include "index_scopetree_node.hpp"
+#include "index_symbols.hpp"
+#include "slang/ast/Symbol.h"
 #include <spdlog/spdlog.h>
 #include <slang/ast/types/DeclaredType.h>
 #include <slang/parsing/Token.h>
@@ -10,7 +17,7 @@ using namespace slang::ast;
 
 namespace diplomat::index {
 	
-	void IndexVisitor::_open_scope(const std::string &name, bool is_virtual)
+	void IndexVisitor::_open_scope(const std::string &name, bool is_virtual, std::shared_ptr<IndexScope> data)
 	{
 		
 		if(_scope_stack.empty())
@@ -19,11 +26,16 @@ namespace diplomat::index {
 		}
 		else
 		{
-			_scope_stack.push(_scope_stack.top()->add_child(name, is_virtual));
+			IndexScopeTreeNode* added;
+			if(name.empty())
+				added = _scope_stack.top()->add_anon_child(data, is_virtual);
+			else 
+				added = _scope_stack.top()->add_child(name, data, is_virtual);
+			_scope_stack.push(added);
 		}
 	}
 
-	void IndexVisitor::_open_scope(const std::string_view &name, bool is_virtual)
+	void IndexVisitor::_open_scope(const std::string_view &name, bool is_virtual, std::shared_ptr<IndexScope> data)
 	{
 		_open_scope(std::string(name),is_virtual);
 	}
@@ -31,13 +43,13 @@ namespace diplomat::index {
 
 	void IndexVisitor::_close_scope(const std::string_view& name)
 	{
-		const IndexScope * curr_scope = _current_scope();
+		const IndexScopeTreeNode * curr_scope = _current_scope();
 		
 		if (curr_scope == nullptr)
 			throw std::logic_error(fmt::format("Attempting to close scope {} while no scope are open.",name));
-		else if(curr_scope->is_anonymous() && ! name.empty() && name != curr_scope->get_name())
-			throw std::logic_error(fmt::format("Attempting to close scope {} while current scope is anonymous ({})",name, _current_scope()->get_name()));
-		else if(! curr_scope->is_anonymous() && name != curr_scope->get_name())
+		// else if(curr_scope->is_anonymous() && ! name.empty() && name != curr_scope->get_name())
+		// 	throw std::logic_error(fmt::format("Attempting to close scope {} while current scope is anonymous ({})",name, _current_scope()->get_name()));
+		else if(! name.empty() && name != curr_scope->get_name())
 			throw std::logic_error(fmt::format("Attempting to close scope {} while current scope name is {}",name, _current_scope()->get_name()));
 		else
 			_scope_stack.pop();
@@ -51,8 +63,9 @@ namespace diplomat::index {
 		case SyntaxKind::IdentifierName:
 			{
 				const IdentifierNameSyntax& stx = node->as<IdentifierNameSyntax>();
-				IndexSymbol* new_symb = _index->add_symbol(stx.identifier.rawText(),{stx.identifier.range(),*_sm});
-				_current_scope()->add_symbol(new_symb);
+				// IndexSymbol* new_symb = _index->add_symbol(stx.identifier.rawText(),{stx.identifier.range(),*_sm});
+				_index->add_symbol( _current_scope()->add_symbol(std::make_unique<IndexSymbol>(stx, *_sm)));
+				
 			}	
 			break;
 		
@@ -74,9 +87,18 @@ namespace diplomat::index {
 			if(stx)
 			{
 
-				IndexSymbol* new_symb = _index->add_symbol(node.name,{stx->sourceRange(),*_sm}, slang::ast::toString(node.kind));
-				_current_scope()->add_symbol(new_symb);
-				spdlog::debug("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				// In generate blocks, some variable defined as parameters (iterator in for-generate)
+				// Are re-emitted by slang for whatever reason, so they need to be filtered out.
+				if(node.kind == slang::ast::SymbolKind::Parameter && _current_scope()->lookup_symbol(stx->getFirstToken().rawText()))
+				{
+					// The node is actually present in the parent scope
+					spdlog::debug("Skipped redundant symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				}
+				else
+				{
+					_index->add_symbol(_current_scope()->add_symbol(std::make_unique<IndexSymbol>(*stx,*_sm)));
+					spdlog::debug("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
+				}
 			}
 			else
 				spdlog::debug("Skipped symbol without def {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
@@ -87,11 +109,11 @@ namespace diplomat::index {
 		//visitDefault(node);
 	}
 
-	void IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const std::string_view& scope_name, const bool is_virtual )
+	IndexScopeTreeNode* IndexVisitor::_default_scope_handle(const slang::ast::Scope &node, const std::string_view& scope_name, const bool is_virtual )
 	{
 		using namespace slang;
 		const Symbol& s = node.asSymbol();
-		spdlog::info("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
+		spdlog::debug("Handling of scope {} of kind {}",scope_name, slang::ast::toString(s.kind));
 					
 		std::string_view used_scope_name = scope_name;
 
@@ -105,7 +127,7 @@ namespace diplomat::index {
 				containing_file->set_syntax_root(stx);
 				for(const auto& member : node.members())
 					member.visit(*this);
-				return;
+				return nullptr;
 			}
 			// else if(s.kind == slang::ast::SymbolKind::Subroutine)
 			// {
@@ -128,26 +150,26 @@ namespace diplomat::index {
 					containing_file->set_syntax_root(stx);
 				}
 				IndexRange scope_range = IndexRange(stx->sourceRange(),*_sm);
-				IndexScope* duplicate = _current_scope()->get_child_by_exact_range(scope_range);
-				if(duplicate) 
-				{
-					_current_scope()->add_child_alias(duplicate->get_name(),std::string(scope_name));
-					_open_scope(duplicate->get_name(),is_virtual);
+				// IndexScopeTreeNode* duplicate = _current_scope()->get_child_by_exact_range(scope_range);
+				// if(duplicate) 
+				// {
+				// 	_current_scope()->add_child_alias(duplicate->get_name(),std::string(scope_name));
+				// 	_open_scope(duplicate->get_name(),is_virtual);
 
-					used_scope_name = duplicate->get_name();
-					spdlog::info("    Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
-				}
-				else
-				{
+				// 	used_scope_name = duplicate->get_name();
+				// 	spdlog::info("    Opened scope {} instead of requested duplicate {}", used_scope_name, scope_name);
+				// }
+				// else
+				// {
 					_open_scope(scope_name,is_virtual);
 					_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
 					
 					containing_file->register_scope(_current_scope());
 
-					#ifdef DIPLOMAT_DEBUG
-					_current_scope()->set_kind(slang::ast::toString(node.asSymbol().kind));
-					#endif
-				}
+					// #ifdef DIPLOMAT_DEBUG
+					// _current_scope()->set_kind(slang::ast::toString(node.asSymbol().kind));
+					// #endif
+				// }
 
 			}
 		}
@@ -156,15 +178,18 @@ namespace diplomat::index {
 			_open_scope(scope_name);
 		}
 
+		IndexScopeTreeNode* ret = _current_scope();
 		//_default_symbol_handle(s);
 		for(const auto& member : node.members())
 			member.visit(*this);
 		_close_scope(used_scope_name);
+
+		return ret;
 	}
 
-	void IndexVisitor::_default_scope_handle(const slang::ast::Scope& node, const bool is_virtual)
+	IndexScopeTreeNode* IndexVisitor::_default_scope_handle(const slang::ast::Scope& node, const bool is_virtual)
 	{
-		_default_scope_handle(node,node.asSymbol().name,is_virtual);
+		return _default_scope_handle(node,node.asSymbol().name,is_virtual);
 	}
 
 	void IndexVisitor::handle(const slang::ast::Scope& node)
@@ -209,36 +234,63 @@ namespace diplomat::index {
 	void IndexVisitor::handle(const slang::ast::InstanceSymbol& node)
 	{
 		using namespace slang::syntax;
-
-		const SyntaxNode* mod = node.body.getSyntax();
 		
 		// Visit the scope before the next code block in order to setup the scope.
 		_default_symbol_handle(node);
-		//visitDefault(node);
-
-		_default_scope_handle(node.body,node.name,false);
-
-		// When running into an instance, add the declared type to the scope of the instance.
-		// This allows adding the module name to a scope related to its source file easily.
-		if(mod)
+		
+		// getCanonicalBody will return 0 on the canonical body itself
+		// Therefore, it should have been cached previously if it is non-zero
+		// And the scope should be cached otherwise.
+		const uintptr_t ref_scope_key = reinterpret_cast<const uintptr_t>(node.getCanonicalBody());
+		
+		if(ref_scope_key)
 		{
-			// Using get_scope_by_name will resolve any duplicated scope.
-			IndexScope* module_scope = _current_scope()->get_scope_by_name(node.name);
-			if(! module_scope)
+			IndexScopeTreeNode* cached_scope = _index->get_cached_scope(ref_scope_key);
+			if(cached_scope)
 			{
-				spdlog::error("Failed to lookup the expected child scope '{}' from {}", node.name, _current_scope()->get_full_path());	
+				spdlog::debug("Hit cached scope {} for {}",cached_scope->get_name(), node.name);
+				_current_scope()->add_subtree_child(cached_scope, std::string{node.name});
+				return ;
 			}
 			else
 			{
-				// Manual insertion of the module name as a symbol to the target scope...
-				_open_scope(module_scope->get_name(),false);
-				const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
-				IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
-				_current_scope()->add_symbol(new_symb);
+				spdlog::error("Missed cache reference for scope {} while non-canon body.", node.name);
+			}
+		}
+		// else
+		{
+			IndexScopeTreeNode* new_scope = _default_scope_handle(node.body,node.name,false);
+			if(! new_scope)
+				throw index_exception("Instance symbol scope handling returned a nullptr scope.");
 
-				spdlog::info("Added symbol with location {}.{} of kind <Module>",_current_scope()->get_full_path(),inst_typename.rawText());
-				
-				_close_scope(module_scope->get_name());
+			spdlog::debug("Add scope to cache {}", new_scope->get_name());
+			_index->cache_scope(reinterpret_cast<uintptr_t>(&(node.body)), new_scope);
+
+	
+
+			// When running into an instance, add the declared type to the scope of the instance.
+			// This allows adding the module name to a scope related to its source file easily.
+			const SyntaxNode* mod = node.body.getSyntax();
+			if(mod)
+			{
+				// Using get_scope_by_name will resolve any duplicated scope.
+				IndexScopeTreeNode* module_scope = _current_scope()->get_scope_by_name(node.name);
+				// if(! module_scope)
+				// {
+				// 	spdlog::error("Failed to lookup the expected child scope '{}' from {}", node.name, _current_scope()->get_full_path());	
+				// }
+				// else
+				// {
+					// Manual insertion of the module name as a symbol to the target scope...
+					// _open_scope(module_scope->get_name(),false);
+					const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
+					//IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
+					new_scope->add_symbol(std::make_unique<IndexSymbol>(inst_typename.rawText(),IndexRange{inst_typename.range(),*_sm}));
+
+					spdlog::debug("Added symbol with location {}.{} of kind <Module>",new_scope->get_full_path(),inst_typename.rawText());
+					
+					// _close_scope(module_scope->get_name());
+				// }
 			}
 		}
 
@@ -273,17 +325,17 @@ namespace diplomat::index {
 	void IndexVisitor::handle(const slang::ast::WildcardImportSymbol& node)
 	{
 
-		const slang::syntax::SyntaxNode* stx = node.getSyntax();
-		if(stx)
-		{
-			IndexRange import_source = IndexRange(stx->sourceRange(),*_sm);
-			IndexFile* containing_file = _index->add_file(import_source.start.file);
+		// const slang::syntax::SyntaxNode* stx = node.getSyntax();
+		// if(stx)
+		// {
+		// 	IndexRange import_source = IndexRange(stx->sourceRange(),*_sm);
+		// 	IndexFile* containing_file = _index->add_file(import_source.start.file);
 
 
-			containing_file->record_additionnal_lookup_scope(std::string(node.packageName));
-		}
+		// 	//containing_file->record_additionnal_lookup_scope(std::string(node.packageName));
+		// }
 
-		visitDefault(node);
+		// visitDefault(node);
 	}
 
 } // namespace diplomat::index

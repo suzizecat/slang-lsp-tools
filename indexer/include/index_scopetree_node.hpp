@@ -40,10 +40,22 @@
 namespace diplomat::index
 {
 	
+	/**
+	 * @brief Structural node for the Index Scope Tree.
+	 *
+	 * This class holds the structural informations about a scope.
+	 * It also contains all utilities for looking up scope as well as the scope name.
+	 * 
+	 * A node without parent may be used as the root of a scope tree.
+	 * 
+	 * @note All information about the content of the scope (symbols and so on) will be 
+	 * delegated to a ::IndexScope object that will be referenced by the ::IndexScopeTreeNode.
+	 * Hence it will be possible to duplicate all symbols from a scope without having to compute all new symbols.
+	 */
 	class IndexScopeTreeNode
 	{
 
-		// friend void to_json(nlohmann::json& j, const IndexScope& s);
+		 friend void to_json(nlohmann::json& j, const IndexScopeTreeNode& s);
 		// friend void from_json(const nlohmann::json& j, IndexScope& s); 
 
 	protected:
@@ -57,7 +69,7 @@ namespace diplomat::index
 		*
 		* @note This data should be used multiple times if one scope is used several times.
 		*/
-		IndexScope* _data;
+		std::shared_ptr<IndexScope> _data;
 
 		/**
 		 * @brief Childs scopes, referenced by their names for quick lookup when exploring the hierarchy.
@@ -126,7 +138,20 @@ namespace diplomat::index
 
 	public:
 		IndexScopeTreeNode() = delete;
-		IndexScopeTreeNode(std::string name, IndexScope* data, IndexScopeTreeNode* parent = nullptr,  bool isvirtual = false);
+		/**
+		 * @brief Construct a new Index Scope Tree Node object referencing an already existing IndexScope data object
+		 * 
+		 * @param data The data object to reference (create a new one if \c nullptr is passed)
+		 * @param name The (optional) name for the new node
+		 * @param parent The (potential) parent
+		 * @param isvirtual Set to true if the node represents a virtual node
+		 *
+		 * @throw index_exception if the parent already have a child with the same name.
+		 * Anonymous node can be made by not specifying \p name (it is possible to use <tt>{}</tt> as a non-specified value)
+		 */
+		IndexScopeTreeNode(std::shared_ptr<IndexScope> data = nullptr, std::optional<std::string> name = {},  IndexScopeTreeNode* parent = nullptr,  bool isvirtual = false);
+		//IndexScopeTreeNode(std::optional<std::string> name = {} ,  IndexScopeTreeNode* parent = nullptr,  bool isvirtual = false);
+		// IndexScopeTreeNode(std::string name, IndexScopeTreeNode* parent = nullptr,  bool isvirtual = false);
 		~IndexScopeTreeNode() = default;
 
 		// inline void set_kind(const std::string_view& kind) {
@@ -136,14 +161,14 @@ namespace diplomat::index
 		// };
 
 		/**
-		 * @brief Construct an anonymous children scope with the provided data attached.
+		 * @brief Construct or return a children scope with the provided data attached.
 		 * 
 		 * @param name the name of the created sub-scope
 		 * @param data is a pointer toward an existing node data object. 
 		 * @param is_virtual sets the "virtual" flag of the new scope
 		 * @return IndexScopeTreeNode* the pointer to manipulate said scope.
 		 */
-		 IndexScopeTreeNode* add_child(const std::string& name, IndexScope* data, const bool is_virtual = false);
+		 IndexScopeTreeNode* add_child(const std::string& name, std::shared_ptr<IndexScope> data = nullptr , const bool is_virtual = false);
 		 
 		 /**
 		  * @brief Construct an anonymous children scope with the provided data attached.
@@ -152,7 +177,7 @@ namespace diplomat::index
 		  * @param is_virtual Virtual attribute of the node
 		  * @return IndexScopeTreeNode* The created (and ready) node
 		  */
-		 IndexScopeTreeNode* add_anon_child(IndexScope* data, const bool is_virtual = false);
+		 IndexScopeTreeNode* add_anon_child(std::shared_ptr<IndexScope>  data = nullptr, const bool is_virtual = false);
 		// /**
 		//  * @brief Add an alias for the specified child, then return the actual scope if OK,
 		//  * nullptr otherwise.
@@ -163,12 +188,32 @@ namespace diplomat::index
 		//  */
 		// IndexScope* add_child_alias(const std::string& ref, const std::string& alias);
 
+		/**
+		 * @brief Adds a full scope subtree as a child
+		 *
+		 * In order to accomodate for the caching system of Slang, it may be required to insert a 
+		 * child that is actually a fully fledged scope subtree.
+		 * 
+		 * In this case, the direct child name may be overriden, but all subsequent information will 
+		 * be duplicated.
+		 * This will also perform a duplication of the subtree.
+		 * The #_data field, however, will point toward the same IndexScope as the originals elements
+		 * in order to avoid symbol duplication. 
+		 * 
+		 * @param reference reference child to duplicate
+		 * @param name new name for the new child
+		 * @return IndexScopeTreeNode* created new child
+		 */
+		IndexScopeTreeNode* add_subtree_child(const IndexScopeTreeNode* reference, const std::string& name);
 		/** 
 		 * @brief Add a symbol to the scope.
 		 * 
-		 * @param symbol pointer to the already existing symbol to ass
+		 * @param symbol pointer to the already existing symbol to add
+		 * @returns  the pointer to the actually created symbol, for convenience
 		 */
-		void add_symbol(IndexSymbol* symbol);
+		IndexSymbol* add_symbol(IndexSymbol* symbol);
+
+		IndexSymbol* add_symbol(std::unique_ptr<IndexSymbol> symbol);
 
 		/**
 		 * @brief Lookup a symbol by name that should be available in this scope
@@ -197,12 +242,12 @@ namespace diplomat::index
 		IndexScopeTreeNode* resolve_scope(const std::string_view& path);
 
 
-		// /**
-		//  * @brief Get the visible symbols object from the current scope.
-		//  * This represent all symbols declared here and all symbols declared in parents.
-		//  * @return std::vector<const IndexSymbol*> the set of found symbols.
-		//  */
-		// std::vector<const IndexSymbol*> get_visible_symbols() const;
+		/**
+		 * @brief Get the visible symbols object from the current scope.
+		 * This represent all symbols declared here and all symbols declared in parents.
+		 * @return std::vector<const IndexSymbol*> the set of found symbols.
+		 */
+		std::vector<const IndexSymbol*> get_visible_symbols(std::optional<IndexLocation> exact = {}) const;
 
 		/**
 		 * @brief Get the scope for position object
@@ -266,6 +311,9 @@ namespace diplomat::index
 		inline const std::optional<IndexRange>& get_source_range() const { return _data->get_source_range();};
 		// inline bool is_anonymous() const { return _anonymous;};
 		inline bool is_virtual() const { return _is_virtual;};
+
+		inline std::shared_ptr<const IndexScope> data() const {return _data;} ;
+		inline std::shared_ptr<IndexScope> data() {return _data;} ;
 	};  
 
 

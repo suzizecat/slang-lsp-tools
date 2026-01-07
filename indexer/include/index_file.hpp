@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include "index_scope.hpp"
+#include "index_scopetree_node.hpp"
+#include "index_symbols.hpp"
 #include <unordered_set>
 #include <map>
 #include <unordered_map>
@@ -32,24 +34,38 @@ namespace diplomat::index
         std::optional<const slang::syntax::SyntaxNode*> _syntax_root; 
 
         // Used for fast lookup of scopes
-        std::unordered_map<std::string, IndexScope*> _scopes;
-        std::unordered_map<IndexRange, std::unique_ptr<IndexSymbol>> _declarations;
+        std::unordered_map<std::string, IndexScopeTreeNode*> _scopes;
+        std::map<IndexLocation, IndexSymbol*> _declarations;
         
-        // References are located by start of location.
-        // In order to lookup a reference, use upper_bound -1 and check the range
+        /**
+         * @brief This variable references all ref records of the file, sorted by location (start of the token).
+         * 
+         * This variable is used to perform geographic lookup of references (in exemple to check if a
+         * reference is under the cursor). This may be done by using <tt>upper_bound -1</tt> and checking if the
+         * reference range actually matches the looked up location
+         */
         std::map<IndexLocation, ReferenceRecord> _references;
 
         /**
-         * @brief This container holds the list of additional scopes that should be looked up
-         * for reference resolution.
+         * @brief This variable holds the scopes locations for fast lookup.
          * 
-         * If the IndexScope* is nullptr, the system should try to resolve it, as it is lazily
-         * built through the AST.
-         * 
-         * The key is the path from the root element of the AST of the scope.
-         * 
+         *
+         * @note In order to lookup a scope, use <tt>upper_bound -1</tt> and check the range.
+         *
          */
-        std::map<std::string, IndexScope*> _additional_lookup_scopes;
+        std::map<IndexLocation, IndexScopeTreeNode* > _scopes_locations;
+
+        // /**
+        //  * @brief This container holds the list of additional scopes that should be looked up
+        //  * for reference resolution.
+        //  * 
+        //  * If the IndexScope* is nullptr, the system should try to resolve it, as it is lazily
+        //  * built through the AST.
+        //  * 
+        //  * The key is the path from the root element of the AST of the scope.
+        //  * 
+        //  */
+        // std::map<std::string, IndexScope*> _additional_lookup_scopes;
 
         #ifdef DIPLOMAT_DEBUG
             std::vector<std::string> _failed_references;
@@ -60,11 +76,20 @@ namespace diplomat::index
         IndexFile(const std::filesystem::path& path);
         ~IndexFile() = default;
 
-        IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& location, const std::string_view& kind = "");
-        void register_scope(IndexScope* _scope); 
-        IndexScope* lookup_scope_by_range(const IndexRange& loc);
-        IndexScope* lookup_scope_by_exact_range(const IndexRange& loc);
-        IndexScope* lookup_scope_by_location(const IndexLocation& loc);
+        /**
+         * @brief Record a (new) symbol with the provided name and definition location in the current file
+         * 
+         * @param name 
+         * @param location 
+         * @param kind 
+         * @return IndexSymbol* 
+         */
+        IndexSymbol* add_symbol(IndexSymbol* symb);
+        // IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& location, const std::string_view& kind = {});
+        void register_scope(IndexScopeTreeNode* _scope); 
+        IndexScopeTreeNode* lookup_scope_by_range(const IndexRange& loc);
+        IndexScopeTreeNode* lookup_scope_by_exact_range(const IndexRange& loc);
+        IndexScopeTreeNode* lookup_scope_by_location(const IndexLocation& loc);
 
         IndexSymbol* lookup_symbol_by_location(const IndexLocation& loc);
 
@@ -77,10 +102,10 @@ namespace diplomat::index
 
         inline const std::filesystem::path& get_path() const {return _filepath;} ;
 
-        void record_additionnal_lookup_scope(const std::string& path, IndexScope* target = nullptr);
-        void invalidate_additionnal_lookup_scope(const std::string& path);
+        // void record_additionnal_lookup_scope(const std::string& path, IndexScope* target = nullptr);
+        // void invalidate_additionnal_lookup_scope(const std::string& path);
 
-        inline const std::map<std::string, IndexScope*>* get_additionnal_scopes() const {return &_additional_lookup_scopes;} ;
+        //inline const std::map<std::string, IndexScope*>* get_additionnal_scopes() const {return &_additional_lookup_scopes;} ;
 
 
         #ifdef DIPLOMAT_DEBUG

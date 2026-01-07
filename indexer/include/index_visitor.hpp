@@ -1,5 +1,4 @@
 #pragma once
-#include "index_core.hpp"
 #include "slang/ast/Scope.h"
 #include <slang/syntax/AllSyntax.h>
 #include <slang/ast/ASTVisitor.h>
@@ -8,15 +7,24 @@
 #include <string_view>
 #include <stack>
 #include <unordered_map>
+
+#include "index_core.hpp"
+#include "index_scopetree_node.hpp"
+
 namespace diplomat::index {
+	
 	// Visit statements and bad but not expressions
-	class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,true,true,true>
+	/**
+	 * @brief This class will build the Scope Tree and store the found symbols
+	 * 
+	 */
+	class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,true,true,true, false>
 	{
 		protected :
 			const slang::SourceManager* _sm;
 			std::unique_ptr<IndexCore> _index;
 
-			std::stack<IndexScope *> _scope_stack;
+			std::stack<IndexScopeTreeNode *> _scope_stack;
 
 			/**
 			 * @brief Holds the duplicate scopes as managed by slang.
@@ -24,11 +32,11 @@ namespace diplomat::index {
 			 * If a  scope is registered here, it means that it already has a scope 
 			 * (that does not requires a new processing)
 			 */
-			std::unordered_map<slang::ast::Scope*, std::shared_ptr<IndexScope>> _duplicate_scopes_map;
+			std::unordered_map<slang::ast::Scope*, const IndexScopeTreeNode* > _duplicate_scopes_map;
 
 
-			void _open_scope(const std::string& name, bool is_virtual = false);
-			void _open_scope(const std::string_view& name, bool is_virtual = false);
+			void _open_scope(const std::string& name, bool is_virtual = false, std::shared_ptr<IndexScope> data = nullptr);
+			void _open_scope(const std::string_view& name, bool is_virtual = false,  std::shared_ptr<IndexScope> data = nullptr);
 			
 			/**
 			 * @brief This function closes the current scope, removing it from the
@@ -60,10 +68,11 @@ namespace diplomat::index {
 			 * @param node Node representing the scope
 			 * @param scope_name actual name used for the scope for {@link IndexScope} lookups.
 			 * @param is_virtual true if the scope is virtual (elements from inside have access to the parent scope)
+			 * @returns const IndexScopeTreeNode* a pointer to the directly created scope (if any) or nullptr otherwise
 			 */
-			void _default_scope_handle(const slang::ast::Scope& node, const std::string_view& scope_name, const bool is_virtual = false);
-			void _default_scope_handle(const slang::ast::Scope& node, const bool is_virtual = false);
-			inline IndexScope* _current_scope() const {return _scope_stack.empty() ? nullptr : _scope_stack.top(); };
+			IndexScopeTreeNode* _default_scope_handle(const slang::ast::Scope& node, const std::string_view& scope_name, const bool is_virtual = false);
+			IndexScopeTreeNode* _default_scope_handle(const slang::ast::Scope& node, const bool is_virtual = false);
+			inline IndexScopeTreeNode* _current_scope() const {return _scope_stack.empty() ? nullptr : _scope_stack.top(); };
 		public: 
 			explicit IndexVisitor(const slang::SourceManager* sm) : _sm(sm), _index(new IndexCore()) {};
 

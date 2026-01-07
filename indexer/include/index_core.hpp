@@ -1,5 +1,6 @@
 #pragma once 
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -9,7 +10,7 @@
 #include <slang/text/SourceManager.h>
 
 #include "index_elements.hpp"
-#include "index_scope.hpp"
+#include "index_scopetree_node.hpp"
 #include "index_file.hpp"
 
 
@@ -31,14 +32,20 @@ namespace diplomat::index
 	friend void to_json(nlohmann::json& j, const IndexCore& s);
 
 	protected:
-		std::unique_ptr<IndexScope> _root;
+		std::unique_ptr<IndexScopeTreeNode> _root;
 		std::map<std::filesystem::path, std::unique_ptr<IndexFile>> _files;
+
+		/**
+		 * @brief List of scopes that may be reused later on
+		 * 
+		 */
+		std::unordered_map<uintptr_t, IndexScopeTreeNode* > _cached_scopes;
 
 		//void _process_file_reference(slang::SourceManager* sm, const std::filesystem::path& fpath, IndexFile* f);
 	public:
 
-		IndexScope* set_root_scope(const std::string name);
-		inline IndexScope* get_root_scope(){return _root.get();};
+		IndexScopeTreeNode* set_root_scope(const std::string name);
+		inline IndexScopeTreeNode* get_root_scope(){return _root.get();};
 
 		IndexFile* add_file(const std::filesystem::path& path);
 		IndexFile* add_file(const std::string_view& path);
@@ -46,7 +53,40 @@ namespace diplomat::index
 		IndexFile* get_file(const std::filesystem::path& path);
 		const IndexFile* get_file(const std::filesystem::path& path) const;
 
+
 		IndexSymbol* add_symbol(const std::string_view& name, const IndexRange& src_range, const std::string_view& kind = "");
+		IndexSymbol* add_symbol(IndexSymbol* symb, const std::string_view& kind = "");
+
+		/**
+		* @brief Get a cached scope from its reference pointer value.
+		* 
+		* Intended usage is something like: 
+		* \code{.cpp}
+		* // IndexScopeTreeNode* parent;		
+		* IndexScopeTreeNode* cached = get_cached_scope(node.getCanonicalBody);
+		* if(cached != nullptr)
+		* 	parent->add_subtree_child(cached);
+		* else
+		* 	process(node);
+		* \endcode
+		*
+		* @param ref_ptr is the pointer returned by slang::ast::InstanceSymbol::getCanonicalBody()
+		* @return IndexScopeTreeNode* the Index ScopeTree node related, if any, nullptr otherwise.
+		*/
+		IndexScopeTreeNode* get_cached_scope(const uintptr_t ref_ptr);
+
+		/**
+		 * @brief Store a scope as cached by a pointer.
+		 *
+		 * This aims to be used for slang::ast::InstanceSymbol::getCanonicalBody().
+		 * 
+		 * @sa get_cached_scope() 
+		 *
+		 * @param ref_ptr 
+		 * @param scope 
+		 */
+		void cache_scope(const uintptr_t ref_ptr, IndexScopeTreeNode* const scope);
+
 
 		inline nlohmann::json dump() const {return nlohmann::json(*this);} ;
 		
@@ -60,7 +100,7 @@ namespace diplomat::index
 	   inline auto get_indexed_files_paths() const { return std::views::keys(_files);} ;
 	   inline auto get_indexed_files() const { return std::views::values(_files);} ;
 
-		IndexScope* get_scope_by_position(const IndexLocation& pos);
+		IndexScopeTreeNode* get_scope_by_position(const IndexLocation& pos);
 
 		const IndexSymbol* get_symbol_by_position(const IndexLocation& pos) ;
 
@@ -70,7 +110,7 @@ namespace diplomat::index
 		 * @param path to evaluate
 		 * @return IndexScope* if found, nullptr otherwise.
 		 */
-		IndexScope* lookup_scope(const std::string_view& path);
+		IndexScopeTreeNode* lookup_scope(const std::string_view& path);
 
 		IndexCore() = default;
 		~IndexCore() = default;

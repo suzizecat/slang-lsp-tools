@@ -96,6 +96,8 @@ namespace index
 
 		std::string to_string() const;
 
+		inline bool same_file(const IndexLocation& other) const {return file == other.file;};
+
 	};
 
 	struct IndexRange

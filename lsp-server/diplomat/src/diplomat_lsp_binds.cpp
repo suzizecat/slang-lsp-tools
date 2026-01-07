@@ -1,4 +1,5 @@
 #include "diplomat_lsp.hpp"
+#include "index_scopetree_node.hpp"
 #include "lsp_errors.hpp"
 #include "spdlog/spdlog.h"
 
@@ -113,7 +114,7 @@ json DiplomatLSP::_h_completion(dlt::CompletionParams params, std::stop_token tk
 	_assert_index(true);
 
 	di::IndexLocation trigger_location = _lsp_to_index_location(params);
-	di::IndexScope* trigger_scope = _index->get_scope_by_position(trigger_location);
+	di::IndexScopeTreeNode* trigger_scope = _index->get_scope_by_position(trigger_location);
 
 	if(trigger_scope)
 	{
@@ -874,7 +875,7 @@ std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::
 {
 	std::map<std::string,std::vector<dlt::Range>> ret;
 	
-	const di::IndexScope* lu_scope = _index->lookup_scope(path);
+	const di::IndexScopeTreeNode* lu_scope = _index->lookup_scope(path);
 	
 	if(! lu_scope)
 	{

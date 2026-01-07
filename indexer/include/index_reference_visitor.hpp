@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include "index_core.hpp"
+#include "index_scopetree_node.hpp"
 
 namespace diplomat::index
 {
@@ -18,7 +19,7 @@ namespace diplomat::index
 		const slang::SourceManager* _sm;
 		IndexCore* _index;
 
-		IndexScope* _instance_scope;
+		IndexScopeTreeNode* _instance_scope;
 		
 		bool _add_reference_from_stx(const slang::SourceRange & loc, const std::string_view& name);
 		bool _add_reference_to_symbol(const slang::SourceRange& loc, const std::string_view& symbol_name);

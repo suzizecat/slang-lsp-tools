@@ -3,22 +3,39 @@
 #include "index_exceptions.hpp"
 #include "index_scope.hpp"
 #include "index_symbols.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include <memory>
 #include <string_view>
 #include <ranges>
 
 namespace diplomat::index {
 
-	IndexScopeTreeNode::IndexScopeTreeNode(std::string name, IndexScope* data, IndexScopeTreeNode* parent, bool isvirtual) : 
-		_name(name),
-		_data(data),
+	IndexScopeTreeNode::IndexScopeTreeNode(
+		std::shared_ptr<IndexScope> data, 
+		std::optional<std::string> name,  
+		IndexScopeTreeNode* parent,  
+		bool isvirtual	) :
+		_data(data ? data : std::make_shared<IndexScope>()),
 		_children(),
 		_parent(nullptr),
 		_is_virtual(isvirtual),
 		_unnamed_count(0)
 		{
+			if(!name)
+			{
+				if(parent)
+					_name = parent->_get_unnamed_id();
+				else
+					_name = "MISSING_NAME";
+			}
+			else
+			{
+				_name = name.value();
+			}
+
 			if(parent)
 				parent->_attach_child(this);
+
 		}
 
 
@@ -52,30 +69,56 @@ namespace diplomat::index {
 		return it->second.get();
 	}
 
-	IndexScopeTreeNode* IndexScopeTreeNode::add_child(const std::string& name, IndexScope* data, const bool is_virtual)
+	IndexScopeTreeNode* IndexScopeTreeNode::add_child(const std::string& name, std::shared_ptr<IndexScope> data, const bool is_virtual)
 	{
-		// Ensure that the unique_ptr is destroyed in the process if something goes wrong
-		std::unique_ptr<IndexScopeTreeNode> new_child = std::make_unique<IndexScopeTreeNode>(std::string(name), data, this, is_virtual);
+		auto lu_result = _children.find(name); 
+		if(lu_result != _children.end())
+			return lu_result->second.get();
+		else 
+		{
+			std::unique_ptr<IndexScopeTreeNode> new_child = std::make_unique<IndexScopeTreeNode>(data, name, nullptr, is_virtual);
+			return _attach_child(std::move(new_child));
+		}
+	}	
+
+	
+	IndexScopeTreeNode* IndexScopeTreeNode::add_anon_child(std::shared_ptr<IndexScope>  data, const bool is_virtual)
+	{
+		std::unique_ptr<IndexScopeTreeNode> new_child = std::make_unique<IndexScopeTreeNode>(data, _get_unnamed_id(), nullptr, is_virtual);
 		return _attach_child(std::move(new_child));
 	}	
 
-	IndexScopeTreeNode* IndexScopeTreeNode::add_anon_child(IndexScope* data, const bool is_virtual)
+
+	IndexScopeTreeNode* IndexScopeTreeNode::add_subtree_child(const IndexScopeTreeNode* reference, const std::string& name)
 	{
-		// Ensure that the unique_ptr is destroyed in the process if something goes wrong
-		std::unique_ptr<IndexScopeTreeNode> new_child = std::make_unique<IndexScopeTreeNode>(_get_unnamed_id(), data, this, is_virtual);
-		return _attach_child(std::move(new_child));
+		IndexScopeTreeNode* fl_child = add_child(name, reference->_data, reference->_is_virtual);
+		
+		// Should be useless, but will avoid incoherency and thus downstream dumb issues 
+		fl_child->_unnamed_count = reference->_unnamed_count;
+
+		for(const auto& [cname, cref] : reference->_children)
+		{
+			fl_child->add_subtree_child(cref.get() ,cname);
+		}
+
+		return fl_child;
 	}	
 
-	void IndexScopeTreeNode::add_symbol(IndexSymbol* symbol)
+
+	IndexSymbol* IndexScopeTreeNode::add_symbol(IndexSymbol* symbol)
 	{
-		_data->add_symbol(symbol);
+		return _data->add_symbol(symbol);
 	}
 
+	IndexSymbol* IndexScopeTreeNode::add_symbol(std::unique_ptr<IndexSymbol> symbol)
+	{
+		return _data->add_symbol(std::move(symbol));
+	}
 
 	IndexSymbol* IndexScopeTreeNode::lookup_symbol(const std::string_view &name, bool strict)
 	{
 
-		IndexSymbol* lu_result = _data->lookup_symbol(std::string{name});
+		IndexSymbol* lu_result = _data->get_symbol(std::string{name});
 		if(lu_result)
 		{
 			return lu_result;
@@ -96,7 +139,7 @@ namespace diplomat::index {
 		std::size_t dot_pos = path.rfind('.');
 		// npos => not found
 		if(dot_pos == std::string::npos)
-			return _data->lookup_symbol(std::string(path),true);
+			return _data->get_symbol(std::string(path));
 		else
 		{
 
@@ -133,6 +176,35 @@ namespace diplomat::index {
 		return nullptr;
 	}
 
+	std::vector<const IndexSymbol*> IndexScopeTreeNode::get_visible_symbols(std::optional<IndexLocation> exact) const
+	{
+		const IndexScopeTreeNode* lu_scope = this;
+		std::vector<const IndexSymbol*> ret;
+		bool keep_going = false;
+		do {
+			
+			for(auto& symb : lu_scope->_data->get_symbols())
+			{
+				// If exact is not provided (no filter), symbol location does not exist (dunno why)
+				// or the symbol has been defined before 'exact', then it is added to the output list.
+				if(! exact || !symb->get_source_location() || exact.value() >= symb->get_source_location().value() )
+					ret.push_back(symb.get());
+			}
+
+			if(lu_scope->have_parent_access())
+			{		
+				lu_scope = lu_scope->_parent;
+				keep_going = true;
+			}
+			else
+			{
+				keep_going = false;
+			}
+		
+		} while (keep_going);
+
+		return ret;
+	}
 
 	IndexScopeTreeNode* IndexScopeTreeNode::get_scope_for_location(const IndexLocation &loc, bool deep)
 	{
@@ -278,14 +350,14 @@ namespace diplomat::index {
 	{
 		if(! _parent)
 		{
-			if(_data->is_virtual()) {
+			if(is_virtual()) {
 				return "";
 			} else {
 				return _name;
 			}
 		}
 		else{
-			if(_data->is_virtual())
+			if(is_virtual())
 				return _parent->get_concrete_path();
 			else 
 			{
@@ -310,4 +382,14 @@ namespace diplomat::index {
 	{
 		return _parent ? _parent->get_root() : this;
 	}
+
+	void to_json(nlohmann::json& j, const IndexScopeTreeNode& s)
+	{
+		j = nlohmann::json(); 
+		// j["name"] = s._name;
+		for(const auto & [ name, child ] : s._children)
+			j[name] = child;
+
+		j["z@data"] = *(s._data);
+}
 }
