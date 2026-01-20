@@ -1,26 +1,32 @@
-// MIT License
-// 
-// Copyright (c) 2025 Julien FAUCHER
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// 
-// SPDX-License-Identifier: MIT
+/**
+ * @file lsp_dispatcher.hpp   
+ * @author Julien FAUCHER
+ * @brief This file describes the object that models a "scope" in the index
+ * @copyright
+ * MIT License
+ * 
+ * Copyright (c) 2025 Julien FAUCHER
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * 
+ * SPDX-License-Identifier: MIT
+ */
 
 
 #pragma once
@@ -48,7 +54,13 @@
 
 using json = nlohmann::json;
 
-
+/**
+ * @brief Helper macro to help binding a member function in diplomat::lsp::LSPCommandDispatcher binds commands.
+ * 
+ * @sa diplomat::lsp::LSPCommandDispatcher::bind_notification
+ * @sa diplomat::lsp::LSPCommandDispatcher::bind_request
+ *
+ */
 #define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1, std::placeholders::_2)
 
 namespace diplomat::lsp {
@@ -80,6 +92,17 @@ namespace diplomat::lsp {
 	 * Therefore, it is mandatory to handle multiples incoming requests.
 	 *
 	 * Also, the dispatcher shall be able to handle the cancellation requests and reverse requests (from the server to the client).
+	 *
+	 * Binding methods is done through the #bind_request() and #bind_notification() member functions, associating a string (the command name
+	 * to be used on client side) to a function on server side. 
+	 * There are two functions formats to be used: 
+	 * - For notifications (no return values), the function shall have a prototype such as: <tt>void foo(const json& args, std::stop_token tk);</tt>
+	 * - For requests (with return values), the function shall have a prototype such as: <tt>json foo(const json& args, std::stop_token tk);</tt>
+	 *
+	 * Moreover, if the function may run for a long time, it shall use the std::stop_token argument to detect a used stop request and 
+	 * throw a diplomat::lsp::client_cancel_request_exception as soon as possible.
+	 *
+	 *
 	 */
 	class LSPCommandDispatcher {
 		protected:
@@ -225,20 +248,82 @@ namespace diplomat::lsp {
 			explicit LSPCommandDispatcher(std::istream& is = std::cin, std::ostream& os = std::cout);
 			
 			~LSPCommandDispatcher();
+
 			/**
 			 * @brief Adds a new *request* handler
+			 *
+			 * This function allows binding a function that will return a value (an LSP request) to its command name.
+			 * example usage, using #LSP_MEMBER_BIND() follows: 
+			 * \code{.cpp}
+			 *	class MyLSP : public LSPCommandDispatcher
+			 *	{
+			 *		nlohmann::json _h_rename(nlohmann::json params, std::stop_token tk);
+			 *		void binds();
+			 *	};
+			 *
+			 *	void MyLSP::binds()
+			 *	{
+			 *		bind_request("textDocument/rename", LSP_MEMBER_BIND(MyLSP, _h_rename));
+			 *		// Equivalent to:
+			 *		bind_request("textDocument/rename", std::bind(&MyLSP::_h_rename, this, std::placeholders::_1, std::placeholders::_2));
+			 *	}
+			 * \endcode
 			 * 
+			 * Once bound, the client will be able to invoke the function \p cb through a call to the method using the name \p fct_name.
+			 * 
+			 * @warning It is essential to notify the client of the availability of those bound methods through the <tt>\ref diplomat::lsp::types::ServerCapabilities::executeCommandProvider "executeCommandProvider"</tt> attribute
+			 * of diplomat::lsp::types::ServerCapabilities sent in return of the 
+			 * <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize"><tt>initialize</tt></a> 
+			 * request of the LSP.
+			 * For non-standard methods, ::transfer_supported_nonstandard_methods() should be used to get all additional methods names 
+			 * after binding everything.
+			 *
 			 * @param fct_name Method name
 			 * @param cb Actual handler
 			 * @param allow_override Allow replacing an already bound handler.
+			 *
+			 * @sa ::bind_notification()
+			 * @sa ::transfer_supported_nonstandard_methods()
+			 * @sa #LSP_MEMBER_BIND()
 			 */
 			void bind_request(const std::string& fct_name, request_handle_t cb, bool allow_override = false);
-        	/**
+        	
+			/**
 			 * @brief Adds a new *notification* handler
+			 *
+			 * This function allows binding a function that will not return any value (an LSP notification) to its command name.
+			 * example usage, using #LSP_MEMBER_BIND() follows: 
+			 * \code{.cpp}
+			 *	class MyLSP : public LSPCommandDispatcher
+			 *	{
+			 *		void _h_initialized(nlohmann::json params, std::stop_token tk);
+			 *		void binds();
+			 *	};
+			 *
+			 *	void MyLSP::binds()
+			 *	{
+			 *		bind_notification("initialized", LSP_MEMBER_BIND(MyLSP,_h_initialized));
+			 *		// Equivalent to:
+			 *		bind_notification("initialized", std::bind(&MyLSP::_h_initialized, this, std::placeholders::_1, std::placeholders::_2));
+			 *	}
+			 * \endcode
 			 * 
+			 * Once bound, the client will be able to invoke the function \p cb through a call to the method using the name \p fct_name.
+			 * 
+			 * @warning It is essential to notify the client of the availability of those bound methods through the <tt>\ref diplomat::lsp::types::ServerCapabilities::executeCommandProvider "executeCommandProvider"</tt> attribute
+			 * of diplomat::lsp::types::ServerCapabilities sent in return of the 
+			 * <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize"><tt>initialize</tt></a> 
+			 * request of the LSP.
+			 * For non-standard methods, ::transfer_supported_nonstandard_methods() should be used to get all additional methods names 
+			 * after binding everything.
+			 *
 			 * @param fct_name Method name
 			 * @param cb Actual handler
 			 * @param allow_override Allow replacing an already bound handler.
+			 *
+			 * @sa ::bind_request()
+			 * @sa ::transfer_supported_nonstandard_methods()
+			 * @sa #LSP_MEMBER_BIND()
 			 */
 			void bind_notification(const std::string& fct_name, notification_handle_t cb, bool allow_override = false);
 			

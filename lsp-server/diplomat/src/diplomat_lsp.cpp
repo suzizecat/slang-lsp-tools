@@ -1,4 +1,5 @@
 #include "diplomat_lsp.hpp"
+#include "lsp_dispatcher.hpp"
 #include "slang/analysis/AnalysisManager.h"
 #include "slang/analysis/AnalysisOptions.h"
 #include "slang/ast/Compilation.h"
@@ -161,6 +162,8 @@ void DiplomatLSP::_bind_methods()
     bind_notification("diplomat-server.push-config", LSP_MEMBER_BIND(DiplomatLSP,_h_push_config));
     bind_request("diplomat-server.pull-config", LSP_MEMBER_BIND(DiplomatLSP,_h_pull_config));
     bind_notification("diplomat-server.set-top", LSP_MEMBER_BIND(DiplomatLSP,_h_set_top_module));
+    
+    bind_request("diplomat-server.file.get-abstract", LSP_MEMBER_BIND(DiplomatLSP, _h_get_file_abstract_content));
     
     bind_notification("diplomat-server.prj.set-project",LSP_MEMBER_BIND(DiplomatLSP,_h_set_project));
 

@@ -1,13 +1,15 @@
 #pragma once
 
+#include <optional>
 #include <slang/syntax/SyntaxVisitor.h>
 #include <slang/syntax/AllSyntax.h>
 #include <slang/parsing/Token.h>
-
+#include <stack>
 #include <memory>
 #include <string_view>
 
 #include "index_core.hpp"
+#include "index_elements.hpp"
 #include "index_scopetree_node.hpp"
 
 namespace diplomat::index
@@ -20,6 +22,12 @@ namespace diplomat::index
 		IndexCore* _index;
 
 		IndexScopeTreeNode* _instance_scope;
+
+		/**
+		 * @brief Lookup location used for evaluation of scoped expressions
+		 * 
+		 */
+		std::optional<IndexLocation> _scoped_eval_lu_loc; 
 		
 		bool _add_reference_from_stx(const slang::SourceRange & loc, const std::string_view& name);
 		bool _add_reference_to_symbol(const slang::SourceRange& loc, const std::string_view& symbol_name);
@@ -34,8 +42,10 @@ namespace diplomat::index
 		 * @note Will set _instance_scope value. Set to nullptr if the scope is not found. 
 		 */
 		void _select_instance_scope(const IndexLocation& curr_scope_loc, const::std::string_view& next_scope);
+
+
 	public :
-		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx) {};
+		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx), _scoped_eval_lu_loc() {};
 
 			// void handle(const slang::syntax::ModuleHeaderSyntax& node);
 			void handle(const slang::syntax::HierarchyInstantiationSyntax& node);
@@ -47,6 +57,7 @@ namespace diplomat::index
 			void handle(const slang::syntax::HierarchicalInstanceSyntax& node);
 			void handle(const slang::syntax::NamedPortConnectionSyntax& node);
 			void handle(const slang::syntax::NamedParamAssignmentSyntax& node);
+			void handle(const slang::syntax::ScopedNameSyntax& node);
 
   };
 

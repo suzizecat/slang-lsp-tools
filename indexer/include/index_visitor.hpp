@@ -10,6 +10,7 @@
 
 #include "index_core.hpp"
 #include "index_scopetree_node.hpp"
+#include "slang/syntax/SyntaxNode.h"
 
 namespace diplomat::index {
 	
@@ -57,7 +58,7 @@ namespace diplomat::index {
 			 */
 			void _add_symbols_from_name_syntax(const slang::syntax::NameSyntax* node);
 
-			void _default_symbol_handle(const slang::ast::Symbol& node);
+			void _default_symbol_handle(const slang::ast::Symbol& node, const slang::syntax::SyntaxNode* matching_syntax = nullptr);
 			
 			/**
 			 * @brief This function assumes the standard low-level scope handling.

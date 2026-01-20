@@ -191,6 +191,47 @@
 		
 		},
 		{
+			"name": "SymbolData",
+			"properties": [
+				{
+					"name": "name",
+					"type": {
+						"kind": "base",
+						"name": "string"
+					},
+					"documentation" : "@brief The declared name of the symbol"
+				},
+				{
+					"name": "defRange",
+					"type": {
+						"kind": "reference",
+						"name": "Location"
+					},
+					"documentation" : "@brief Location of the definition statement related to the symbol"
+				},
+				{
+					"name": "refs",
+					"type" : {"kind" : "array", "element" : { "kind": "reference", "name": "Location"} },
+					"documentation" : "@brief Location of all references of the symbol"
+				}					
+			]
+		},
+		{
+			"name": "FileAbstractContent",
+			"properties": [
+				{
+					"name": "symbols",
+					"type" : {"kind" : "array", "element" : { "kind": "reference", "name": "SymbolData"} },
+					"documentation" : "@brief All symbols declared in the file"
+				},
+				{
+					"name": "externalRefs",
+					"type" : {"kind" : "array", "element" : { "kind": "reference", "name": "SymbolData"} },
+					"documentation" : "@brief All symbols that are referenced (but not declared) in the file"
+				}	
+			]
+		},
+		{
 			"name" : "UNUSEDModuleBlackBox",
 			"extends" : [
 				{ "kind" : "reference", "name" : "BaseBlackBox" }

@@ -11,6 +11,7 @@
 #include "types/structs/Location.hpp"
 #include "types/structs/WorkspaceFolder.hpp"
 #include "types/structs/ClientCapabilities.hpp" 
+#include "types/structs/FileAbstractContent.hpp" 
 
 
 #include "slang/ast/Compilation.h"
@@ -80,6 +81,19 @@ class DiplomatLSP : public lsp::BaseLSP
 		std::map<std::string,std::optional<lsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params, std::stop_token tk);
 		json _h_get_design_hierarchy(json params, std::stop_token tk);
 		std::map<std::string,std::vector<lsp::types::Range>> _h_list_symbols(std::string params, std::stop_token tk);
+
+		/**
+		 * @brief Handles the <tt>diplomat-server.file.get-abstract</tt> command.
+		 * 
+		 * This command is used when the client require the complete list of interesting content
+		 * of the file (all symbols...).
+		 *
+		 * @param uri_path the URI of the queried file
+		 * @param uri_path a stop token from the dispatcher
+		 * @return lsp::types::FileAbstractContent The content of the processed file
+		 */
+		lsp::types::FileAbstractContent _h_get_file_abstract_content(json uri_path, std::stop_token tk);
+
 
 		void _bind_methods();
 

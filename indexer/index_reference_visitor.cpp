@@ -2,6 +2,9 @@
 #include "index_elements.hpp"
 #include "index_scopetree_node.hpp"
 #include "index_symbols.hpp"
+#include "slang/syntax/AllSyntax.h"
+#include "slang/syntax/SyntaxKind.h"
+#include "slang/util/LanguageVersion.h"
 #include <spdlog/spdlog.h>
 #include <vector>
 namespace diplomat::index
@@ -13,14 +16,20 @@ namespace diplomat::index
 		spdlog::trace("    Found reference for name {} at {}", name, node_loc.start.to_string());
 		IndexFile* parent_file = _index->add_file(node_loc.start.file);
 
-		IndexScopeTreeNode* ref_scope = parent_file->lookup_scope_by_range(node_loc);
+
+		IndexScopeTreeNode* ref_scope ;
+		if(_scoped_eval_lu_loc) 
+			ref_scope = _index->get_scope_by_position(_scoped_eval_lu_loc.value());
+		else 
+			ref_scope = parent_file->lookup_scope_by_range(node_loc);
+
 		if(! ref_scope)
 		{
 			spdlog::trace("        Reference dropped: missing scope");
 			parent_file->_add_failed_ref(fmt::format("{} at {}",name,node_loc.start.to_string()));
 			return false;
 		}
-
+		
 		std::string symb_name(name);
 		IndexSymbol* main_symb = ref_scope->lookup_symbol(symb_name);
 
@@ -173,6 +182,44 @@ namespace diplomat::index
 	{
 		_add_reference_to_symbol(node.name.range(),node.name.rawText());
 		visitDefault(node);
+	}
+
+	void ReferenceVisitor::handle(const slang::syntax::ScopedNameSyntax& node)
+	{
+		using namespace slang::syntax;
+		bool entry_point = false;
+		IndexScopeTreeNode* _initial_instance_scope = _instance_scope;
+		if(!_scoped_eval_lu_loc) 
+		{
+			spdlog::debug("Processing scoped node {}", node.toString());
+		 	entry_point = true;
+			_scoped_eval_lu_loc = IndexLocation(node.sourceRange().start(), *_sm);
+		}
+		
+		node.left->visit(*this);
+
+		switch (node.left->kind) 
+		{
+			case slang::syntax::SyntaxKind::IdentifierName :
+				_select_instance_scope(_scoped_eval_lu_loc.value(), node.left->as<IdentifierNameSyntax>().identifier.rawText());
+				break;
+			default : 
+				spdlog::warn("Left-wise node of kind {} in scoped name syntax was not handled : {}", toString(node.left->kind),node.left->toString());
+				_instance_scope = _initial_instance_scope;
+				_scoped_eval_lu_loc.reset();
+				return;
+		}
+
+			
+		_scoped_eval_lu_loc = _instance_scope->get_source_range()->start;
+		node.right->visit(*this);
+
+		if(entry_point)
+		{
+			_instance_scope = _initial_instance_scope;
+			_scoped_eval_lu_loc.reset();
+		}
+
 	}
 
 	void ReferenceVisitor::handle(const slang::syntax::HierarchyInstantiationSyntax& node)

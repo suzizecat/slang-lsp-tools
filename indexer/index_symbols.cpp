@@ -16,7 +16,7 @@ namespace diplomat::index
 
 	IndexSymbol::IndexSymbol(const slang::syntax::SyntaxNode& node, const slang::SourceManager& sm) :
 		_name(node.getFirstToken().rawText()),
-		_source_range({node,sm}),
+		_source_range({node.getFirstToken().range(),sm}),
 		_references_locations({})
 	{}
 

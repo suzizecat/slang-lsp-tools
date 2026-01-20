@@ -8,6 +8,7 @@
 #include "index_scopetree_node.hpp"
 #include "index_symbols.hpp"
 #include "slang/ast/Symbol.h"
+#include "slang/syntax/AllSyntax.h"
 #include <spdlog/spdlog.h>
 #include <slang/ast/types/DeclaredType.h>
 #include <slang/parsing/Token.h>
@@ -78,15 +79,18 @@ namespace diplomat::index {
 		}
 	}
 
-	void IndexVisitor::_default_symbol_handle(const slang::ast::Symbol& node)
+	void IndexVisitor::_default_symbol_handle(const slang::ast::Symbol& node,  const slang::syntax::SyntaxNode* matching_syntax)
 	{
 		if(! node.isScope() && _current_scope() && ! node.name.empty())
 		{
 			
-			const slang::syntax::SyntaxNode* stx = node.getSyntax();
+			const slang::syntax::SyntaxNode* stx = matching_syntax ? matching_syntax : node.getSyntax();
 			if(stx)
 			{
-
+				// if(node.kind == SymbolKind::Instance)
+				// {
+				// 	stx = stx->as<slang::syntax::HierarchicalInstanceSyntax>().decl;
+				// }
 				// In generate blocks, some variable defined as parameters (iterator in for-generate)
 				// Are re-emitted by slang for whatever reason, so they need to be filtered out.
 				if(node.kind == slang::ast::SymbolKind::Parameter && _current_scope()->lookup_symbol(stx->getFirstToken().rawText()))
@@ -95,6 +99,7 @@ namespace diplomat::index {
 					spdlog::debug("Skipped redundant symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 				}
 				else
+
 				{
 					_index->add_symbol(_current_scope()->add_symbol(std::make_unique<IndexSymbol>(*stx,*_sm)));
 					spdlog::debug("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
@@ -236,7 +241,12 @@ namespace diplomat::index {
 		using namespace slang::syntax;
 		
 		// Visit the scope before the next code block in order to setup the scope.
-		_default_symbol_handle(node);
+		const slang::syntax::SyntaxNode* stx = node.getSyntax();
+		if(stx)
+		{
+			stx = stx->as<slang::syntax::HierarchicalInstanceSyntax>().decl;
+		}
+		_default_symbol_handle(node, stx );
 		
 		// getCanonicalBody will return 0 on the canonical body itself
 		// Therefore, it should have been cached previously if it is non-zero

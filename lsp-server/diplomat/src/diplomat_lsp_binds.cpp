@@ -1,5 +1,8 @@
 #include "diplomat_lsp.hpp"
+#include "index_elements.hpp"
+#include "index_file.hpp"
 #include "index_scopetree_node.hpp"
+#include "index_symbols.hpp"
 #include "lsp_errors.hpp"
 #include "spdlog/spdlog.h"
 
@@ -8,6 +11,7 @@
 #include "types/enums/DiagnosticTag.hpp"
 #include "types/enums/LSPErrorCodes.hpp"
 #include "types/enums/MessageType.hpp"
+#include "types/structs/FileAbstractContent.hpp"
 #include "types/structs/HDLModule.hpp"
 #include "types/structs/ReferenceParams.hpp"
 #include "types/structs/SetTraceParams.hpp"
@@ -39,8 +43,10 @@
 #include <string>
 #include <sys/wait.h>
 #include <fstream>
+#include <unordered_set>
 #include <vector>
 
+#include "types/structs/SymbolInformation.hpp"
 #include "uri.hh"
 
 #include "hier_visitor.h"
@@ -822,11 +828,13 @@ json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
 	}
 
 	const slang::ast::RootSymbol& design_root = _compilation->getRoot();
-	
+	if(_compilation->isFrozen())
+		_compilation->unfreeze();
 	HierVisitor hier_visitor(false,&_cache);
 
 	design_root.visit(hier_visitor);
 
+	_compilation->freeze();
 	return hier_visitor.get_hierarchy();
 
 }
@@ -906,6 +914,55 @@ std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::
 	}
 
 	// spdlog::debug("{}",json(ret).dump(4));
+
+	return ret;
+}
+
+
+lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json uri_path, std::stop_token tk)
+{
+	di::IndexFile* tgt_file = _index->get_file(_cache.standardize_path(uri_path.at("fsPath").template get<std::string>()));
+
+	dlt::FileAbstractContent ret;
+
+	if(tgt_file)
+	{
+		for(const di::IndexSymbol* symb : tgt_file->get_symbols())
+		{
+			dlt::SymbolData ret_symb;
+
+			ret_symb.name = symb->get_name();
+			ret_symb.defRange = _index_range_to_lsp(symb->get_source().value());
+			
+			for(const di::IndexRange& refpos : symb->get_references())
+				ret_symb.refs.push_back(_index_range_to_lsp(refpos));
+
+			ret.symbols.push_back(ret_symb);
+		}
+
+		for(const di::ReferenceRecord& ref : tgt_file->get_references() | std::views::values)
+		{
+			if(! ref.is_definition)
+			{
+				const di::IndexSymbol* symb = ref.key;
+				if(! symb->get_source_location().has_value() || symb->get_source_location()->file != tgt_file->get_path())
+				{
+					dlt::SymbolData ret_symb;
+	
+					ret_symb.name = symb->get_name();
+					ret_symb.defRange = _index_range_to_lsp(symb->get_source().value());
+					
+					for(const di::IndexRange& refpos : symb->get_references())
+					{
+						if(refpos.start.file == tgt_file->get_path())
+							ret_symb.refs.push_back(_index_range_to_lsp(refpos));
+					}
+	
+					ret.externalRefs.push_back(ret_symb);
+				}
+			}
+		}
+	}
 
 	return ret;
 }

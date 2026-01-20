@@ -11,8 +11,8 @@
 #include "slang/text/SourceLocation.h"
 #include <iostream>
 #include <stack>
-#include "explorer_visitor.h"
-#include "hier_visitor.h"
+//#include "explorer_visitor.h"
+//#include "hier_visitor.h"
 #include "nlohmann/json.hpp"
 #include "slang/analysis/AnalysisManager.h"
 using json = nlohmann::json;
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
     driver.runAnalysis(*compilation);
     ok &= driver.reportDiagnostics(false);
 
-    compilation->freeze();
+    //compilation->freeze();
 
     const ast::RootSymbol&  root_symb = compilation->getRoot();
     const ast::Symbol* net = root_symb.lookupName("lock");
@@ -274,45 +274,45 @@ int main(int argc, char** argv) {
 
     print_symbols(root_symb);
 
-    ExplorerVisitor visitor;
-    HierVisitor h_visitor(false);
+    // ExplorerVisitor visitor;
+    // HierVisitor h_visitor(false);
 
-    root_symb.visit(h_visitor);
-    std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;
+    // root_symb.visit(h_visitor);
+    // std::cout << "Hier visitor results :" << std::endl << h_visitor.get_hierarchy().dump(4) << std::endl;
 
-    root_symb.visit(visitor);
-    std::cout << "Refs visitor results :" << std::endl << visitor.get_refs().dump(4) << std::endl;
+    // root_symb.visit(visitor);
+    // std::cout << "Refs visitor results :" << std::endl << visitor.get_refs().dump(4) << std::endl;
 
 
-    std::cout << "Testing global lookup..." << std::endl;
-    const ast::Symbol* results = root_symb.lookupName("i_spd_trigger");
-    if(results != nullptr)
-        std::cout << "    Found the requested symbol somewhere !" << std::endl;
-    else
-        std::cout << "    Nothing found." << std::endl;
-    for(std::shared_ptr<syntax::SyntaxTree> stree : driver.syntaxTrees)
-    {
-        std::cout << "Found a syntax tree" << std::endl;
-        const syntax::SyntaxNode& root = stree->root();
-        const syntax::SyntaxNode* lu_node = getNodeFromPosition(&root,slang::SourceLocation(stree->root().sourceRange().start().buffer(),1928));
-        if(lu_node != nullptr)
-            std::cout << "Found: " << lu_node->toString() << std::endl;
-        //std::cout << stree->root().toString() << std::endl;
+    // std::cout << "Testing global lookup..." << std::endl;
+    // const ast::Symbol* results = root_symb.lookupName("i_spd_trigger");
+    // if(results != nullptr)
+    //     std::cout << "    Found the requested symbol somewhere !" << std::endl;
+    // else
+    //     std::cout << "    Nothing found." << std::endl;
+    // for(std::shared_ptr<syntax::SyntaxTree> stree : driver.syntaxTrees)
+    // {
+    //     std::cout << "Found a syntax tree" << std::endl;
+    //     const syntax::SyntaxNode& root = stree->root();
+    //     const syntax::SyntaxNode* lu_node = getNodeFromPosition(&root,slang::SourceLocation(stree->root().sourceRange().start().buffer(),1928));
+    //     if(lu_node != nullptr)
+    //         std::cout << "Found: " << lu_node->toString() << std::endl;
+    //     //std::cout << stree->root().toString() << std::endl;
 
-    }
+    // }
 
-    const slang::SourceManager* sm = compilation->getSourceManager();
-    BufferID target_id;
-    for (BufferID id : sm->getAllBuffers())
-    {
-        if (sm->getFullPath(id).filename() == "prescaler_finder.sv")
-        {
-            target_id = id;
-            break;
-        }
-    }
+    // const slang::SourceManager* sm = compilation->getSourceManager();
+    // BufferID target_id;
+    // for (BufferID id : sm->getAllBuffers())
+    // {
+    //     if (sm->getFullPath(id).filename() == "prescaler_finder.sv")
+    //     {
+    //         target_id = id;
+    //         break;
+    //     }
+    // }
 
-    slang::SourceLocation sl(target_id, 884);
+    // slang::SourceLocation sl(target_id, 884);
 
     // std::cout << "Test lookup..." << std::endl;
     // const slang::ast::Symbol* match = get_definition_from_position(root_symb, sl);
