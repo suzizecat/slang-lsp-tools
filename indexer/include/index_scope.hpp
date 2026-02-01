@@ -47,9 +47,6 @@ namespace diplomat::index
 	    friend void from_json(const nlohmann::json& j, IndexScope& s); 
 
     protected:
-        // std::string _name;
-        // IndexScope* _parent;
-        // std::unordered_map<std::string, std::shared_ptr<IndexScope> > _children;
         
         /**
          * @brief Range that cover the scope declaration and content
@@ -62,13 +59,7 @@ namespace diplomat::index
          */
         std::unordered_map<std::string, std::unique_ptr<IndexSymbol>> _content;
 
-
-        //bool _can_access_parent;
-
         size_t _hash_value;
-
-        // size_t _unnamed_count;
-        // bool _anonymous;
 
         #ifdef DIPLOMAT_DEBUG
         std::string_view _kind;
@@ -123,8 +114,7 @@ namespace diplomat::index
         inline void set_source(const IndexRange& range) {_source_range = range;};
         inline const std::optional<IndexRange>& get_source_range() const { return _source_range;};
         inline const auto get_symbols() const {return std::views::values(_content);};
-        // inline bool is_anonymous() const { return _anonymous;};
-        // inline bool is_virtual() const { return _is_virtual;};
+
     };  
 
 

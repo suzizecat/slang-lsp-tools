@@ -1,4 +1,5 @@
 #include "include/index_symbols.hpp"
+#include "index_elements.hpp"
 #include "index_symbols.hpp"
 #include <spdlog/spdlog.h>
 
@@ -6,27 +7,34 @@ namespace diplomat::index
 {
 
 	IndexSymbol::IndexSymbol(const std::string& name) : 
-		_name(name), _references_locations({}) {}
+		_name(name), _references_locations({}), _valid(false) {}
 
 	IndexSymbol::IndexSymbol(const std::string& name, const IndexRange& range) : 
-		_name(name), _source_range(range), _references_locations({}) {}
+		_name(name), _source_range(range), _references_locations({}), _valid(false) {}
 
 	IndexSymbol::IndexSymbol(const std::string_view name, const IndexRange range) : 
-		_name(std::string(name)), _source_range(range) {}
+		_name(std::string(name)), _source_range(range), _valid(false) {}
 
 	IndexSymbol::IndexSymbol(const slang::syntax::SyntaxNode& node, const slang::SourceManager& sm) :
 		_name(node.getFirstToken().rawText()),
 		_source_range({node.getFirstToken().range(),sm}),
-		_references_locations({})
+		_references_locations({}),
+		_valid(false)
 	{}
 
 
 	IndexSymbol::IndexSymbol(const slang::ast::Symbol& node, const slang::SourceManager& sm) :
 		_name(node.name),
 		_source_range({node,sm}),
-		_references_locations({})
+		_references_locations({}),
+		_valid(false)
 	{}
 
+
+	void IndexSymbol::remove_reference(const IndexRange& ref_location)
+	{
+		_references_locations.erase(ref_location);
+	}
 
 	void IndexSymbol::add_reference(IndexRange ref_location)
 	{
@@ -38,6 +46,16 @@ namespace diplomat::index
 	{
 		_source_range = new_source;
 	}
+
+	/* Not used by file. Kept in case.
+	void IndexSymbol::clear_local_references()
+	{
+		if(_source_range.has_value())
+			std::erase_if(_references_locations,[this](const auto& x){
+				return _source_range->start.same_file(x.start);
+			});
+	}
+	*/
 }
 
 

@@ -1,5 +1,7 @@
 #include "index_core.hpp"
+#include "index_elements.hpp"
 #include "index_exceptions.hpp"
+#include "index_file.hpp"
 #include "index_reference_visitor.hpp"
 #include "index_scopetree_node.hpp"
 
@@ -58,6 +60,7 @@ namespace diplomat::index {
 		
 		IndexSymbol* s = scope->add_symbol(std::make_unique<IndexSymbol>(name, src_range));
 		f->add_symbol(s);
+		s->validate();
 		return s;
 	}
 
@@ -71,6 +74,7 @@ namespace diplomat::index {
 		else {
 			throw index_exception("Tried to register a symbol without location");
 		}
+		symb->validate();
 		return symb;
 	}
 
@@ -122,10 +126,45 @@ namespace diplomat::index {
 		return ref_file->lookup_symbol_by_location(pos);
 	}
 
+	void IndexCore::invalidate_file(const std::filesystem::path& file)
+	{
+		IndexFile* f = get_file(file);
+		if(f)
+			f->invalidate_file();
+	}
+
 	IndexScopeTreeNode* IndexCore::lookup_scope(const std::string_view& path)
 	{
 		return _root->resolve_scope(path);
 	}
+
+	void IndexCore::cleanup()
+	{
+		// First need to delete all (future) dangling references
+		_cleanup_scope_symbols_step(get_root_scope());
+		// Then delete the invalidated scopes
+		get_root_scope()->cleanup();
+	}
+
+	void IndexCore::_cleanup_scope_symbols_step(IndexScopeTreeNode* scope)
+	{
+		if(! scope->is_valid())
+		{
+			for(const auto& symb : scope->data()->get_symbols())
+			{
+				for(IndexRange ref : symb->get_references())
+				{
+					get_file(ref.start.file)->remove_reference_by_location(ref.start);
+				}
+			}
+		}
+
+		for(auto& child : scope->get_children())
+		{
+			_cleanup_scope_symbols_step(child.get());
+		}
+	}
+
 
 	void to_json(nlohmann::json &j, const IndexCore &s)
 	{

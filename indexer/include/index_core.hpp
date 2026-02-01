@@ -42,10 +42,22 @@ namespace diplomat::index
 		std::unordered_map<uintptr_t, IndexScopeTreeNode* > _cached_scopes;
 
 		//void _process_file_reference(slang::SourceManager* sm, const std::filesystem::path& fpath, IndexFile* f);
+
+		void _cleanup_scope_symbols_step(IndexScopeTreeNode* scope);
+		void _cleanup_scope_erase_step(IndexScopeTreeNode* scope);
+
 	public:
 
 		IndexScopeTreeNode* set_root_scope(const std::string name);
 		inline IndexScopeTreeNode* get_root_scope(){return _root.get();};
+
+		/**
+		 * @brief Provide the bound status of the the root scope.
+		 * 
+		 * @return true if the root have been initialized
+		 * @return false otherwise
+		 */
+		inline bool have_root_scope() const {return (bool)_root;};
 
 		IndexFile* add_file(const std::filesystem::path& path);
 		IndexFile* add_file(const std::string_view& path);
@@ -105,12 +117,28 @@ namespace diplomat::index
 		const IndexSymbol* get_symbol_by_position(const IndexLocation& pos) ;
 
 		/**
+		 * @brief If recorded in the index, proceed to invalidate a file.
+		 * 
+		 * If the file is not recorded, do nothing.
+		 *
+		 * @param file file path to invalidate
+		 */
+		void invalidate_file(const std::filesystem::path& file);
+
+		/**
 		 * @brief Get a scope by its fully qualified path (starting from the root)
 		 * 
 		 * @param path to evaluate
 		 * @return IndexScope* if found, nullptr otherwise.
 		 */
 		IndexScopeTreeNode* lookup_scope(const std::string_view& path);
+
+
+		/**
+		 * @brief Perform cleanups operations
+		 * 
+		 */
+		void cleanup();
 
 		IndexCore() = default;
 		~IndexCore() = default;

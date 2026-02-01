@@ -8,6 +8,8 @@
 #include "index_scopetree_node.hpp"
 #include "index_symbols.hpp"
 #include "slang/ast/Symbol.h"
+#include "slang/ast/symbols/CompilationUnitSymbols.h"
+#include "slang/ast/symbols/PortSymbols.h"
 #include "slang/syntax/AllSyntax.h"
 #include <spdlog/spdlog.h>
 #include <slang/ast/types/DeclaredType.h>
@@ -22,8 +24,13 @@ namespace diplomat::index {
 	{
 		
 		if(_scope_stack.empty())
-		{
-			_scope_stack.push(_index->set_root_scope(name));
+		{	
+			// If the scope already has a root scope, it is required to
+			// use it again as root, in case of invalidation.
+			if(_index->have_root_scope())
+				_scope_stack.push(_index->get_root_scope());
+			else
+				_scope_stack.push(_index->set_root_scope(name));
 		}
 		else
 		{
@@ -81,6 +88,10 @@ namespace diplomat::index {
 
 	void IndexVisitor::_default_symbol_handle(const slang::ast::Symbol& node,  const slang::syntax::SyntaxNode* matching_syntax)
 	{
+		// For scope to be analized, it shall not be already valid.
+		if(_current_scope()->is_valid())
+			return;
+
 		if(! node.isScope() && _current_scope() && ! node.name.empty())
 		{
 			
@@ -91,6 +102,7 @@ namespace diplomat::index {
 				// {
 				// 	stx = stx->as<slang::syntax::HierarchicalInstanceSyntax>().decl;
 				// }
+				
 				// In generate blocks, some variable defined as parameters (iterator in for-generate)
 				// Are re-emitted by slang for whatever reason, so they need to be filtered out.
 				if(node.kind == slang::ast::SymbolKind::Parameter && _current_scope()->lookup_symbol(stx->getFirstToken().rawText()))
@@ -101,7 +113,8 @@ namespace diplomat::index {
 				else
 
 				{
-					_index->add_symbol(_current_scope()->add_symbol(std::make_unique<IndexSymbol>(*stx,*_sm)));
+					IndexSymbol* nsymb = _index->add_symbol(_current_scope()->add_symbol(std::make_unique<IndexSymbol>(*stx,*_sm)));
+					nsymb->set_kind(slang::ast::toString(node.kind));
 					spdlog::debug("Added symbol with location {}.{} of kind {}",_current_scope()->get_full_path(),node.name,slang::ast::toString(node.kind));
 				}
 			}
@@ -168,7 +181,6 @@ namespace diplomat::index {
 				// {
 					_open_scope(scope_name,is_virtual);
 					_current_scope()->set_source(IndexRange(stx->sourceRange(),*_sm));
-					
 					containing_file->register_scope(_current_scope());
 
 					// #ifdef DIPLOMAT_DEBUG
@@ -185,8 +197,11 @@ namespace diplomat::index {
 
 		IndexScopeTreeNode* ret = _current_scope();
 		//_default_symbol_handle(s);
+
 		for(const auto& member : node.members())
 			member.visit(*this);
+
+		_current_scope()->validate();
 		_close_scope(used_scope_name);
 
 		return ret;
@@ -205,11 +220,11 @@ namespace diplomat::index {
 	}
 
 
-	void IndexVisitor::handle(const slang::ast::DefinitionSymbol& node)
-	{
-		_default_symbol_handle(node);
-		visitDefault(node);
-	}
+	// void IndexVisitor::handle(const slang::ast::DefinitionSymbol& node)
+	// {
+	// 	_default_symbol_handle(node);
+	// 	visitDefault(node);
+	// }
 
 	void IndexVisitor::handle(const slang::ast::VariableSymbol& node)
 	{
@@ -285,25 +300,32 @@ namespace diplomat::index {
 			{
 				// Using get_scope_by_name will resolve any duplicated scope.
 				IndexScopeTreeNode* module_scope = _current_scope()->get_scope_by_name(node.name);
-				// if(! module_scope)
-				// {
-				// 	spdlog::error("Failed to lookup the expected child scope '{}' from {}", node.name, _current_scope()->get_full_path());	
-				// }
-				// else
-				// {
-					// Manual insertion of the module name as a symbol to the target scope...
-					// _open_scope(module_scope->get_name(),false);
-					const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
-					//IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
-					new_scope->add_symbol(std::make_unique<IndexSymbol>(inst_typename.rawText(),IndexRange{inst_typename.range(),*_sm}));
+				// Manual insertion of the module name as a symbol to the target scope...
+				// _open_scope(module_scope->get_name(),false);
+				const slang::parsing::Token inst_typename = mod->as<ModuleDeclarationSyntax>().header->name; 
+				//IndexSymbol* new_symb = _index->add_symbol(inst_typename.rawText(),{inst_typename.range(),*_sm},"<Module>");
+				new_scope->add_symbol(std::make_unique<IndexSymbol>(inst_typename.rawText(),IndexRange{inst_typename.range(),*_sm}));
 
-					spdlog::debug("Added symbol with location {}.{} of kind <Module>",new_scope->get_full_path(),inst_typename.rawText());
-					
-					// _close_scope(module_scope->get_name());
-				// }
+				spdlog::debug("Added symbol with location {}.{} of kind <Module>",new_scope->get_full_path(),inst_typename.rawText());
+				
 			}
 		}
 
+
+	}
+
+	void IndexVisitor::handle(const slang::ast::InterfacePortSymbol& node)
+	{
+		using namespace slang;
+		// Interface port symbol require to create a virtual sub-scope representing the content of the interface...
+		// The scope name will be symbol name (and the symbol is also on the symbol name...? )
+		spdlog::info("Processing interface");
+
+		// Record the node itself as a symbol, in particular for renaming purposes.
+		_default_symbol_handle(node);
+
+		const ast::DefinitionSymbol* defsymb = node.interfaceDef;
+		_open_scope(node.name);
 
 	}
 

@@ -1,5 +1,6 @@
 #include "lsp_dispatcher.hpp"
 #include "lsp_errors.hpp"
+#include "spdlog/stopwatch.h"
 #include "types/methods/lsp_reserved_methods.hpp"
 #include "types/structs/ExecuteCommandParams.hpp"
 #include <cassert>
@@ -9,6 +10,7 @@
 #include <mutex>
 #include <optional>
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/chrono.h>
 #include <stop_token>
 #include <thread>
 
@@ -327,7 +329,8 @@ namespace diplomat::lsp {
 				// current process variables.
 				
 				std::lock_guard<std::mutex> lk(_work_mutex);
-				spdlog::info("Started worked for {}", _ongoing_method);
+				spdlog::info("Started worker for {}", _ongoing_method);
+				spdlog::stopwatch sw;
 				try {
 					if(_bound_filter.has_value() && _bound_filter.value()(_ongoing_method,_ongoing_params))
 					{
@@ -364,7 +367,7 @@ namespace diplomat::lsp {
 					_worker_running = false;
 					_worker_cv.notify_all();
 				}
-				spdlog::debug("Worker finished {} [{}]",_ongoing_method, _ongoing_id.dump());
+				spdlog::debug("Worker finished {} in {:.6} seconds [{}]",_ongoing_method, sw, _ongoing_id.dump());
 				_ongoing_id = json(nullptr);
 				_worker_running = false;
 				_worker_cv.notify_all();

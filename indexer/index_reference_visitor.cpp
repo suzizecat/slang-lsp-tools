@@ -86,6 +86,7 @@ namespace diplomat::index
 	                                              const ::std::string_view& next_scope)
 	{
 		IndexScopeTreeNode* curr_scope = _index->get_scope_by_position(curr_scope_loc);
+		spdlog::debug("Request instance scope {}.{}",curr_scope ? curr_scope->get_full_path() : "<NONE>", next_scope);
 		if(! curr_scope)
 		{
 			_instance_scope = nullptr;
@@ -93,6 +94,11 @@ namespace diplomat::index
 		else
 		{
 			IndexScopeTreeNode* new_scope = curr_scope->get_scope_by_name(next_scope);
+			if(!new_scope)
+			{
+				_instance_scope = curr_scope;
+				spdlog::warn("Failed to select instance scope {}.{} (not found in scope tree)",curr_scope->get_full_path(),next_scope);
+			}
 			_instance_scope = new_scope ? new_scope : curr_scope; 
 		}
 	}
@@ -130,7 +136,7 @@ namespace diplomat::index
 		else
 		{
 			spdlog::debug("Entering hier-instance declaration for {}",node.header->name.rawText());
-			_select_instance_scope(IndexLocation(node.sourceRange().start(),*_sm),node.header->name.rawText());
+			// _select_instance_scope(IndexLocation(node.sourceRange().start(),*_sm),node.header->name.rawText());
 			
 			// const slang::syntax::HierarchyInstantiationSyntax& root_instantiation_stx = node.parent->as<slang::syntax::HierarchyInstantiationSyntax>();
 			// _add_reference_to_symbol(node.decl->name.range(), root_instantiation_stx.type.rawText());

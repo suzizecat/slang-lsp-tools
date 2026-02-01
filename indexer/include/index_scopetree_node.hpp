@@ -109,20 +109,15 @@ namespace diplomat::index
 		*/
 		size_t _unnamed_count;
 
-		// bool _anonymous;
 
-		// /**
-		//  * @brief Build the set of non-virtual children for the `get_concrete_children` function.
-		//  * 
-		//  * This function recursively go into every virtual children until non-virtual scopes are found.
-		//  * Such concrete scopes are then added to the return holder.
-		//  * @param ret_holder The set used to collect all captured scopes
-		//  * @param is_root if true, prevent capturing the scope from wich the lookup is originating.
-		//  * Should be false any other time.
-		//  * 
-		//  * @sa IndexScope::get_concrete_children()
-		//  */
-		// void _build_concrete_children(std::set<IndexScope*>& ret_holder, bool is_root = true);
+		/**
+		 * @brief Tracks the valid state of the scope tree node.
+		 * 
+		 * An 'invalid' scope means that the file containing the scope has been modified
+		 * and needs to be re-analyzed.
+		 * Therefore, the scope may have changed or could have been deleted altogether. 
+		 */
+		bool _valid;
 
 
 		/**
@@ -178,15 +173,7 @@ namespace diplomat::index
 		  * @return IndexScopeTreeNode* The created (and ready) node
 		  */
 		 IndexScopeTreeNode* add_anon_child(std::shared_ptr<IndexScope>  data = nullptr, const bool is_virtual = false);
-		// /**
-		//  * @brief Add an alias for the specified child, then return the actual scope if OK,
-		//  * nullptr otherwise.
-		//  * 
-		//  * @param ref Reference child
-		//  * @param alias Name of the alias
-		//  * @return IndexScope* reference child if the alias is in place, nullptr otherwise
-		//  */
-		// IndexScope* add_child_alias(const std::string& ref, const std::string& alias);
+
 
 		/**
 		 * @brief Adds a full scope subtree as a child
@@ -274,7 +261,7 @@ namespace diplomat::index
 		
 		/**
 		 * @brief Get the child for exact range object.
-		 * This function may be used to search for a **direct child** of the current scope
+		 * This function may be used to search for a **direct chilstd::set<IndexScopeTreeNode*>d** of the current scope
 		 * wich would exactly cover the provided range.
 		 * 
 		 * It is useful for duplication detection.
@@ -299,7 +286,7 @@ namespace diplomat::index
 		IndexScopeTreeNode* get_root();
 		const IndexScopeTreeNode* get_root() const;
 
-		std::set<IndexScopeTreeNode*> get_concrete_children();
+		inline auto get_children() const {return std::views::values(_children);};
 
 		// size_t compute_hash_value();
 		// inline size_t get_hash_value() const { return _hash_value; };
@@ -314,6 +301,18 @@ namespace diplomat::index
 
 		inline std::shared_ptr<const IndexScope> data() const {return _data;} ;
 		inline std::shared_ptr<IndexScope> data() {return _data;} ;
+
+		inline void invalidate() {_valid = false;}; 
+		inline void validate() {_valid = true;};
+		inline bool is_valid() const {return _valid;};
+
+		/**
+		 * @brief The cleanup step will recusrively remove all childs that are still invalid.
+		 * 
+		 * All references will be expected to be deleted beforehand.
+		 * 
+		 */
+		void cleanup();
 	};  
 
 

@@ -97,7 +97,9 @@ void DiplomatLSP::_h_didChangeWorkspaceFolders(json _, std::stop_token tk)
 
 void DiplomatLSP::_h_didSaveTextDocument(dlt::DidSaveTextDocumentParams param, std::stop_token tk)
 {
-	_cache.process_file(uri(param.textDocument.uri));
+	uri p = uri(param.textDocument.uri);
+	_cache.process_file(p);
+	_index->invalidate_file(std::filesystem::path("/" + p.get_path()));
 	_compile();
 }
 
@@ -771,6 +773,7 @@ void DiplomatLSP::_h_force_clear_index(json _, std::stop_token tk)
 	_project_file_tree_valid = false;
 	_compilation.reset();
 	_broken_index_emitted = true;
+	_index.reset();
 	_read_workspace_modules();
 	_compile();
 }
@@ -932,6 +935,9 @@ lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json u
 			dlt::SymbolData ret_symb;
 
 			ret_symb.name = symb->get_name();
+			#ifdef DIPLOMAT_DEBUG
+			ret_symb.kind = symb->get_kind();
+			#endif
 			ret_symb.defRange = _index_range_to_lsp(symb->get_source().value());
 			
 			for(const di::IndexRange& refpos : symb->get_references())
@@ -951,6 +957,9 @@ lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json u
 	
 					ret_symb.name = symb->get_name();
 					ret_symb.defRange = _index_range_to_lsp(symb->get_source().value());
+					#ifdef DIPLOMAT_DEBUG
+					ret_symb.kind = symb->get_kind();
+					#endif
 					
 					for(const di::IndexRange& refpos : symb->get_references())
 					{

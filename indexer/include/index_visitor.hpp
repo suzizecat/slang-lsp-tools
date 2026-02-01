@@ -1,5 +1,6 @@
 #pragma once
 #include "slang/ast/Scope.h"
+#include <memory>
 #include <slang/syntax/AllSyntax.h>
 #include <slang/ast/ASTVisitor.h>
 
@@ -76,18 +77,20 @@ namespace diplomat::index {
 			inline IndexScopeTreeNode* _current_scope() const {return _scope_stack.empty() ? nullptr : _scope_stack.top(); };
 		public: 
 			explicit IndexVisitor(const slang::SourceManager* sm) : _sm(sm), _index(new IndexCore()) {};
+			explicit IndexVisitor(const slang::SourceManager* sm, std::unique_ptr<IndexCore> _prev_core) : _sm(sm), _index(std::move(_prev_core)) {};
 
 			//inline const IndexCore* get_index() const {return _index.get(); };
 
 			void handle(const slang::ast::Scope& node);
 			// void handle(const slang::ast::Symbol& node);
-			void handle(const slang::ast::DefinitionSymbol& node);
+			//void handle(const slang::ast::DefinitionSymbol& node);
 			//void handle(const slang::ast::PortSymbol& node);
 			void handle(const slang::ast::VariableSymbol& node);
 			void handle(const slang::ast::GenvarSymbol& node);
 			void handle(const slang::ast::ParameterSymbol& node);
 			void handle(const slang::ast::TransparentMemberSymbol& node);
 			void handle(const slang::ast::InstanceSymbol& node);
+			void handle(const slang::ast::InterfacePortSymbol& node);
 			void handle(const slang::ast::SubroutineSymbol& node);
 			void handle(const slang::ast::WildcardImportSymbol& node);
 

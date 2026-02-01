@@ -202,6 +202,12 @@
 					"documentation" : "@brief The declared name of the symbol"
 				},
 				{
+					"name": "kind",
+					"type": { "kind": "base", "name": "string"},
+					"optional" : true,
+					"documentation" : "@brief The kind of the symbol. May not be available."
+				},
+				{
 					"name": "defRange",
 					"type": {
 						"kind": "reference",

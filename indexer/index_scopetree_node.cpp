@@ -19,7 +19,8 @@ namespace diplomat::index {
 		_children(),
 		_parent(nullptr),
 		_is_virtual(isvirtual),
-		_unnamed_count(0)
+		_unnamed_count(0),
+		_valid(false)
 		{
 			if(!name)
 			{
@@ -100,6 +101,9 @@ namespace diplomat::index {
 		{
 			fl_child->add_subtree_child(cref.get() ,cname);
 		}
+		
+		if(reference->is_valid())
+			fl_child->validate();
 
 		return fl_child;
 	}	
@@ -381,6 +385,23 @@ namespace diplomat::index {
 	IndexScopeTreeNode* IndexScopeTreeNode::get_root()
 	{
 		return _parent ? _parent->get_root() : this;
+	}
+
+
+	void IndexScopeTreeNode:: cleanup()
+	{
+		for (auto iter = _children.begin(); iter != _children.end();) 
+		{
+			if(iter->second->is_valid())
+			{
+				iter->second->cleanup();
+				iter ++;
+			}
+			else
+			{
+				iter = _children.erase(iter);
+			}
+		}
 	}
 
 	void to_json(nlohmann::json& j, const IndexScopeTreeNode& s)

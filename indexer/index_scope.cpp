@@ -24,10 +24,15 @@ namespace diplomat::index {
 	{
 		auto lu_result = _content.find(symb->get_name());
 		if(lu_result != _content.end())
+		{
+			// Refresh location using new declaration, to acomodate with revalidation.
+			lu_result->second->set_source(symb->get_source().value());
 			return lu_result->second.get();
+		}
 		else
 		{
 			auto result = _content.emplace(symb->get_name(), std::unique_ptr<IndexSymbol>(symb));
+			
 			return result.first->second.get();
 		}
 	}

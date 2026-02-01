@@ -4,12 +4,19 @@
 #include "index_symbols.hpp"
 #include <cstddef>
 #include <memory>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <cassert>
 namespace diplomat::index {
-	IndexFile::IndexFile(const std::filesystem::path& path)
+	IndexFile::IndexFile(const std::filesystem::path& path) :
+	_filepath(std::filesystem::weakly_canonical(path)),
+	_syntax_root{},
+	_scopes{},
+	_declarations(),
+	_references(),
+	_scopes_locations()
 	{
-		_filepath = std::filesystem::weakly_canonical(path);
+		
 	}
 
 	IndexSymbol* IndexFile::add_symbol(IndexSymbol* symb)
@@ -27,10 +34,10 @@ namespace diplomat::index {
 
 		auto [eltpair, inserted] = _declarations.try_emplace(symb->get_source_location().value(),symb);
 
-		// If insertion has been prevented, it means that the exact location has already been registered as a
-		// symbol. 
-		// In this case, the reference have also been made from somewhere and to the same location.
-		if(inserted)
+
+		// If the symbol was invalid, the reference needs to be pushed again.
+		// This cover both the case where the symbol did not exists (invalid by default) and an invalidated symbol.
+		if(! eltpair->second->is_valid())
 		{
 			// #ifdef DIPLOMAT_DEBUG
 			// eltpair->second->set_kind(kind);
@@ -38,22 +45,10 @@ namespace diplomat::index {
 			add_reference(symb, symb->get_source().value(),true);
 		}
 		
+		eltpair->second->validate();
 		return eltpair->second;
 	}
-	// IndexSymbol *IndexFile::add_symbol(const std::string_view &name, const IndexRange &location, const std::string_view& kind)
-	// {
-
-	// 	auto [eltpair, inserted] = _declarations.emplace(location,std::<IndexSymbol>(std::string(name),location));
-	// 	if(inserted)
-	// 	{
-	// 		// #ifdef DIPLOMAT_DEBUG
-	// 		// eltpair->second->set_kind(kind);
-	// 		// #endif
-	// 		add_reference(eltpair->second.get(), eltpair->first,true);
-	// 	}
-
-	// 	return eltpair->second.get();
-	// }
+	
 
 	void IndexFile::register_scope(IndexScopeTreeNode *_scope)
 	{
@@ -172,16 +167,44 @@ namespace diplomat::index {
 		}
 	}
 
-	// void IndexFile::record_additionnal_lookup_scope(const std::string& path, IndexScope* target)
-	// {
-	// 	spdlog::debug("Recording additionnal lookup scope {}.",path);
-	// 	_additional_lookup_scopes[path] = target;
-	// }
+	void IndexFile::invalidate_file()
+	{
+		spdlog::info("Invalidating file {}", _filepath.generic_string());
+		_valid = false;
 
-	// void IndexFile::invalidate_additionnal_lookup_scope(const std::string& path)
-	// {
-	// 	_additional_lookup_scopes.erase(path);
-	// }
+		spdlog::debug("Clearing symbols and references");
+		for(IndexSymbol* sym : _declarations | std::views::values )
+		{
+			sym->invalidate();
+			// As the references are removed anyway just after, no need to iterate twice on the symbols.
+			// sym->clear_local_references();
+		}
+
+		// Delete all reference in the current file in their respective symbols.
+		// Once done, there should not be any active reference to the current file.
+		for(ReferenceRecord& ref : _references | std::views::values )
+		{
+			ref.key->remove_reference(ref.loc);
+		}
+		_references.clear();
+
+		// Need to clear the scopes
+		spdlog::debug("Invalidating scope trees");
+
+		for(IndexScopeTreeNode* scope : _scopes_locations | std::views::values )
+		{
+			scope->invalidate();
+		}
+
+		// Scopes locations will need to be bound again
+		_scopes_locations.clear();
+
+	}
+
+	void IndexFile::remove_reference_by_location(const IndexLocation& loc)
+	{
+		_references.erase(loc);
+	}
 
 	void to_json(nlohmann::json &j, const IndexFile &s)
 	{

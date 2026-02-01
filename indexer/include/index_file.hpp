@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include "index_elements.hpp"
 #include "index_scope.hpp"
 #include "index_scopetree_node.hpp"
 #include "index_symbols.hpp"
@@ -43,6 +44,8 @@ namespace diplomat::index
          * This variable is used to perform geographic lookup of references (in exemple to check if a
          * reference is under the cursor). This may be done by using <tt>upper_bound -1</tt> and checking if the
          * reference range actually matches the looked up location
+         *
+         * @note Definition location will also appear in _references.
          */
         std::map<IndexLocation, ReferenceRecord> _references;
 
@@ -66,6 +69,13 @@ namespace diplomat::index
         //  * 
         //  */
         // std::map<std::string, IndexScope*> _additional_lookup_scopes;
+        
+        /**
+		 * @brief 'Valid' status of the file.
+		 * 
+		 * An invalid file should be reanalized (at least for references).
+		 */
+		bool _valid;
 
         #ifdef DIPLOMAT_DEBUG
             std::vector<std::string> _failed_references;
@@ -102,11 +112,21 @@ namespace diplomat::index
 
         inline const std::filesystem::path& get_path() const {return _filepath;} ;
 
-        // void record_additionnal_lookup_scope(const std::string& path, IndexScope* target = nullptr);
-        // void invalidate_additionnal_lookup_scope(const std::string& path);
+        /**
+        * @brief Invalidate the file (mark for reanalysis).
+        *
+        * This will drop the internal reference table and call both IndexSymbol::invalidate() and 
+        * IndexSymbol::clear_local_references() on all symbols *declared* in this file. 
+        * 
+        * The related scopes will also be invalidated in the same fashion.
+        * 
+        */
+        void invalidate_file();
+        
+        void remove_reference_by_location(const IndexLocation& loc);
 
-        //inline const std::map<std::string, IndexScope*>* get_additionnal_scopes() const {return &_additional_lookup_scopes;} ;
-
+        inline void validate() {_valid = true;};
+		inline bool is_valid() const {return _valid;};
 
         #ifdef DIPLOMAT_DEBUG
         inline void _add_failed_ref(const std::string & ref_text) {_failed_references.push_back(ref_text);};

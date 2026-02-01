@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <optional>
+#include <string_view>
 #include <unordered_set>
 
 #include "index_elements.hpp"
@@ -9,6 +10,7 @@
 
 namespace diplomat::index 
 {
+
 	class IndexSymbol
 	{
 		// Allows access to internals for the hash function
@@ -24,6 +26,13 @@ namespace diplomat::index
 		std::optional<IndexRange> _source_range;
 		std::unordered_set<IndexRange> _references_locations;
 
+		/**
+		 * @brief 'Valid' status of the symbol.
+		 * 
+		 * An invalid symbol is deemed deleted and to be cleaned up.
+		 */
+		bool _valid;
+
 		#ifdef DIPLOMAT_DEBUG
 		std::string_view _kind;
 		#endif
@@ -38,6 +47,7 @@ namespace diplomat::index
 		~IndexSymbol() = default;
 
 		void add_reference(IndexRange ref_location);
+		void remove_reference(const IndexRange& ref_location);
 		void set_source(const IndexRange& new_source);
 
 		inline void set_kind(const std::string_view& kind) {
@@ -46,11 +56,33 @@ namespace diplomat::index
 			#endif
 		};
 		
+		inline std::string_view get_kind() const {
+			#ifdef DIPLOMAT_DEBUG
+			return _kind;
+			#else 
+			return "";
+			#endif
+		}
+
 		inline const std::optional<IndexRange>& get_source() const {return _source_range;};
 		inline const std::optional<IndexLocation> get_source_location() const {return _source_range ? _source_range->start : std::optional<IndexLocation>();};
 		inline const std::string& get_name() const {return _name;};
 		inline const std::unordered_set<IndexRange>& get_references() const {return _references_locations;};
 
+		/**
+		 * @brief Invalidate the symbol
+		 * 
+		 */
+		inline void invalidate() {_valid = false;};
+		inline void validate() {_valid = true;};
+		inline bool is_valid() const {return _valid;};
+
+		/**
+		 * @brief Deletes all references (on the symbol side) of the same file as the symbol
+		 * 
+		 */
+		// void clear_local_references();
+		
 
 	};
 

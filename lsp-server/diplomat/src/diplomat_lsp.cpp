@@ -1,4 +1,5 @@
 #include "diplomat_lsp.hpp"
+#include "index_core.hpp"
 #include "lsp_dispatcher.hpp"
 #include "slang/analysis/AnalysisManager.h"
 #include "slang/analysis/AnalysisOptions.h"
@@ -30,6 +31,7 @@
 // UNIX only header
 #include <sys/wait.h>
 #include <fstream>
+#include <utility>
 
 #include "uri.hh"
 
@@ -72,7 +74,8 @@ _sm(new slang::SourceManager()),
 _diagnostic_client(new LSPDiagnosticClient(_cache,_sm.get())),
 _watch_client_pid(watch_client_pid),
 _project_file_tree_valid(false),
-_broken_index_emitted(true)
+_broken_index_emitted(true),
+_index(new index::IndexCore())
 {
     _dispatcher.set_unpack_nonstandards_params(true);
     
@@ -527,16 +530,22 @@ void DiplomatLSP::_compile()
 
     spdlog::info("Run indexer");
     
-   diplomat::index::IndexVisitor idx_visit(_compilation->getSourceManager());
+   diplomat::index::IndexVisitor idx_visit(_compilation->getSourceManager(), std::move(_index));
     try
     {
         spdlog::info("Processing symbols and hierarchy");
         _compilation->getRoot().visit(idx_visit);
         _index = std::move(idx_visit.get_index());
+        _index->cleanup();
         spdlog::info("Processing references");
 
         for(const auto& file : _index->get_indexed_files())
         {
+            if(file->is_valid())
+            {
+                spdlog::info("Skipping processing for already valid file {}",file->get_path().generic_string());
+            }
+            else
             {
                 spdlog::info("Processing references for {}",file->get_path().generic_string());
 
@@ -545,6 +554,7 @@ void DiplomatLSP::_compile()
                 {
                     diplomat::index::ReferenceVisitor ref_visitor(_compilation->getSourceManager(),_index.get());
                     stx->visit(ref_visitor);
+                    file->validate();
                 }
                 else {
                  spdlog::warn("No syntax node available for {}. No reference processed.", file->get_path().generic_string());
