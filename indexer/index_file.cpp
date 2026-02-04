@@ -16,9 +16,14 @@ namespace diplomat::index {
 	_references(),
 	_scopes_locations()
 	{
-		
+		spdlog::debug("Call File constructor of {}", _filepath.generic_string());
 	}
 
+
+	IndexFile::~IndexFile()
+	{
+		spdlog::debug("Call File destructor of {}", _filepath.generic_string());
+	}
 	IndexSymbol* IndexFile::add_symbol(IndexSymbol* symb)
 	{
 		if(! symb->get_source()) 
@@ -53,16 +58,19 @@ namespace diplomat::index {
 	void IndexFile::register_scope(IndexScopeTreeNode *_scope)
 	{
 		// Register the scope by name
-		auto [_, insert_ok] = _scopes.insert({_scope->get_full_path(),_scope});
+		auto [inserted_scope, _] = _scopes.insert({_scope->get_full_path(),_scope});
+		// It is mandatory to rebind scopes even if the insertion in _scopes failed.
+		// That occurs in the case where we are incrementally rebuilding the scopetree.
+		// In this case, the scopes are not removed from the file (but their locations are deleted).
 
 		// Register the scope by range (if any)
-		if(insert_ok && _scope->get_source_range().has_value())
+		if(inserted_scope->second->get_source_range().has_value())
 		{
 			// The objective is to check if we are within a parent scope
 			// If so, insert both:
 			//  - The new scope at its designated location
 			//  - A reference to the parent, after the end of the new scope for later lookup
-			IndexRange scope_range = _scope->get_source_range().value();
+			IndexRange scope_range = inserted_scope->second->get_source_range().value();
 			auto parent_scope_key = _scopes_locations.upper_bound(scope_range.start);
 
 			// If we indeed have a parent scope registered, insert the restart of the parent and then
@@ -84,7 +92,7 @@ namespace diplomat::index {
 			}	
 			
 			// Avoid updating the map before using the iterator for lookup.
-			_scopes_locations.emplace_hint(parent_scope_key,scope_range.start, _scope);
+			_scopes_locations.emplace_hint(parent_scope_key,scope_range.start, inserted_scope->second);
 			
 		}
 	}
@@ -171,6 +179,7 @@ namespace diplomat::index {
 	{
 		spdlog::info("Invalidating file {}", _filepath.generic_string());
 		_valid = false;
+		_syntax_root.reset();
 
 		spdlog::debug("Clearing symbols and references");
 		for(IndexSymbol* sym : _declarations | std::views::values )

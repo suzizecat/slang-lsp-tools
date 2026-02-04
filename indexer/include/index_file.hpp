@@ -84,7 +84,8 @@ namespace diplomat::index
 
     public:
         IndexFile(const std::filesystem::path& path);
-        ~IndexFile() = default;
+        // ~IndexFile() = default;
+        ~IndexFile();
 
         /**
          * @brief Record a (new) symbol with the provided name and definition location in the current file
@@ -108,6 +109,7 @@ namespace diplomat::index
         inline auto get_symbols() const {return std::views::values(_declarations);};
 
         inline void set_syntax_root(const slang::syntax::SyntaxNode* node ) {_syntax_root = node;};
+        inline void clear_syntax_root() {_syntax_root.reset();};
         inline const slang::syntax::SyntaxNode* get_syntax_root() const {return _syntax_root.value_or(nullptr);};
 
         inline const std::filesystem::path& get_path() const {return _filepath;} ;

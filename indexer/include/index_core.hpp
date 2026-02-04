@@ -140,6 +140,13 @@ namespace diplomat::index
 		 */
 		void cleanup();
 
+		/**
+		 * @brief Finalize and harden the index
+		 * 
+		 * After this step, the index is deemed 'robust' and independant from Slang.
+		 */
+		void finalize();
+
 		IndexCore() = default;
 		~IndexCore() = default;
 	};

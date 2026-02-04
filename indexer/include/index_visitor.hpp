@@ -28,6 +28,7 @@ namespace diplomat::index {
 
 			std::stack<IndexScopeTreeNode *> _scope_stack;
 
+
 			/**
 			 * @brief Holds the duplicate scopes as managed by slang.
 			 * Mainly used in order to manage the cache mechanism on InstanceBodySymbols.
@@ -90,7 +91,7 @@ namespace diplomat::index {
 			void handle(const slang::ast::ParameterSymbol& node);
 			void handle(const slang::ast::TransparentMemberSymbol& node);
 			void handle(const slang::ast::InstanceSymbol& node);
-			void handle(const slang::ast::InterfacePortSymbol& node);
+			//void handle(const slang::ast::InterfacePortSymbol& node);
 			void handle(const slang::ast::SubroutineSymbol& node);
 			void handle(const slang::ast::WildcardImportSymbol& node);
 

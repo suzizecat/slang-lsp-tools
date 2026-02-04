@@ -442,7 +442,10 @@ void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
 void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
-        
+    
+    if(_index.get() == nullptr)
+        _index.reset(new index::IndexCore());
+
     if(!_project_file_tree_valid)
         _read_workspace_modules();
     else
@@ -560,7 +563,10 @@ void DiplomatLSP::_compile()
                  spdlog::warn("No syntax node available for {}. No reference processed.", file->get_path().generic_string());
                 }
             }
+
         }
+        spdlog::debug("Removing slang-related elements from the index");
+        _index->finalize();
 
         if(_broken_index_emitted)
         {
@@ -584,7 +590,6 @@ void DiplomatLSP::_compile()
 
     spdlog::info("Send diagnostics");
     _emit_diagnostics();
-
 
     spdlog::info("Compilation done.");
 }

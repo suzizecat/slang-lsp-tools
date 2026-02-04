@@ -327,13 +327,16 @@ namespace diplomat::index {
 		return nullptr;
 	}
 
-	IndexScopeTreeNode* IndexScopeTreeNode::get_scope_by_name(const std::string_view& name)
+	IndexScopeTreeNode* IndexScopeTreeNode::get_scope_by_name(const std::string_view& name, bool strict)
 	{
 		auto result = _children.find(std::string(name));
 		if(result != _children.end())
 			return result->second.get();
 		else
-			return nullptr;
+			if(strict || ! have_parent_access()) 
+				return nullptr;
+			else 
+				return _parent->get_scope_by_name(name, strict);
 	}
 
 

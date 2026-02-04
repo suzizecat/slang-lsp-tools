@@ -276,9 +276,10 @@ namespace diplomat::index
 		 * @brief Direct lookup a child scope by its name.
 		 * 
 		 * @param name to lookup
+		 * @param strict prevent lookup in parents virtual parent scopes
 		 * @return IndexScopeTreeNode* if the scope is found, nullptr otherwise
 		 */
-		IndexScopeTreeNode* get_scope_by_name(const std::string_view& name);
+		IndexScopeTreeNode* get_scope_by_name(const std::string_view& name, bool strict = false);
 
 		std::string get_full_path() const;
 		std::string get_concrete_path() const;
@@ -291,6 +292,15 @@ namespace diplomat::index
 		// size_t compute_hash_value();
 		// inline size_t get_hash_value() const { return _hash_value; };
 
+		/**
+		 * @brief Accessor indicating that the current scope may have implicit knowledge of its
+		 * parent scope content.
+		 *
+		 * @note this is equivalent to check if the current scope is virtual.
+		 *
+		 * @return true if the curent scope have access to its parent content
+		 * @return false otherwise
+		 */
 		inline bool have_parent_access() const { return _is_virtual;} ;
 		inline const std::string& get_name() const {return _name;};
 

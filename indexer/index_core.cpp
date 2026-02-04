@@ -146,6 +146,14 @@ namespace diplomat::index {
 		get_root_scope()->cleanup();
 	}
 
+	void IndexCore::finalize()
+	{
+		for(auto& file : _files | std::views::values)
+		{
+			file->clear_syntax_root();
+		}
+	}
+
 	void IndexCore::_cleanup_scope_symbols_step(IndexScopeTreeNode* scope)
 	{
 		if(! scope->is_valid())

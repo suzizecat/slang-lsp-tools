@@ -282,8 +282,32 @@ namespace diplomat::index {
 				spdlog::error("Missed cache reference for scope {} while non-canon body.", node.name);
 			}
 		}
-		// else
+		//else
+		// Do not 'else' in order to recover from a failed ref_scope_key
 		{
+
+			// Check if any interface are bound to the instance we are handling
+			IndexScopeTreeNode* inst_scope= nullptr;
+
+			for(const PortConnection* pconn : node.getPortConnections())
+			{
+				const auto itf_bind = pconn->getIfaceConn();
+				if(itf_bind.first != nullptr)
+				{
+					if(! inst_scope)
+					{
+						_open_scope(node.name);
+						inst_scope = _current_scope();
+						_close_scope(node.name);
+					}
+					IndexScopeTreeNode* local_itf_scope = _current_scope()->get_scope_by_name(itf_bind.first->name);
+					if(local_itf_scope)
+						inst_scope->add_subtree_child(local_itf_scope,std::string(pconn->port.name));
+
+					
+				}
+			}
+
 			IndexScopeTreeNode* new_scope = _default_scope_handle(node.body,node.name,false);
 			if(! new_scope)
 				throw index_exception("Instance symbol scope handling returned a nullptr scope.");
@@ -314,20 +338,20 @@ namespace diplomat::index {
 
 	}
 
-	void IndexVisitor::handle(const slang::ast::InterfacePortSymbol& node)
-	{
-		using namespace slang;
-		// Interface port symbol require to create a virtual sub-scope representing the content of the interface...
-		// The scope name will be symbol name (and the symbol is also on the symbol name...? )
-		spdlog::info("Processing interface");
+	// void IndexVisitor::handle(const slang::ast::InterfacePortSymbol& node)
+	// {
+	// 	using namespace slang;
+	// 	// Interface port symbol require to create a virtual sub-scope representing the content of the interface...
+	// 	// The scope name will be symbol name (and the symbol is also on the symbol name...? )
+	// 	spdlog::info("Processing interface");
 
-		// Record the node itself as a symbol, in particular for renaming purposes.
-		_default_symbol_handle(node);
+	// 	// Record the node itself as a symbol, in particular for renaming purposes.
+	// 	_default_symbol_handle(node);
 
-		const ast::DefinitionSymbol* defsymb = node.interfaceDef;
-		_open_scope(node.name);
+	// 	const ast::DefinitionSymbol* defsymb = node.interfaceDef;
+	// 	_open_scope(node.name);
 
-	}
+	// }
 
 	void IndexVisitor::handle(const slang::ast::SubroutineSymbol& node)
 	{
