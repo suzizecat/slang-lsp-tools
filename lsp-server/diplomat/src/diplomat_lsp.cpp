@@ -585,7 +585,7 @@ void DiplomatLSP::_compile()
     slang::analysis::AnalysisManager ana_mgr;
     ana_mgr.analyze(*_compilation);
 
-    for (const slang::Diagnostic& diag : ana_mgr.getDiagnostics(_sm.get()))
+    for (const slang::Diagnostic& diag : ana_mgr.getDiagnostics())
         de.issue(diag);
 
     spdlog::info("Send diagnostics");

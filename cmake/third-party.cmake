@@ -16,8 +16,8 @@ GIT_SHALLOW ON)
 
 FetchContent_Declare(spdlog
 GIT_REPOSITORY https://github.com/gabime/spdlog.git
-#GIT_TAG v1.14.1
-GIT_TAG v1.15.3
+#GIT_TAG v1.15.3
+GIT_TAG v1.17.0
 GIT_SHALLOW ON)
 
 FetchContent_Declare(json 
@@ -39,10 +39,9 @@ GIT_SHALLOW ON)
 # Core feature providers
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
-  #GIT_TAG v8.1
-  # GIT_TAG v9.1
-  GIT_TAG c36c284adeacbecba9358f56569f25262769a959
-  GIT_SHALLOW OFF)
+  # GIT_TAG c36c284adeacbecba9358f56569f25262769a959
+  GIT_TAG v10.0
+  GIT_SHALLOW ON)
 
 
 FetchContent_Declare(argparse

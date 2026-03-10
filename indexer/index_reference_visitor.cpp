@@ -218,7 +218,20 @@ namespace diplomat::index
 
 			
 		_scoped_eval_lu_loc = _instance_scope->get_source_range()->start;
-		node.right->visit(*this);
+
+		switch (node.right->kind) {
+			case slang::syntax::SyntaxKind::IdentifierSelectName :
+				{
+					IndexScopeTreeNode* pre_process_node = _instance_scope;
+					_instance_scope = _initial_instance_scope;
+					handle(node.right->as<IdentifierSelectNameSyntax>());
+					_instance_scope = pre_process_node;
+				}
+				break;
+			default :
+				node.right->visit(*this);
+		}
+		
 
 		if(entry_point)
 		{
