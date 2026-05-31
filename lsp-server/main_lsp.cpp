@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_level(spdlog::get_level());
-    console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%t] [%n] [%^%-5!l%$] %v");
+    console_sink->set_pattern("[%C%m%d %H:%M:%S.%e] [%t] [%-10n] [%^%-5!l%$] %v");
 
     auto logger = std::make_shared<spdlog::logger>("main");
     logger->set_level(spdlog::get_level());
@@ -103,7 +103,6 @@ int main(int argc, char** argv) {
 
         if(prog.get<bool>("--forward-log"))
             spdlog::default_logger()->sinks().push_back(fwd_sink);
-        
         
         do
         {
@@ -162,6 +161,7 @@ int main(int argc, char** argv) {
             fwd_sink->set_target_lsp(&lsp);
             spdlog::default_logger()->sinks().push_back(fwd_sink);
         }
+
         spdlog::info("Diplomat Language Server version {}",DIPLOMAT_VERSION_STRING);
         lsp.run();
         spdlog::info("Clean exit.");

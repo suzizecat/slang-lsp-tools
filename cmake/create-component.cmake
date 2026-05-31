@@ -44,7 +44,7 @@ function(create_component NAME)
         # The lib prefix is automatically added.
         set_property(TARGET ${NAME}-lib PROPERTY OUTPUT_NAME ${NAME})
     else()
-        message(STATUS "No library for target component ${NAME}")
+        message(VERBOSE "No library for target component ${NAME}")
     endif()
 
     add_executable(${NAME}-exe)

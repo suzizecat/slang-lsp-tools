@@ -46,6 +46,7 @@
 #include <set>
 #include <iostream>
 
+#include "spdlog/logger.h"
 #include "uuid.h"
 #include "nlohmann/json.hpp"
 #include "rpc_transport.hpp"
@@ -157,6 +158,7 @@ namespace diplomat::lsp {
 			/** Worker running wrapper */
 			std::mutex _work_mutex;
 			volatile bool _worker_running;
+			volatile bool _worker_done;
 			std::condition_variable _worker_cv;
 			/** Ongoing ID used for cancellation*/
 			json _ongoing_id;
@@ -223,6 +225,8 @@ namespace diplomat::lsp {
 			 * 
 			 */
 			 void _handle_next_incoming_message();
+
+			 std::shared_ptr<spdlog::logger> _log;
 
 
 		public:

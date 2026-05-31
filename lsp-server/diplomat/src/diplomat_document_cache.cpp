@@ -29,7 +29,16 @@ void DiplomatDocumentCache::_bind_bb_and_path(const std::filesystem::path& fpath
 			_path_to_bb[fpath] = {bb};
 		}
 
-		_bb_to_path[bb] = fpath;
+		if(auto found =_bb_to_path.find(bb); found != _bb_to_path.end())
+		{
+			std::string name_from_fpath = fpath.stem();
+			if(name_from_fpath == bb->module_name)
+				_bb_to_path[bb] = fpath;	
+		}
+		else
+		{
+			_bb_to_path[bb] = fpath;
+		}
 	}
 }
 

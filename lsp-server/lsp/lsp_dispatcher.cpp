@@ -6,6 +6,7 @@
 #include <cassert>
 #include <chrono>
 #include <exception>
+#include <fmt/format.h>
 #include <future>
 #include <mutex>
 #include <optional>
@@ -13,7 +14,6 @@
 #include <spdlog/fmt/chrono.h>
 #include <stop_token>
 #include <thread>
-
 
 
 namespace diplomat::lsp {
@@ -31,6 +31,7 @@ namespace diplomat::lsp {
 	_worker(),
 	_work_mutex(),
 	_worker_running(false),
+	_worker_done(false),
 	_worker_cv(),
 	_ongoing_id(nullptr),
 	_client_cb_data_available(),
@@ -42,6 +43,13 @@ namespace diplomat::lsp {
         std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
         std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
         _rand_engine = std::mt19937(seq);
+
+		std::string logger_name = fmt::format("{}.dpcr",spdlog::default_logger()->name());
+		auto logger = spdlog::get(logger_name);
+		if(! logger)
+			_log = spdlog::default_logger()->clone(logger_name);
+		else 
+			_log = logger;
     }
 
 	LSPCommandDispatcher::~LSPCommandDispatcher()
@@ -52,7 +60,7 @@ namespace diplomat::lsp {
 	void LSPCommandDispatcher::run()
 	{
 		using namespace std::chrono_literals;
-		spdlog::info("Booting the dispatcher");
+		_log->info("Booting the dispatcher");
 		bool started;
 		// TODO Have actual exit strategy
 		while (! _rpc.is_closed() && _running ) {
@@ -62,21 +70,26 @@ namespace diplomat::lsp {
 			
 			if (! _inbox.empty())
 			{
-				started = _process_input_message(_inbox.back());
+				_log->debug("Getting pending mesage from inbox");
+				started = _process_input_message(_inbox.front());
 				_inbox.pop();
 			}
 			else 
 			{
+				_log->debug("Waiting message from direct RPC connexion");
 				started = _process_input_message(_rpc.get());
 			}
 
 			// If the worker has not been actually started (cancelled before start)
 			// for example, then relaunch the start process.
 			if(! started)
+			{
+				_log->debug("Action did not actually require a worker, next message");
 				continue;
+			}
 
 			_wait_for_worker_start();
-
+			_log->debug("Worker started, now starting to handle background messages...");
 			// Now, we need to actually handle the incoming commands
 			while(_worker_running)
 			{
@@ -88,15 +101,15 @@ namespace diplomat::lsp {
 
 				_handle_next_incoming_message();
 			}
-			spdlog::debug("Worker is done, waiting for an actual function for a restart.");
+			_log->debug("Worker is done, waiting for an actual function for a restart.");
 		}
 		_rpc.close();
-		spdlog::info("Dispatcher exiting.");
+		_log->info("Dispatcher exiting.");
 	}
 
 	void LSPCommandDispatcher::_handle_next_incoming_message()
 	{
-		// We don't want too block here, so if no data available, exit.
+		// We don't want to block here, so if no data available, exit.
 		if(! _rpc.have_data())
 			return;
 		// Here we have either a new function call (cancelRequest included) or a 
@@ -105,7 +118,12 @@ namespace diplomat::lsp {
 		//
 		// ID is *not* mandatory, as you may have a notification
 		json new_call = _rpc.get();
-		spdlog::debug("Handling of {}",new_call.dump());
+		if( new_call.contains("method") && new_call["method"] == "textdocument/didOpen")
+		{
+			_log->debug("Background handling of \"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\"");
+		}
+		else
+			_log->debug("Background handling of {}",new_call.dump());
 
 
 		
@@ -127,13 +145,13 @@ namespace diplomat::lsp {
 		{
 			if(_ongoing_id == tgt_id)
 			{
-				spdlog::info("Request cancellation of current worker with id {}",str_tgt_id);
+				_log->info("Request cancellation of current worker with id {}",str_tgt_id);
 				_finish_worker();
 				return;
 			}
 			else 
 			{
-				spdlog::info("Store cancellation of call {}",str_tgt_id);
+				_log->info("Store cancellation of call {}",str_tgt_id);
 				_cancelled_calls.emplace(str_tgt_id);
 			}
 		}
@@ -142,12 +160,12 @@ namespace diplomat::lsp {
 			if( new_call.contains("result"))
 			{
 				// Handle the result of a request that has been sent by the worker
-				spdlog::debug("Got result for {}",str_tgt_id);
+				_log->debug("Got result for {}",str_tgt_id);
 				_cb_data.set_value(new_call.at("result"));												
 			}
 			else if (new_call.contains("error")) 
 			{
-				spdlog::debug("Got error for {}",str_tgt_id);
+				_log->debug("Got error for {}",str_tgt_id);
 
 				_cb_data.set_exception(std::make_exception_ptr( 
 					rpc_base_exception(new_call.at("error")) ));
@@ -164,6 +182,7 @@ namespace diplomat::lsp {
 		else if (! method_name.empty()) 
 		{
 			// Store the call in the inbox if it cannot be generated 
+			_log->debug("Storing call to {} in the inbox (position {:d})",method_name,_inbox.size());
 			_inbox.push(new_call);
 		}
 	
@@ -181,10 +200,10 @@ namespace diplomat::lsp {
 	
 	void LSPCommandDispatcher::_wait_for_worker_start()
 	{
-		if(! _worker_running)
+		if(! _worker_running && _worker.joinable())
 		{
 			std::unique_lock lk(_work_mutex);
-			_worker_cv.wait(lk,[this]{return _worker_running; });
+			_worker_cv.wait(lk,[this]{return _worker_running || _worker_done; });
 		}
 	}
 
@@ -302,6 +321,7 @@ namespace diplomat::lsp {
 			_ongoing_id = id;
 			_ongoing_method = method;
 			_ongoing_params = params;
+			_worker_done = false;
 			_invoke();
 		}
 		_worker_cv.notify_all();
@@ -363,13 +383,14 @@ namespace diplomat::lsp {
 					spdlog::debug("Arguments were: {}",_ongoing_params.dump(1));
 					forward_exception(lsp_unknown_error(e.what()));
 
-					_ongoing_id = json(nullptr);
-					_worker_running = false;
-					_worker_cv.notify_all();
+					// _ongoing_id = json(nullptr);
+					// _worker_running = false;
+					// _worker_cv.notify_all();
 				}
 				spdlog::debug("Worker finished {} in {:.6} seconds [{}]",_ongoing_method, sw, _ongoing_id.dump());
 				_ongoing_id = json(nullptr);
 				_worker_running = false;
+				_worker_done = true;
 				_worker_cv.notify_all();
 			});
 			// End of the worker thread
