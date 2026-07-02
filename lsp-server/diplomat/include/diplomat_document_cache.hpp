@@ -6,6 +6,7 @@
 #include "uri.hh"
 #include "visitor_module_bb.hpp"
 
+#include <cstddef>
 #include <memory>
 
 #include <string>
@@ -132,7 +133,7 @@ namespace diplomat::cache
              * 
              *  \todo Use the BB signature for more accurate lookup.
              */
-            const ModuleBlackBox* get_bb_by_module(const std::string& modname) const ;
+            const ModuleBlackBox* get_bb_by_module(const std::string& modname, const std::size_t signature = 0) const ;
 
 
             /**

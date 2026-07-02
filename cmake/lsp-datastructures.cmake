@@ -8,7 +8,7 @@ if(NOT EXISTS ${LSP_DATASTRUCT_CMAKE} OR NOT EXISTS ${LSP_METAMODEL_PATH})
     
     message(STATUS "Regenerating LSP data structures using " ${LSP_METAMODEL_PATH})
     file(
-        DOWNLOAD https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/metaModel/metaModel.json 
+        DOWNLOAD https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/metaModel/metaModel.json 
         ${LSP_METAMODEL_PATH}
         )
 

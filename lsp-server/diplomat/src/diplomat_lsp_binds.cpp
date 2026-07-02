@@ -17,9 +17,11 @@
 #include "types/structs/SetTraceParams.hpp"
 
 #include "slang/diagnostics/AllDiags.h"
+#include <cstddef>
 #include <filesystem>
 #include <fmt/format.h>
 #include <optional>
+#include <ranges>
 #include <slang/ast/symbols/CompilationUnitSymbols.h>
 #include <slang/ast/Symbol.h>
 #include <slang/ast/Scope.h>
@@ -88,34 +90,35 @@ void trim(std::string& in) {
 }
 
 
-void DiplomatLSP::_h_didChangeWorkspaceFolders(json _, std::stop_token tk)
+void DiplomatLSP::_h_didChangeWorkspaceFolders(json _)
 {
 	dlt::DidChangeWorkspaceFoldersParams params = _.template get<dlt::DidChangeWorkspaceFoldersParams>();
 	_remove_workspace_folders(params.event.removed);
 	_add_workspace_folders(params.event.added);
 }
 
-void DiplomatLSP::_h_didSaveTextDocument(dlt::DidSaveTextDocumentParams param, std::stop_token tk)
+void DiplomatLSP::_h_didSaveTextDocument(dlt::DidSaveTextDocumentParams param)
 {
 	uri p = uri(param.textDocument.uri);
 	_cache.process_file(p);
+	_assert_index();
 	_index->invalidate_file(std::filesystem::path("/" + p.get_path()));
 	_compile();
 }
 
-void DiplomatLSP::_h_didOpenTextDocument(json _, std::stop_token tk)
+void DiplomatLSP::_h_didOpenTextDocument(json _)
 {
 	dlt::DidOpenTextDocumentParams params =  _;
 
 	_save_client_uri(params.textDocument.uri);
 }
 
-void DiplomatLSP::_h_didCloseTextDocument(dlt::DidCloseTextDocumentParams _, std::stop_token tk)
+void DiplomatLSP::_h_didCloseTextDocument(dlt::DidCloseTextDocumentParams _)
 {
 	/* Actually nothing to do, only bind to avoid errors*/
 }
 
-json DiplomatLSP::_h_completion(dlt::CompletionParams params, std::stop_token tk)
+json DiplomatLSP::_h_completion(dlt::CompletionParams params)
 {
 	dlt::CompletionList result;
 	result.isIncomplete = false;
@@ -164,7 +167,7 @@ json DiplomatLSP::_h_completion(dlt::CompletionParams params, std::stop_token tk
 	return result;
 }
 
-json DiplomatLSP::_h_formatting(dlt::DocumentFormattingParams params, std::stop_token tk)
+json DiplomatLSP::_h_formatting(dlt::DocumentFormattingParams params)
 {
 	std::string filepath = "/" + uri(params.textDocument.uri).get_path();
 	spdlog::info("Request to format the file {}",filepath);
@@ -194,12 +197,12 @@ json DiplomatLSP::_h_formatting(dlt::DocumentFormattingParams params, std::stop_
 }   
 
 
-void DiplomatLSP::_h_exit(json params, std::stop_token tk)
+void DiplomatLSP::_h_exit(json params)
 {
 	exit();
 }
 
-json DiplomatLSP::_h_initialize(dlt::InitializeParams params, std::stop_token tk)
+json DiplomatLSP::_h_initialize(dlt::InitializeParams params)
 {
 	using namespace std::chrono_literals;
 	bool got_workspace = false;
@@ -256,7 +259,7 @@ json DiplomatLSP::_h_initialize(dlt::InitializeParams params, std::stop_token tk
 	return reply;
 }
 
-void DiplomatLSP::_h_initialized(json params, std::stop_token tk)
+void DiplomatLSP::_h_initialized(json params)
 {
 	spdlog::info("Client initialization complete.");
 
@@ -301,7 +304,7 @@ void DiplomatLSP::_h_initialized(json params, std::stop_token tk)
 
 }
 
-void DiplomatLSP::_h_setTrace(json params, std::stop_token tk)
+void DiplomatLSP::_h_setTrace(json params)
 {
 	dlt::SetTraceParams p = params;
 	spdlog::info("Set trace through params {}",params.dump());
@@ -309,7 +312,7 @@ void DiplomatLSP::_h_setTrace(json params, std::stop_token tk)
 	set_trace_level(p.value);
 }
 
-json DiplomatLSP::_h_shutdown(json params, std::stop_token tk)
+json DiplomatLSP::_h_shutdown(json params)
 {
 	shutdown();
 	//exit();
@@ -317,7 +320,7 @@ json DiplomatLSP::_h_shutdown(json params, std::stop_token tk)
 }
 
 
-json DiplomatLSP::_h_gotoDefinition(dlt::DefinitionParams params, std::stop_token tk)
+json DiplomatLSP::_h_gotoDefinition(dlt::DefinitionParams params)
 {
 	if (!_assert_index())
 		return {};
@@ -359,7 +362,7 @@ json DiplomatLSP::_h_gotoDefinition(dlt::DefinitionParams params, std::stop_toke
 }
 
 
-json DiplomatLSP::_h_references(json _, std::stop_token tk)
+json DiplomatLSP::_h_references(json _)
 {
 
 	if (!_assert_index())
@@ -418,7 +421,7 @@ json DiplomatLSP::_h_references(json _, std::stop_token tk)
 	// }
 }
 
-json DiplomatLSP::_h_rename(json _, std::stop_token tk)
+json DiplomatLSP::_h_rename(json _)
 {
 
 		_assert_index(true);
@@ -504,7 +507,7 @@ json DiplomatLSP::_h_rename(json _, std::stop_token tk)
 
 
 
-// void DiplomatLSP::_h_save_config(json params, std::stop_token tk)
+// void DiplomatLSP::_h_save_config(json params)
 // {
 // 	spdlog::info("Write configuration to {}",fs::canonical(_settings_path).generic_string());
 // 	log(dlt::MessageType::MessageType_Info,fmt::format("Write configuration to {}",_settings_path.generic_string()));
@@ -523,7 +526,7 @@ json DiplomatLSP::_h_rename(json _, std::stop_token tk)
  * @param json structure matching a list with only a single element in it, being 
  * the image of diplomat-vscode/exchange_types.ts:DiplomatProject
  */
-void DiplomatLSP::_h_set_project(dlt::DiplomatProject params, std::stop_token tk)
+void DiplomatLSP::_h_set_project(dlt::DiplomatProject params)
 {
 	spdlog::debug("Set Project requested : {}",json(params).dump(1));
 	_clear_project_tree();
@@ -553,7 +556,7 @@ void DiplomatLSP::_h_set_project(dlt::DiplomatProject params, std::stop_token tk
  * 
  * @param configuration, from dlt::DiplomatLSPWorkspaceSettings
  */
-void DiplomatLSP::_h_push_config(DiplomatLSPWorkspaceSettings params, std::stop_token tk)
+void DiplomatLSP::_h_push_config(DiplomatLSPWorkspaceSettings params)
 {
 	spdlog::info("Received configuration from client");
 	log(dlt::MessageType::MessageType_Info,"Received configuration from client");
@@ -571,7 +574,7 @@ void DiplomatLSP::_h_push_config(DiplomatLSPWorkspaceSettings params, std::stop_
  * 
  * @param params, unused.
  */
-json DiplomatLSP::_h_pull_config(json _, std::stop_token tk)
+json DiplomatLSP::_h_pull_config(json _)
 {
 	spdlog::info("Send configuration to the client.");
 	log(dlt::MessageType::MessageType_Info,"Configuration pulled from server");
@@ -585,7 +588,7 @@ json DiplomatLSP::_h_pull_config(json _, std::stop_token tk)
  * @param params One single URI
  * @return json Array of BB (may be empty)
  */
-const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::string params, std::stop_token tk)
+const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::string params)
 {
 	spdlog::debug("Get BBOX on {}",params);
 	uri target_file =  uri(params);
@@ -605,7 +608,7 @@ const std::vector< const ModuleBlackBox*>  DiplomatLSP::_h_get_file_bb(std::stri
 
 }
 
-std::vector<dlt::HDLModule> DiplomatLSP::_h_get_modules(json _, std::stop_token tk)
+std::vector<dlt::HDLModule> DiplomatLSP::_h_get_modules(json _)
 {
 	_read_workspace_modules();
 	std::vector<dlt::HDLModule> ret;
@@ -620,7 +623,7 @@ std::vector<dlt::HDLModule> DiplomatLSP::_h_get_modules(json _, std::stop_token 
 }
 
 
-const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(dlt::HDLModule params, std::stop_token tk)
+const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(dlt::HDLModule params)
 {
 	const std::string target_file = params.file;
 	spdlog::info("Return information for file {}",target_file );
@@ -654,7 +657,7 @@ const std::vector<const ModuleBlackBox*> DiplomatLSP::_h_get_module_bbox(dlt::HD
  * 
  * @param params an array of size 1 containing only the new top-level module name
  */
-void DiplomatLSP::_h_set_top_module(std::string params, std::stop_token tk)
+void DiplomatLSP::_h_set_top_module(std::string params)
 {
 	_settings.top_level = params;
 	spdlog::info("Set top module {}", _settings.top_level.value_or("UNDEFINED"));
@@ -668,10 +671,10 @@ void DiplomatLSP::_h_set_top_module(std::string params, std::stop_token tk)
  * 
  * This list is built using the dependencies scanning capabilities of the {@link VisitorModuleBlackBox}.
  *
- * @param params is a JSON array containing a single {@link dlt::HDLModule}
+ * @param params is a single {@link dlt::HDLModule}
  * @returns a list of URI matching the required files
  */
-std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(dlt::HDLModule requested_root_module, std::stop_token tk)
+std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(dlt::HDLModule requested_root_module)
 {
 	_read_workspace_modules();
 	uri target_uri(requested_root_module.file);
@@ -704,41 +707,42 @@ std::vector<std::string> DiplomatLSP::_h_project_tree_from_module(dlt::HDLModule
 
 	// Here, we have the proper target file.
 	// Now, we need to lookup each dependencies.
-	std::unordered_set<std::string> processed;
-	std::unordered_set<std::string> to_process;
+	std::map<std::string,std::size_t> processed;
+	std::map<std::string,std::size_t> to_process;
 	std::vector<std::string> result;
 
 
 	result.push_back(_cache.get_uri(_cache.get_file_from_module(target)).to_string());
-	for (std::string dep : target->deps)
+	for ( const auto& dep : target->deps)
 	{
 		to_process.insert(dep);
 	}
 
 	while(! to_process.empty())
 	{
-		const std::string processed_bbname = to_process.extract(to_process.begin()).value();
-		if (processed.contains(processed_bbname))
+		auto dep_node = to_process.extract(to_process.begin());
+		if (processed.contains(dep_node.key()))
 			continue;
 		
-		const ModuleBlackBox* processed_bb = _cache.get_bb_by_module(processed_bbname);
+		const ModuleBlackBox* processed_bb = _cache.get_bb_by_module(dep_node.key(),dep_node.mapped());
 		if (!processed_bb)
 			continue;
-		spdlog::debug("Adding module {} to the project.",processed_bbname);
+		_dispatcher.cancel_if_requested();
+		spdlog::debug("Adding module {} to the project.",dep_node.key());
 		result.push_back(_cache.get_uri(_cache.get_file_from_module(processed_bb)).to_string());
 
-		for (std::string dep : processed_bb->deps)
+		for ( const auto& dep : processed_bb->deps )
 		{
 			to_process.insert(dep);
 		}
 
-		processed.insert(processed_bbname);
+		processed.insert(std::move(dep_node));
 	}
 
 	return result;
 }
 
-void DiplomatLSP::_h_ignore(std::vector<std::string> params, std::stop_token tk)
+void DiplomatLSP::_h_ignore(std::vector<std::string> params)
 {
 	//spdlog::info("{}",params);
 	for (const std::string& _ : params) 
@@ -758,7 +762,7 @@ void DiplomatLSP::_h_ignore(std::vector<std::string> params, std::stop_token tk)
  * 
  * @param params 
  */
-void DiplomatLSP::_h_add_to_include(json params, std::stop_token tk)
+void DiplomatLSP::_h_add_to_include(json params)
 {
 	for (const json& record : params.at(1))
 	{
@@ -768,7 +772,7 @@ void DiplomatLSP::_h_add_to_include(json params, std::stop_token tk)
 	}
 }
 
-void DiplomatLSP::_h_force_clear_index(json _, std::stop_token tk)
+void DiplomatLSP::_h_force_clear_index(json _)
 {
 	_project_file_tree_valid = false;
 	_compilation.reset();
@@ -785,7 +789,7 @@ void DiplomatLSP::_h_force_clear_index(json _, std::stop_token tk)
  * @param params JSON structure equivalent to a list of hierarchical paths
  * @return json association initial path => Location. Return null on unresolved paths.
  */
-std::map<std::string,std::optional<dlt::Location>> DiplomatLSP::_h_resolve_hier_path(std::vector<std::string> params, std::stop_token tk)
+std::map<std::string,std::optional<dlt::Location>> DiplomatLSP::_h_resolve_hier_path(std::vector<std::string> params)
 {
 	// Params will be a list of hier paths to resolve.
 	std::map<std::string,std::optional<dlt::Location>> ret;
@@ -821,12 +825,14 @@ std::map<std::string,std::optional<dlt::Location>> DiplomatLSP::_h_resolve_hier_
  *
  * @todo define a proper type as a metamodel.
  */
-json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
+json DiplomatLSP::_h_get_design_hierarchy(json _)
 {
 	json ret;
 
-	if(! _assert_index())
+	if(! _assert_index() || !_compilation)
 	{
+		if(!_compilation)
+			log(lsp::types::MessageType_Error, "Failed to compute design hierarchy, the compilation is not active.");
 		return ret;
 	}
 
@@ -842,7 +848,7 @@ json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
 
 }
 
-// void DiplomatLSP::_h_get_configuration(json &clientinfo, std::stop_token tk)
+// void DiplomatLSP::_h_get_configuration(json &clientinfo)
 // {
 // 	//TODO Cleanup
 // 	// _settings_path = fs::path(clientinfo[0]);
@@ -855,13 +861,13 @@ json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
 // 	}   
 // }
 
-// void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo, std::stop_token tk)
+// void DiplomatLSP::_h_get_configuration_on_init(json &clientinfo)
 // {
 // 	_h_get_configuration(clientinfo,tk);
 // 	//_compile();
 // }
 
-// void DiplomatLSP::_h_update_configuration(json &params, std::stop_token tk)
+// void DiplomatLSP::_h_update_configuration(json &params)
 // {
 // 	spdlog::info("Update configuration received {}",params.dump(1));
 // 	dlt::ConfigurationItem conf_path;
@@ -882,7 +888,7 @@ json DiplomatLSP::_h_get_design_hierarchy(json _, std::stop_token tk)
  * @param params An array with only one string, the hierarchical path of the scope to lookup.
  * @return json A map `symbol_name` to `references_ranges[]`
  */
-std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::string path, std::stop_token tk)
+std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::string path)
 {
 	std::map<std::string,std::vector<dlt::Range>> ret;
 	
@@ -922,7 +928,7 @@ std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::
 }
 
 
-lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json uri_path, std::stop_token tk)
+lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json uri_path)
 {
 	di::IndexFile* tgt_file = _index->get_file(_cache.standardize_path(uri_path.at("fsPath").template get<std::string>()));
 

@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
+#include <ranges>
 #include <stdexcept>
 #include "types/structs/ExecuteCommandOptions.hpp"
 #include "types/structs/SetTraceParams.hpp"
@@ -294,6 +295,7 @@ void DiplomatLSP::_read_workspace_modules()
     _cache.enable_shared_source_manager();
     for (const fs::path& root : _settings.workspace_dirs)
     {
+        _dispatcher.cancel_if_requested();
         fs::recursive_directory_iterator it(root);
         for (const fs::directory_entry& file : it)
         {
@@ -338,6 +340,7 @@ void DiplomatLSP::_read_workspace_modules()
 
             if (file.is_regular_file() && (_accepted_extensions.contains((p = file.path()).extension())))
             {
+                _dispatcher.cancel_if_requested();
                 _cache.process_file(p);
             }
         }
@@ -401,8 +404,6 @@ void DiplomatLSP::_clear_project_tree()
 {
     _project_file_tree_valid = false;
     _cache.clear_project();
-    // _project_tree_files.clear(); 
-    // _project_tree_modules.clear();
 }
 
 /**
@@ -425,7 +426,7 @@ void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
         // No problem with re-inserting, moreover, this will also insert all modules of the file.
         _cache.record_file(_cache.get_file_from_module(bb),true);
 
-        for(const std::string& dep : bb->deps)
+        for(const std::string& dep : bb->deps | std::views::keys )
         {
             if(!_cache.got_module_in_project(dep))
             {
@@ -686,7 +687,7 @@ void DiplomatLSP::hello(json _)
     log(MessageType_Info,"I said hello !");
 }
 
-void DiplomatLSP::dump_index(json _, std::stop_token _2 )
+void DiplomatLSP::dump_index(json _)
 {
     if(! _index)
     {

@@ -40,7 +40,7 @@ GIT_SHALLOW ON)
 FetchContent_Declare( slang
   GIT_REPOSITORY https://github.com/MikePopoloski/slang.git
   # GIT_TAG c36c284adeacbecba9358f56569f25262769a959
-  GIT_TAG v10.0
+  GIT_TAG v11.0
   GIT_SHALLOW ON)
 
 

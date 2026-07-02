@@ -28,6 +28,12 @@ namespace diplomat::index
 		 * 
 		 */
 		std::optional<IndexLocation> _scoped_eval_lu_loc; 
+
+		/**
+		 * @brief Scope from which the scoped_eval has started.
+		 * 
+		 */
+		IndexScopeTreeNode* _scoped_eval_root_scope;
 		
 		bool _add_reference_from_stx(const slang::SourceRange & loc, const std::string_view& name);
 		bool _add_reference_to_symbol(const slang::SourceRange& loc, const std::string_view& symbol_name);
@@ -45,7 +51,7 @@ namespace diplomat::index
 
 
 	public :
-		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx), _scoped_eval_lu_loc() {};
+		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx), _scoped_eval_lu_loc(), _scoped_eval_root_scope(nullptr) {};
 
 			// void handle(const slang::syntax::ModuleHeaderSyntax& node);
 			void handle(const slang::syntax::HierarchyInstantiationSyntax& node);

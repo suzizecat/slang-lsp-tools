@@ -1,5 +1,7 @@
 #include "format_DataDeclaration.hpp"
+#include "slang/syntax/SyntaxNode.h"
 
+#include <cstddef>
 #include <slang/parsing/TokenKind.h>
 #include <slang/util/SmallVector.h>
 #include <fmt/format.h>
@@ -97,8 +99,10 @@ void DataDeclarationSyntaxVisitor::handle(const slang::syntax::AnsiPortListSynta
 	int node_index = 0;
 
 	slang::SmallVector<TokenOrSyntax> vec;
-	for(const auto& elt : node.ports.elems())
+	for(int i = 0; i < node.ports.getChildCount(); i++)
 	{
+		ConstTokenOrSyntax elt = node.ports.getChild(i);
+	
 		if(elt.isNode())
 		{
 			vec.push_back(_format_any(_to_format.at(node_index++)));
@@ -111,7 +115,7 @@ void DataDeclarationSyntaxVisitor::handle(const slang::syntax::AnsiPortListSynta
 	}
 
 	work.closeParen = _idt->replace_comment_spacing(work.closeParen,2);
-	work.ports = vec.copy(_mem);
+	work.ports = {_mem, vec};//.copy(_mem);
 	replace(node,work);
 	clear();
 
@@ -239,7 +243,7 @@ DataDeclarationSyntax* DataDeclarationSyntaxVisitor::_format(const DataDeclarati
 		next_alignement_size = 1;	
 	
 	// Update the modifiers token list, see https://github.com/MikePopoloski/slang/discussions/828#discussioncomment-8233513
-	work->modifiers = tok_list.copy(_mem);
+	work->modifiers = {_mem, tok_list};
 
 	// Type
 	// ------------------------------------------------
@@ -467,8 +471,10 @@ HierarchyInstantiationSyntax* DataDeclarationSyntaxVisitor::_format(const Hierar
 			{
 				IndentLock _port_indent(*_idt); // RAII
 				slang::SmallVector<TokenOrSyntax> vec;
-				for(auto& list_element : elt->connections.elems())
+
+				for(size_t i = 0; i < elt->connections.getChildCount(); i++)
 				{
+					TokenOrSyntax list_element = elt->connections.getChild(i);
 
 					if(list_element.isNode())
 					{
@@ -504,7 +510,7 @@ HierarchyInstantiationSyntax* DataDeclarationSyntaxVisitor::_format(const Hierar
 				}
 
 				elt->closeParen = _idt->replace_comment_spacing(elt->closeParen,2);
-				elt->connections = vec.copy(_mem);
+				elt->connections = {_mem, vec};
 			}
 
 

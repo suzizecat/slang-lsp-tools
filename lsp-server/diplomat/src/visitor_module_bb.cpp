@@ -1,6 +1,9 @@
 #include "visitor_module_bb.hpp"
+#include "slang/syntax/AllSyntax.h"
 #include "slang/text/SourceManager.h"
 #include "slang/parsing/Token.h"
+#include <cstddef>
+#include <string_view>
 // #include "slang/parsing/TokenKind.h"
 // #include <iostream>
 // #include <bit>
@@ -98,13 +101,14 @@ void VisitorModuleBlackBox::handle(const slang::syntax::ModuleDeclarationSyntax&
 void VisitorModuleBlackBox::handle(const slang::syntax::ModuleHeaderSyntax& node)
 {
 	_bb->module_name = node.name.valueText();
-
 	visitDefault(node);
 }
 
 void VisitorModuleBlackBox::handle(const HierarchyInstantiationSyntax& node)
 {
-	_bb->deps.insert(std::string(node.type.rawText()));
+	_signature_processor.clear();
+	node.visit(_signature_processor);
+	_bb->deps.insert({_signature_processor.modname,_signature_processor.get_signature()});
 }
 
 
@@ -273,4 +277,32 @@ std::size_t bb_signature(const ModuleBlackBox& bb)
 	return bb_signature(bb.module_name, 
 		bb.parameters | std::views::transform([](const ModuleParam& p){return p.name;}), 
 		bb.ports | std::views::transform([](const ModulePort& p){return p.name;}));
+}
+
+
+void VisitorInstanceSignature::handle(const slang::syntax::HierarchyInstantiationSyntax& node)
+{
+	modname = node.type.rawText();
+}
+
+void VisitorInstanceSignature::handle(const slang::syntax::NamedParamAssignmentSyntax& node)
+{
+	params.emplace(node.name.rawText());
+}
+
+void VisitorInstanceSignature::handle(const slang::syntax::NamedPortConnectionSyntax& node)
+{
+	ports.emplace(node.name.rawText());
+}
+
+void VisitorInstanceSignature::clear()
+{
+	modname = {};
+	params.clear();
+	ports.clear();
+}
+
+std::size_t VisitorInstanceSignature::get_signature()
+{
+	return bb_signature(modname, params, ports);
 }

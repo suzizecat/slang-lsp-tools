@@ -9,10 +9,11 @@
 #include <unordered_map>
 #include <filesystem>
 
+#include "slang/ast/ASTContext.h"
 #include "uri.hh"
 #include "diplomat_document_cache.hpp"
 
-class HierVisitor : public slang::ast::ASTVisitor<HierVisitor,false,false>
+class HierVisitor : public slang::ast::ASTVisitor<HierVisitor,slang::ast::VisitFlags::Symbols>
 {
     nlohmann::json_pointer<std::string> _pointer;
     nlohmann::json _hierarchy;

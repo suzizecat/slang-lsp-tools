@@ -16,6 +16,7 @@
 #include "lsp_dispatcher.hpp"
 
 #include <climits>
+#include <stop_token>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -80,6 +81,8 @@ namespace diplomat::lsp{
         types::ClientCapabilities _client_capabilities;
 
         bool _filter_invocation(const std::string& fct_name, const json& args) const;
+
+        volatile const std::stop_token& _stop_tk;
 
 
     public:

@@ -1,6 +1,7 @@
 #include "spacing_manager.hpp"
 
 #include "formatter_utils.hpp"
+#include "slang/parsing/Token.h"
 
 using namespace slang::syntax;
 using namespace slang::parsing;
@@ -24,7 +25,7 @@ slang::parsing::Token SpacingManager::replace_spacing(const slang::parsing::Toke
 
 	// Declare and store the trivia, then create the token to add.
 	Trivia* t = _mem.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,spaces));
-	return tok.withTrivia(_mem,{t,1});
+	return tok.withTrivia(_mem,TriviaView::makeInline(t,1));
 }
 
 slang::parsing::Token SpacingManager::remove_spacing(const slang::parsing::Token &tok)
@@ -143,7 +144,7 @@ Token SpacingManager::replace_comment_spacing(const Token& tok, int spaces)
 	bool found_comment = false;
 	bool trivia_record_started = false;
 	Trivia* first_space = _mem.emplace<Trivia>(TriviaKind::Whitespace,std::string_view((char*)spacing_base,spaces));
-
+	const Trivia * last_trivia = first_space;
 	// Clone all trivia of the token, except the leading whitespaces.
 	for(const Trivia& t : tok.trivia())
 	{
@@ -154,14 +155,14 @@ Token SpacingManager::replace_comment_spacing(const Token& tok, int spaces)
 		{
 			nb_trivia ++;
 			trivia_record_started = true;
-			_mem.emplace<Trivia>(t);
+			last_trivia = _mem.emplace<Trivia>(t);
 
 			if(! found_comment)
 				found_comment = t.kind == TriviaKind::LineComment;
 		}
 	}
 
-	return found_comment ?  tok.withTrivia(_mem,{first_space,nb_trivia}) : tok;
+	return found_comment ?  tok.withTrivia(_mem,TriviaView(std::span<Trivia>(first_space,last_trivia))) : tok;
 }
 
 /**

@@ -1,5 +1,7 @@
 #include "fmt/format.h"
 #include "slang/text/SourceManager.h"
+#include "slang/syntax/SyntaxTree.h"
+#include "visitor_module_bb.hpp"
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include "diplomat_document_cache.hpp"
@@ -131,7 +133,7 @@ void DiplomatDocumentCache::record_file(const fs::path& fpath,
 	
 }
 
-const ModuleBlackBox* DiplomatDocumentCache::get_bb_by_module(const std::string& modname) const 
+const ModuleBlackBox* DiplomatDocumentCache::get_bb_by_module(const std::string& modname, const std::size_t signature) const 
 {
 	if(auto lookup = _prj_module_to_bb.find(modname); lookup != _prj_module_to_bb.end())
 	{
@@ -139,8 +141,28 @@ const ModuleBlackBox* DiplomatDocumentCache::get_bb_by_module(const std::string&
 	}
 	else if(auto lookup = _ws_module_to_bb.find(modname); lookup != _ws_module_to_bb.end())
 	{
+		const ModuleBlackBox* best_candidate = *(lookup->second.begin());
+
+		if(lookup->second.size() == 1)
+			return best_candidate;
+
+		for(const auto lu_iter : lookup->second)
+		{
+			if(signature && signature == bb_signature(*lu_iter))
+			{
+				// If we got a signature match, just exit immediately
+				return lu_iter;
+			}
+			// Otherwise, if we have a file with the exact name of the module,
+			// That will be a new favorite match.
+			if(_bb_to_path.at(lu_iter).stem() == modname)
+				best_candidate = lu_iter;
+		}
+		
+		return best_candidate;
+
 		// Return any, should select based upon signature (that should be provided as param)
-		return *(lookup->second.begin());
+		
 	}
 	else 
 	{

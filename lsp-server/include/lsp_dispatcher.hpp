@@ -62,7 +62,7 @@ using json = nlohmann::json;
  * @sa diplomat::lsp::LSPCommandDispatcher::bind_request
  *
  */
-#define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1, std::placeholders::_2)
+#define LSP_MEMBER_BIND(base_cls, fct) std::bind(&base_cls::fct, this, std::placeholders::_1)
 
 namespace diplomat::lsp {
 
@@ -71,12 +71,12 @@ namespace diplomat::lsp {
 	* react to cancellation request (if relevant).
 	* Such function shall return a JSON object as a value (depending on the actual request).
 	*/
-	typedef std::function<json(const json&, std::stop_token)> request_handle_t;
+	typedef std::function<json(const json&)> request_handle_t;
 	/**
 	 * A notification is a function that takes JSON as an argument but is not expected to return any value.
 	 * It also includes a stop token to react to cancellation.
 	 */
-    typedef std::function<void(const json&, std::stop_token)> notification_handle_t;
+    typedef std::function<void(const json&)> notification_handle_t;
 
 	MAKE_BASIC_SRV_EXCEPTION(client_timeout_error);
 
@@ -173,6 +173,9 @@ namespace diplomat::lsp {
 			std::promise<json> _cb_data;
 			/** Client timeout in milliseconds */
 			unsigned int _client_timeout;
+
+			/** Stop token for current invoked function, invalid outside */
+			std::stop_token _curr_stop_tk;
 
 			/** Request the end of the worker, block until then and return */
 			void _finish_worker();
@@ -488,6 +491,21 @@ namespace diplomat::lsp {
 			 * @note this is made public as a convenience to avoid rebuilding the UUID infrastructure
 			 * @return std::string generated UUID
 			 */
-			inline std::string get_uuid() { return uuids::to_string(_uuid());}
+			inline std::string get_uuid() { return uuids::to_string(_uuid());};
+
+			/**
+			 * @brief Get a const pointer to the stop token, for it to be easily propagated in a lot of places...
+			 * 
+			 * @return A pointer toward the refernce pointer.
+			 */
+			inline const std::stop_token* get_stop_tk() { return &_curr_stop_tk;};
+
+			/**
+			 * @brief Cancel the current task if the stop token is requesting cancellation or is invalid.
+			 *
+			 * This cancellation is done by throwing the client_cancel_request_exception.
+			 * 
+			 */
+			void cancel_if_requested() const;
 	};
 }

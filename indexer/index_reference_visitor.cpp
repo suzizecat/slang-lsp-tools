@@ -4,6 +4,7 @@
 #include "index_symbols.hpp"
 #include "slang/syntax/AllSyntax.h"
 #include "slang/syntax/SyntaxKind.h"
+#include "slang/syntax/SyntaxNode.h"
 #include "slang/util/LanguageVersion.h"
 #include <spdlog/spdlog.h>
 #include <vector>
@@ -179,14 +180,20 @@ namespace diplomat::index
 
 	void ReferenceVisitor::handle(const slang::syntax::NamedPortConnectionSyntax& node)
 	{
-
 		_add_reference_to_symbol(node.name.range(),node.name.rawText());
+		IndexScopeTreeNode* sub_instance_scope = _instance_scope;
+		_instance_scope = _instance_scope->get_parent();
 		visitDefault(node);
+		_instance_scope = sub_instance_scope;
 	}
 
 	void ReferenceVisitor::handle(const slang::syntax::NamedParamAssignmentSyntax& node)
 	{
 		_add_reference_to_symbol(node.name.range(),node.name.rawText());
+		// IndexScopeTreeNode* sub_instance_scope = _instance_scope;
+		// _instance_scope = _instance_scope->get_parent();
+		// visitDefault(node);
+		// _instance_scope = sub_instance_scope;
 		visitDefault(node);
 	}
 
@@ -194,11 +201,12 @@ namespace diplomat::index
 	{
 		using namespace slang::syntax;
 		bool entry_point = false;
-		IndexScopeTreeNode* _initial_instance_scope = _instance_scope;
+		// IndexScopeTreeNode* _initial_instance_scope = _instance_scope;
 		if(!_scoped_eval_lu_loc) 
 		{
-			spdlog::debug("Processing scoped node {}", node.toString());
-		 	entry_point = true;
+			spdlog::debug("Processing scoped node {} from {}", node.toString(), _instance_scope ? _instance_scope->get_full_path(): "NULL");
+			entry_point = true;
+			_scoped_eval_root_scope = _instance_scope;
 			_scoped_eval_lu_loc = IndexLocation(node.sourceRange().start(), *_sm);
 		}
 		
@@ -211,7 +219,8 @@ namespace diplomat::index
 				break;
 			default : 
 				spdlog::warn("Left-wise node of kind {} in scoped name syntax was not handled : {}", toString(node.left->kind),node.left->toString());
-				_instance_scope = _initial_instance_scope;
+				_instance_scope = _scoped_eval_root_scope;
+				_scoped_eval_root_scope = nullptr ;
 				_scoped_eval_lu_loc.reset();
 				return;
 		}
@@ -223,7 +232,7 @@ namespace diplomat::index
 			case slang::syntax::SyntaxKind::IdentifierSelectName :
 				{
 					IndexScopeTreeNode* pre_process_node = _instance_scope;
-					_instance_scope = _initial_instance_scope;
+					
 					handle(node.right->as<IdentifierSelectNameSyntax>());
 					_instance_scope = pre_process_node;
 				}
@@ -235,7 +244,8 @@ namespace diplomat::index
 
 		if(entry_point)
 		{
-			_instance_scope = _initial_instance_scope;
+			_instance_scope = _scoped_eval_root_scope;
+			_scoped_eval_root_scope = nullptr;
 			_scoped_eval_lu_loc.reset();
 		}
 
@@ -245,12 +255,17 @@ namespace diplomat::index
 	{
 		// Manually skip the parameters visit, as this will be performed by the 
 		// HierarchicalInstanceSyntax handler once we selected the underlying scope.
-		visitDefault(node.instances);
+		for(const auto* inst : node.instances)
+			handle(*inst);
+
+		
 		spdlog::debug("Adding reference to instance type {}",node.type.rawText());		
 		
 		// Select the first instance name as the instance scope for symbol lookup in order to 
 		// add a reference to the module name on the type name.
-		_select_instance_scope(IndexLocation(node.type.location(),*_sm), node.instances.getFirstToken().rawText());
+		slang::syntax::ConstTokenOrSyntax instname =  node.instances.getChild(0);
+		
+		_select_instance_scope(IndexLocation(node.type.location(),*_sm),(instname.isNode() ? instname.node()->getFirstToken() : instname.token()).rawText());
 		_add_reference_to_symbol(node.type.range(),node.type.rawText());
 		// Reset the instance scope.
 		_instance_scope = nullptr;
@@ -268,6 +283,17 @@ namespace diplomat::index
 		_add_reference_from_stx(node.identifier.range(), node.identifier.rawText());
 		// You may have IdentifierName within the SelectName syntax (within the bracket) so 
 		// you must visit the node anyway.
+		IndexScopeTreeNode* pre_process = _instance_scope;
+		std::optional<IndexLocation> scoped_lu_loc = _scoped_eval_lu_loc;
+		if(_scoped_eval_root_scope)
+		{
+			
+			_scoped_eval_lu_loc.reset();
+			spdlog::debug("Processing select name {} selector from scope {}",node.identifier.rawText(),_scoped_eval_root_scope->get_full_path());
+			_instance_scope = _scoped_eval_root_scope;
+		}
 		visitDefault(node);
+		_scoped_eval_lu_loc = scoped_lu_loc;
+		_instance_scope = pre_process;
 	}
 } // namespace diplomat::index

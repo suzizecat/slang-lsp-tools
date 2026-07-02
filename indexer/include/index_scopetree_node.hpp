@@ -304,6 +304,8 @@ namespace diplomat::index
 		inline bool have_parent_access() const { return _is_virtual;} ;
 		inline const std::string& get_name() const {return _name;};
 
+		inline IndexScopeTreeNode* get_parent() const {return _parent;}; 
+
 		inline void set_source(const IndexRange& range) {_data->set_source(range);};
 		inline const std::optional<IndexRange>& get_source_range() const { return _data->get_source_range();};
 		// inline bool is_anonymous() const { return _anonymous;};

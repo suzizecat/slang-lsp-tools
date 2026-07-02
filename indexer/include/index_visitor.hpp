@@ -16,11 +16,13 @@
 namespace diplomat::index {
 	
 	// Visit statements and bad but not expressions
+	// To be check if canonicals, we probably don't want to go through canonicals in order to
+	// handle them manually.
 	/**
 	 * @brief This class will build the Scope Tree and store the found symbols
 	 * 
 	 */
-	class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,true,true,true, false>
+	class IndexVisitor : public slang::ast::ASTVisitor<IndexVisitor,slang::ast::VisitFlags::Statements>
 	{
 		protected :
 			const slang::SourceManager* _sm;

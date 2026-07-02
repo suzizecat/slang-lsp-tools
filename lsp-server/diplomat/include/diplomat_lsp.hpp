@@ -47,40 +47,40 @@ class DiplomatLSP : public lsp::BaseLSP
 {
 	protected:
 
-		void _h_didChangeWorkspaceFolders(json params, std::stop_token tk);
-		void _h_didSaveTextDocument(lsp::types::DidSaveTextDocumentParams params, std::stop_token tk);
-		void _h_didOpenTextDocument(json params, std::stop_token tk);
-		void _h_didCloseTextDocument(lsp::types::DidCloseTextDocumentParams params, std::stop_token tk);
-		json _h_completion(lsp::types::CompletionParams params, std::stop_token tk);
-		json _h_formatting(lsp::types::DocumentFormattingParams params, std::stop_token tk);
-		json _h_gotoDefinition(lsp::types::DefinitionParams params, std::stop_token tk);
-		json _h_references(json params, std::stop_token tk);
-		json _h_rename(json params, std::stop_token tk);
-		void _h_exit(json params, std::stop_token tk);
-		json _h_initialize(lsp::types::InitializeParams params, std::stop_token tk);
-		void _h_initialized(json params, std::stop_token tk);
-		void _h_setTrace(json params, std::stop_token tk);
-		json _h_shutdown(json params, std::stop_token tk);
+		void _h_didChangeWorkspaceFolders(json params);
+		void _h_didSaveTextDocument(lsp::types::DidSaveTextDocumentParams params);
+		void _h_didOpenTextDocument(json params);
+		void _h_didCloseTextDocument(lsp::types::DidCloseTextDocumentParams params);
+		json _h_completion(lsp::types::CompletionParams params);
+		json _h_formatting(lsp::types::DocumentFormattingParams params);
+		json _h_gotoDefinition(lsp::types::DefinitionParams params);
+		json _h_references(json params);
+		json _h_rename(json params);
+		void _h_exit(json params);
+		json _h_initialize(lsp::types::InitializeParams params);
+		void _h_initialized(json params);
+		void _h_setTrace(json params);
+		json _h_shutdown(json params);
 
-		void _h_set_project(lsp::types::DiplomatProject params, std::stop_token tk);
+		void _h_set_project(lsp::types::DiplomatProject params);
 
-		void _h_push_config(DiplomatLSPWorkspaceSettings params, std::stop_token tk);
-		json _h_pull_config(json params, std::stop_token tk);
-		// void _h_get_configuration(json& params, std::stop_token tk);
-		// void _h_get_configuration_on_init(json& params, std::stop_token tk);
-		// void _h_update_configuration(json& params, std::stop_token tk);
-		const std::vector< const ModuleBlackBox*>  _h_get_file_bb(std::string params, std::stop_token tk);
-		std::vector<lsp::types::HDLModule> _h_get_modules(json _, std::stop_token tk);
-		const std::vector< const ModuleBlackBox*> _h_get_module_bbox(lsp::types::HDLModule params, std::stop_token tk);
-		void _h_set_top_module(std::string params, std::stop_token tk);
-		std::vector<std::string> _h_project_tree_from_module(lsp::types::HDLModule params, std::stop_token tk);
-		void _h_ignore(std::vector<std::string> params, std::stop_token tk);
-		void _h_add_to_include(json params, std::stop_token tk);
-		void _h_force_clear_index(json params, std::stop_token tk);
+		void _h_push_config(DiplomatLSPWorkspaceSettings params);
+		json _h_pull_config(json params);
+		// void _h_get_configuration(json& params);
+		// void _h_get_configuration_on_init(json& params);
+		// void _h_update_configuration(json& params);
+		const std::vector< const ModuleBlackBox*>  _h_get_file_bb(std::string params);
+		std::vector<lsp::types::HDLModule> _h_get_modules(json _);
+		const std::vector< const ModuleBlackBox*> _h_get_module_bbox(lsp::types::HDLModule params);
+		void _h_set_top_module(std::string params);
+		std::vector<std::string> _h_project_tree_from_module(lsp::types::HDLModule params);
+		void _h_ignore(std::vector<std::string> params);
+		void _h_add_to_include(json params);
+		void _h_force_clear_index(json params);
 
-		std::map<std::string,std::optional<lsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params, std::stop_token tk);
-		json _h_get_design_hierarchy(json params, std::stop_token tk);
-		std::map<std::string,std::vector<lsp::types::Range>> _h_list_symbols(std::string params, std::stop_token tk);
+		std::map<std::string,std::optional<lsp::types::Location>> _h_resolve_hier_path(std::vector<std::string> params);
+		json _h_get_design_hierarchy(json params);
+		std::map<std::string,std::vector<lsp::types::Range>> _h_list_symbols(std::string params);
 
 		/**
 		 * @brief Handles the <tt>diplomat-server.file.get-abstract</tt> command.
@@ -92,7 +92,7 @@ class DiplomatLSP : public lsp::BaseLSP
 		 * @param uri_path a stop token from the dispatcher
 		 * @return lsp::types::FileAbstractContent The content of the processed file
 		 */
-		lsp::types::FileAbstractContent _h_get_file_abstract_content(json uri_path, std::stop_token tk);
+		lsp::types::FileAbstractContent _h_get_file_abstract_content(json uri_path);
 
 
 		void _bind_methods();
@@ -179,7 +179,7 @@ class DiplomatLSP : public lsp::BaseLSP
 		
 		//void read_config(std::filesystem::path& filepath);
 		void hello(json params);
-		void dump_index(json params, std::stop_token tk);
+		void dump_index(json params);
 
 		void set_top_level(const std::string& new_top);
 
@@ -188,3 +188,13 @@ class DiplomatLSP : public lsp::BaseLSP
 };
 	}
 }
+/*
+error: no viable overloaded '='
+        work->modifiers = tok_list.copy(_mem);
+        ~~~~~~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~
+.../include/slang/syntax/SyntaxNode.h:658:20: note: candidate function (the implicit copy assignment operator) not viable: no known conversion from 'std::span<Token>' to 'const TokenList' for 1st argument
+class SLANG_EXPORT TokenList : public SyntaxListBase<TokenList, parsing::Token> {
+                   ^~~~~~~~~
+.../include/slang/syntax/SyntaxNode.h:658:20: note: candidate function (the implicit move assignment operator) not viable: no known conversion from 'std::span<Token>' to 'TokenList' for 1st argument
+class SLANG_EXPORT TokenList : public SyntaxListBase<TokenList, parsing::Token> {
+ */

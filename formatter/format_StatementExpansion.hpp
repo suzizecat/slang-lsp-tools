@@ -6,7 +6,7 @@
 #include "slang/parsing/Token.h"
 #include "slang/parsing/TokenKind.h"
 #include "slang/syntax/AllSyntax.h"
-#include "slang/syntax/SyntaxVisitor.h"
+#include "slang/syntax/SyntaxRewriter.h"
 #include "slang/util/BumpAllocator.h"
 
 #include "formatter_utils.hpp"

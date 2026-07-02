@@ -336,8 +336,13 @@ namespace diplomat::lsp {
 	{
 		spdlog::info("Invoke command {}",_ongoing_method);
 		if(! is_bound(_ongoing_method))
+		{
 			forward_exception(rpc_method_not_found_error(_ongoing_method));
-
+			_ongoing_id = json(nullptr);
+			_worker_running = false;
+			_worker_done = true;
+			_worker_cv.notify_all();
+		}
 		else
 		{
 			_worker_running = true;
@@ -349,6 +354,7 @@ namespace diplomat::lsp {
 				// current process variables.
 				
 				std::lock_guard<std::mutex> lk(_work_mutex);
+				this->_curr_stop_tk = tk;
 				spdlog::info("Started worker for {}", _ongoing_method);
 				spdlog::stopwatch sw;
 				try {
@@ -356,7 +362,7 @@ namespace diplomat::lsp {
 					{
 						if(is_notif(_ongoing_method))
 						{
-							_bound_notifs[_ongoing_method](_ongoing_params,tk);	
+							_bound_notifs[_ongoing_method](_ongoing_params);	
 							
 							// For non-standard *notifications*, a return value SHALL be sent back
 							// as the initiating call is workspace/executeCommand which is a request.
@@ -365,7 +371,7 @@ namespace diplomat::lsp {
 						}
 						else
 						{
-							forward_result(_bound_requests[_ongoing_method](_ongoing_params, tk));
+							forward_result(_bound_requests[_ongoing_method](_ongoing_params));
 						}
 					}
 					else 
@@ -493,5 +499,11 @@ namespace diplomat::lsp {
     bool LSPCommandDispatcher::is_non_standard_method(const std::string &fct) const
     {
 		return is_bound(fct) && ! types::RESERVED_METHODS.contains(fct);
+    }
+
+	void LSPCommandDispatcher::cancel_if_requested() const
+    {
+		if(_curr_stop_tk.stop_requested() || ! _curr_stop_tk.stop_possible())
+			throw client_cancel_request_exception("Cancel request accepted");
     }
 }

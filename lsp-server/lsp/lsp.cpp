@@ -37,6 +37,7 @@ namespace diplomat::lsp{
     _is_stopped(false),
     _trace_level(types::TraceValues::TraceValues_Off),
     _is_initialized(false),
+    _stop_tk(*_dispatcher.get_stop_tk()),
     capabilities()
     {
         _dispatcher.bind_call_filter(std::bind(&BaseLSP::_filter_invocation, this, std::placeholders::_1, std::placeholders::_2));

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "slang/syntax/SyntaxVisitor.h"
+#include "slang/text/SourceManager.h"
 #include "slang/syntax/AllSyntax.h"
 #include "nlohmann/json.hpp"
 
@@ -42,7 +43,7 @@ struct ModuleBlackBox
 
     //TODO : Actually replace with array of ModuleBB to
     // allow signature computation and better binding.
-    std::unordered_set<std::string> deps;
+    std::map<std::string, std::size_t> deps;
 };
 
 
@@ -76,6 +77,22 @@ struct ModuleBlackBox
     void from_json(const json& j, ModulePort& p);
     void from_json(const json& j, ModuleBlackBox& p);
 
+class VisitorInstanceSignature : public slang::syntax::SyntaxVisitor<VisitorInstanceSignature>
+{
+    public : 
+        std::string modname;
+        std::set<std::string> params;
+        std::set<std::string> ports;
+
+        void clear();
+        std::size_t get_signature();
+        // explicit VisitorInstanceSignature();
+        void handle(const slang::syntax::HierarchyInstantiationSyntax& node);
+        void handle(const slang::syntax::NamedParamAssignmentSyntax& node);
+        void handle(const slang::syntax::NamedPortConnectionSyntax& node);
+};
+
+
 class VisitorModuleBlackBox : public slang::syntax::SyntaxVisitor<VisitorModuleBlackBox>
 {
 
@@ -83,6 +100,8 @@ protected:
         bool _only_modules;
         std::unique_ptr<ModuleBlackBox> _bb;
         const slang::SourceManager* _sm;
+
+        VisitorInstanceSignature _signature_processor;
 
 public:
         explicit VisitorModuleBlackBox(bool only_modules = false, const slang::SourceManager* sm = nullptr);

@@ -1,4 +1,6 @@
 #include "format_StatementExpansion.hpp"
+#include "slang/syntax/AllSyntax.h"
+#include "slang/syntax/SyntaxNode.h"
 
 using namespace slang::syntax;
 
@@ -10,7 +12,7 @@ _idt(idt)
 
 void StatementExpansionPhaseVisitor::handle(const slang::syntax::DataDeclarationSyntax& node)
 {
-
+	// Use to expand a multi-declaration statement (logic a,b,c;)
 	if(node.declarators.size() == 1)
 		return;
 	
@@ -19,7 +21,7 @@ void StatementExpansionPhaseVisitor::handle(const slang::syntax::DataDeclaration
 	{	
 		DataDeclarationSyntax* new_elt = deepClone(node,_mem);
 		subvector.push_back(new_elt->declarators[i]);
-		new_elt->declarators = subvector.copy(_mem);
+		new_elt->declarators = {_mem, subvector};//.copy(_mem);
 		if(i > 0)
 		{
 			Token* first_tok = new_elt->getFirstTokenPtr();
