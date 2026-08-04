@@ -1,0 +1,1181 @@
+{
+    "files": {
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_barrier.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_barrier.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_bottomup_phase.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_bottomup_phase.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_callback.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_callback.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_cmdline_processor.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_cmdline_processor.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_common_phases.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_common_phases.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_comparer.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_comparer.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_component.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_component.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_config_db.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_config_db.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_coreservice.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_coreservice.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_domain.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_domain.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_event.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_event.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_event_callback.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_event_callback.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_factory.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_factory.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_globals.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_globals.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_heartbeat.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_heartbeat.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_links.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_links.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_misc.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_misc.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_object.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_object.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_object_globals.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_object_globals.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_objection.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_objection.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_packer.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_packer.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_phase.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_phase.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_pool.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_pool.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_port_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_port_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_printer.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_printer.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_queue.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_queue.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_recorder.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_recorder.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_registry.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_registry.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_catcher.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_catcher.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_handler.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_handler.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_message.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_message.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_object.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_object.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_server.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_report_server.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource_db.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource_db.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource_specializations.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_resource_specializations.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_root.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_root.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_runtime_phases.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_runtime_phases.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_spell_chkr.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_spell_chkr.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_task_phase.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_task_phase.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_topdown_phase.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_topdown_phase.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_tr_database.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_tr_database.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_tr_stream.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_tr_stream.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_transaction.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_transaction.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_traversal.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_traversal.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_version.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/base/uvm_version.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_agent.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_agent.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_algorithmic_comparator.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_algorithmic_comparator.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_driver.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_driver.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_env.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_env.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_in_order_comparator.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_in_order_comparator.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_monitor.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_monitor.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_pair.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_pair.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_policies.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_policies.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_push_driver.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_push_driver.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_random_stimulus.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_random_stimulus.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_scoreboard.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_scoreboard.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_subscriber.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_subscriber.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_test.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/comps/uvm_test.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_get_to_lock_dap.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_get_to_lock_dap.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_set_before_get_dap.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_set_before_get_dap.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_set_get_dap_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_set_get_dap_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_simple_lock_dap.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dap/uvm_simple_lock_dap.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_hdl.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_hdl.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_regex.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_regex.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_svcmd_dpi.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/dpi/uvm_svcmd_dpi.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_callback_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_callback_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_message_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_message_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_object_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_object_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_printer_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_printer_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_sequence_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_sequence_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_tlm_defines.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/macros/uvm_tlm_defines.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_mem_access_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_mem_access_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_mem_walk_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_mem_walk_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_access_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_access_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_bit_bash_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_bit_bash_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_hw_reset_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_hw_reset_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_built_in_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_built_in_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_hdl_paths_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_hdl_paths_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_shared_access_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/sequences/uvm_reg_mem_shared_access_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_mem.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_mem.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_mem_mam.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_mem_mam.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_adapter.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_adapter.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_backdoor.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_backdoor.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_block.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_block.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_cbs.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_cbs.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_field.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_field.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_fifo.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_fifo.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_file.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_file.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_indirect.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_indirect.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_item.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_item.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_map.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_map.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_model.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_model.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_predictor.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_predictor.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_sequence.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_reg_sequence.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_vreg.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_vreg.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_vreg_field.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/reg/uvm_vreg_field.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_push_sequencer.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_push_sequencer.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_seq.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_seq.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_builtin.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_builtin.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_item.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_item.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_library.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequence_library.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_analysis_fifo.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_analysis_fifo.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_param_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/seq/uvm_sequencer_param_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_analysis_port.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_analysis_port.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_exports.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_exports.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_imps.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_imps.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_ports.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_ports.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_sqr_connections.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_sqr_connections.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_sqr_ifs.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_sqr_ifs.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_fifo_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_fifo_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_fifos.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_fifos.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_ifs.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_ifs.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_imps.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_imps.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_req_rsp.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm1/uvm_tlm_req_rsp.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_exports.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_exports.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_generic_payload.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_generic_payload.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_ifs.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_ifs.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_imps.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_imps.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_ports.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_ports.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_sockets.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_sockets.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_sockets_base.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_sockets_base.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_time.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/tlm2/uvm_tlm2_time.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/uvm_macros.svh": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/uvm_macros.svh",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Librairies/uvm-1.2/src/uvm_pkg.sv": {
+            "path": "/mnt/hspeed/Librairies/uvm-1.2/src/uvm_pkg.sv",
+            "scopes": [],
+            "symbols": []
+        },
+        "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv": {
+            "path": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv",
+            "scopes": [
+                "$root.top.dut.add_sub_if0",
+                "$root.top.dut.add_sub_if0.cb",
+                "$root.top.dut"
+            ],
+            "symbols": [
+                {
+                    "id": "ADD_SUB",
+                    "kind": "<Module>",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:8",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:15"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:8",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:15"
+                        }
+                    ]
+                },
+                {
+                    "id": "add_sub_if",
+                    "kind": "<Module>",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:11",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:21"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:11",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:21"
+                        }
+                    ]
+                },
+                {
+                    "id": "result",
+                    "kind": "ClockVar",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:15",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:21"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:15",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:21"
+                        }
+                    ]
+                },
+                {
+                    "id": "doAdd",
+                    "kind": "ClockVar",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:15",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:20"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:15",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:20"
+                        }
+                    ]
+                },
+                {
+                    "id": "b",
+                    "kind": "ClockVar",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:15",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:16"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:15",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:16"
+                        }
+                    ]
+                },
+                {
+                    "id": "a",
+                    "kind": "ClockVar",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:15",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:16"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:15",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:16"
+                        }
+                    ]
+                },
+                {
+                    "id": "clk",
+                    "kind": "Variable",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:13",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:16"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:32:25",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:32:28"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:13",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:16"
+                        }
+                    ]
+                },
+                {
+                    "id": "add_sub_if0",
+                    "kind": "Instance",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:44:25",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:50:2"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:44:25",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:50:2"
+                        }
+                    ]
+                },
+                {
+                    "id": "result0",
+                    "kind": "Variable",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:20",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:27"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:16:9",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:16:16"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:14:9",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:14:16"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:20",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:27"
+                        }
+                    ]
+                }
+            ]
+        },
+        "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv": {
+            "path": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv",
+            "scopes": [
+                "$root.top"
+            ],
+            "symbols": [
+                {
+                    "id": "top",
+                    "kind": "<Module>",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:8",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:11"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:68:18",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:68:21"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:8",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:11"
+                        }
+                    ]
+                },
+                {
+                    "id": "dut",
+                    "kind": "Instance",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:11",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:26"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:55:21",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:55:24"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:11",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:26"
+                        }
+                    ]
+                },
+                {
+                    "id": "environment",
+                    "kind": "Variable",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:7",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:18"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:52:5",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:52:16"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:7",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:18"
+                        }
+                    ]
+                },
+                {
+                    "id": "clk",
+                    "kind": "Variable",
+                    "loc": {
+                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:7",
+                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:10"
+                    },
+                    "refs": [
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:20",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:23"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:13",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:16"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:56:5",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:56:8"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:21",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:24"
+                        },
+                        {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:7",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:10"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "hier": {
+        "_kind": "",
+        "children": {
+            "top": {
+                "_kind": "InstanceBody",
+                "children": {
+                    "dut": {
+                        "_kind": "InstanceBody",
+                        "children": {
+                            "add_sub_if0": {
+                                "_kind": "InstanceBody",
+                                "children": {
+                                    "cb": {
+                                        "_kind": "ClockingBlock",
+                                        "children": {},
+                                        "children_aliases": null,
+                                        "content": {
+                                            "a": {
+                                                "id": "a",
+                                                "kind": "ClockVar",
+                                                "loc": {
+                                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:15",
+                                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:16"
+                                                },
+                                                "refs": [
+                                                    {
+                                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:15",
+                                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:33:16"
+                                                    }
+                                                ]
+                                            },
+                                            "b": {
+                                                "id": "b",
+                                                "kind": "ClockVar",
+                                                "loc": {
+                                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:15",
+                                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:16"
+                                                },
+                                                "refs": [
+                                                    {
+                                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:15",
+                                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:34:16"
+                                                    }
+                                                ]
+                                            },
+                                            "doAdd": {
+                                                "id": "doAdd",
+                                                "kind": "ClockVar",
+                                                "loc": {
+                                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:15",
+                                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:20"
+                                                },
+                                                "refs": [
+                                                    {
+                                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:15",
+                                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:35:20"
+                                                    }
+                                                ]
+                                            },
+                                            "result": {
+                                                "id": "result",
+                                                "kind": "ClockVar",
+                                                "loc": {
+                                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:15",
+                                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:21"
+                                                },
+                                                "refs": [
+                                                    {
+                                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:15",
+                                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:36:21"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "def": {
+                                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:32:3",
+                                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:37:14"
+                                        },
+                                        "name": "cb",
+                                        "virtual": true
+                                    }
+                                },
+                                "children_aliases": null,
+                                "content": {
+                                    "add_sub_if": {
+                                        "id": "add_sub_if",
+                                        "kind": "<Module>",
+                                        "loc": {
+                                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:11",
+                                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:21"
+                                        },
+                                        "refs": [
+                                            {
+                                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:11",
+                                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:21"
+                                            }
+                                        ]
+                                    },
+                                    "clk": {
+                                        "id": "clk",
+                                        "kind": "Variable",
+                                        "loc": {
+                                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:13",
+                                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:16"
+                                        },
+                                        "refs": [
+                                            {
+                                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:32:25",
+                                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:32:28"
+                                            },
+                                            {
+                                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:13",
+                                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:25:16"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "def": {
+                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:24:1",
+                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:39:25"
+                                },
+                                "name": "add_sub_if0",
+                                "virtual": false
+                            }
+                        },
+                        "children_aliases": null,
+                        "content": {
+                            "ADD_SUB": {
+                                "id": "ADD_SUB",
+                                "kind": "<Module>",
+                                "loc": {
+                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:8",
+                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:15"
+                                },
+                                "refs": [
+                                    {
+                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:8",
+                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:15"
+                                    }
+                                ]
+                            },
+                            "add_sub_if0": {
+                                "id": "add_sub_if0",
+                                "kind": "Instance",
+                                "loc": {
+                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:44:25",
+                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:50:2"
+                                },
+                                "refs": [
+                                    {
+                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:44:25",
+                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:50:2"
+                                    }
+                                ]
+                            },
+                            "result0": {
+                                "id": "result0",
+                                "kind": "Variable",
+                                "loc": {
+                                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:20",
+                                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:27"
+                                },
+                                "refs": [
+                                    {
+                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:16:9",
+                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:16:16"
+                                    },
+                                    {
+                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:14:9",
+                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:14:16"
+                                    },
+                                    {
+                                        "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:20",
+                                        "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:8:27"
+                                    }
+                                ]
+                            }
+                        },
+                        "def": {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:2:1",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/design.sv:19:19"
+                        },
+                        "name": "dut",
+                        "virtual": false
+                    }
+                },
+                "children_aliases": null,
+                "content": {
+                    "clk": {
+                        "id": "clk",
+                        "kind": "Variable",
+                        "loc": {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:7",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:10"
+                        },
+                        "refs": [
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:20",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:23"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:13",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:62:16"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:56:5",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:56:8"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:21",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:24"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:7",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:47:10"
+                            }
+                        ]
+                    },
+                    "dut": {
+                        "id": "dut",
+                        "kind": "Instance",
+                        "loc": {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:11",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:26"
+                        },
+                        "refs": [
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:55:21",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:55:24"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:11",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:49:26"
+                            }
+                        ]
+                    },
+                    "environment": {
+                        "id": "environment",
+                        "kind": "Variable",
+                        "loc": {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:7",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:18"
+                        },
+                        "refs": [
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:52:5",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:52:16"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:7",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:48:18"
+                            }
+                        ]
+                    },
+                    "top": {
+                        "id": "top",
+                        "kind": "<Module>",
+                        "loc": {
+                            "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:8",
+                            "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:11"
+                        },
+                        "refs": [
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:68:18",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:68:21"
+                            },
+                            {
+                                "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:8",
+                                "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:11"
+                            }
+                        ]
+                    }
+                },
+                "def": {
+                    "beg": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:45:1",
+                    "end": "/mnt/hspeed/Linux/Projets/C++/slang-lsp-tools/samples/uvm/simple/testbench.sv:71:10"
+                },
+                "name": "top",
+                "virtual": false
+            }
+        },
+        "children_aliases": null,
+        "content": null,
+        "def": null,
+        "name": "$root",
+        "virtual": false
+    }
+}
