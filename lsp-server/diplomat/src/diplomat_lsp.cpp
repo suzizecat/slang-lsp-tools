@@ -545,6 +545,9 @@ void DiplomatLSP::_compile()
 
         for(const auto& file : _index->get_indexed_files())
         {
+            if(! _accepted_extensions.contains(file->get_path().extension()))
+                continue;
+            
             if(file->is_valid())
             {
                 spdlog::info("Skipping processing for already valid file {}",file->get_path().generic_string());
