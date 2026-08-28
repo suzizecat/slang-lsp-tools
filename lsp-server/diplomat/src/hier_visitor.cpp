@@ -1,6 +1,8 @@
 #include "hier_visitor.h"
 #include <slang/text/SourceManager.h>
 #include <iostream>
+#include "types/structs/TextDocumentPositionParams.hpp"
+
 using json = nlohmann::json;
 namespace ast = slang::ast;
 
@@ -30,15 +32,24 @@ void HierVisitor::handle(const slang::ast::InstanceSymbol &node)
 
 	const std::filesystem::path& filepath = sm->getFullPath(def.location.buffer());
 
+	diplomat::lsp::types::TextDocumentPositionParams refpos;
+	
+
 	if (_cache != nullptr)
 	{
 		_hierarchy[_pointer / "file"] = _cache->get_uri(filepath).to_string();	
+		refpos.textDocument.uri = _cache->get_uri(sm->getFullPath(node.location.buffer())).to_string();
 	}
 	else
 	{
 		_hierarchy[_pointer / "file"] = filepath.generic_string();
+		refpos.textDocument.uri = _cache->standardize_path(sm->getFullPath(node.location.buffer())).generic_string();
 	}
 
+	refpos.position.line = sm->getLineNumber(node.location);
+	refpos.position.character = sm->getColumnNumber(node.location);
+
+	_hierarchy[_pointer / "instanceloc"] = refpos;
 	
 	_pointer.push_back("childs");
 	visitDefault(node);
@@ -65,10 +76,24 @@ void HierVisitor::handle(const slang::ast::PortSymbol& node)
 void HierVisitor::handle(const slang::ast::UninstantiatedDefSymbol& node)
 {
 	//_hierarchy[_pointer].push_back(json());
+	const slang::SourceManager* sm = node.getParentScope()->getCompilation().getSourceManager();
+	diplomat::lsp::types::TextDocumentPositionParams refpos;
+	
+	if (_cache != nullptr)
+		refpos.textDocument.uri = _cache->get_uri(sm->getFullPath(node.location.buffer())).to_string();
+	else
+		refpos.textDocument.uri = _cache->standardize_path(sm->getFullPath(node.location.buffer())).generic_string();
+
+	refpos.position.line = sm->getLineNumber(node.location);
+	refpos.position.character = sm->getColumnNumber(node.location);
+
+	
+
 	_pointer.push_back(std::to_string(_hierarchy[_pointer].size()));
 	_hierarchy[_pointer/"def"] = false;
 	_hierarchy[_pointer/"name"] = node.name;
 	_hierarchy[_pointer/"module"] = std::string(node.definitionName);
+	_hierarchy[_pointer/"instanceloc"] = refpos;
 	_pointer.pop_back();
 }
 

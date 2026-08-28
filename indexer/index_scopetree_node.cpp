@@ -390,6 +390,12 @@ namespace diplomat::index {
 		return _parent ? _parent->get_root() : this;
 	}
 
+	void IndexScopeTreeNode::invalidate()
+	{
+		_valid = false;
+		if(_parent && _parent->is_valid())
+			_parent->invalidate();
+	}
 
 	void IndexScopeTreeNode:: cleanup()
 	{
@@ -406,6 +412,7 @@ namespace diplomat::index {
 			}
 		}
 	}
+
 
 	void to_json(nlohmann::json& j, const IndexScopeTreeNode& s)
 	{

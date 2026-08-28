@@ -144,7 +144,7 @@ namespace diplomat::lsp{
         types::WorkDoneProgressCreateParams params = {.token=token};
         // The result is not used here (no actual return value)
         send_request("window/workDoneProgress/create",params); 
-
+        _active_progress_tokens[token] = false;
         return token;
     }
 

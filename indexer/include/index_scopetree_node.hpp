@@ -314,8 +314,10 @@ namespace diplomat::index
 		inline std::shared_ptr<const IndexScope> data() const {return _data;} ;
 		inline std::shared_ptr<IndexScope> data() {return _data;} ;
 
-		inline void invalidate() {_valid = false;}; 
 		inline void validate() {_valid = true;};
+
+		/** @brief Invalidate the scope and its upstream hierarchy */
+		void invalidate(); 
 		inline bool is_valid() const {return _valid;};
 
 		/**

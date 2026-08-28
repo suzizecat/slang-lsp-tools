@@ -63,7 +63,7 @@ if __name__ == "__main__":
 	reader.type_override["LSPObject"] = json
 
 	reader.type_override["string"] = string
-	reader.type_override["ProgressToken"] = string
+	reader.type_override["ProgressToken"] = json
 
 	reader.type_override["DocumentSelector"] = json
 	reader.type_override["TextDocumentContentChangeEvent"] = json

@@ -241,14 +241,15 @@ void DiplomatDocumentCache::process_file(const std::filesystem::path& fpath, boo
 		_sm.reset(new slang::SourceManager());
 
 	auto st = slang::syntax::SyntaxTree::fromFile(curr_path.generic_string(),*_sm).value();
-	if( ! st) {
-
+	if( ! st) 
+	{
 		spdlog::error("Failed to process {} as a source file.", curr_path.generic_string());
 		remove_file(curr_path);
 		return;
 	}
 	VisitorModuleBlackBox visitor;
-	st->root().visit(visitor);
+	if(st)
+		st->root().visit(visitor);
 
 	if(visitor.read_bb->empty())
 	{

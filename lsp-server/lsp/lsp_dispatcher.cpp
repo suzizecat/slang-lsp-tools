@@ -393,7 +393,7 @@ namespace diplomat::lsp {
 					// _worker_running = false;
 					// _worker_cv.notify_all();
 				}
-				spdlog::debug("Worker finished {} in {:.6} seconds [{}]",_ongoing_method, sw, _ongoing_id.dump());
+				spdlog::info("Worker finished {} in {:.6} seconds [{}]",_ongoing_method, sw, _ongoing_id.dump());
 				_ongoing_id = json(nullptr);
 				_worker_running = false;
 				_worker_done = true;
@@ -432,6 +432,7 @@ namespace diplomat::lsp {
 
 	void LSPCommandDispatcher::notify_client(const std::string& method, const json& args)
 	{
+		spdlog::info("Sent notification {}",method);
 		_send_rpc_call(method, args, {});
 	}
 
@@ -446,6 +447,7 @@ namespace diplomat::lsp {
 	json LSPCommandDispatcher::request_client(const std::string& method, const json& args)
 	{
 		using namespace std::chrono_literals;
+		spdlog::info("Sent request {}",method);
 		auto f = request_client_future(method, args);
 		
 		std::optional<std::stop_token> tk;
@@ -469,7 +471,7 @@ namespace diplomat::lsp {
 		{
 			f.wait();
 		}
-	
+		spdlog::info("Got client reply for {}",method);
 		return f.get();
 	}
 

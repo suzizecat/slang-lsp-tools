@@ -197,11 +197,13 @@ namespace diplomat::index {
 
 		IndexScopeTreeNode* ret = _current_scope();
 		//_default_symbol_handle(s);
+		if(! _current_scope()->is_valid())
+		{
+			for(const auto& member : node.members())
+				member.visit(*this);
 
-		for(const auto& member : node.members())
-			member.visit(*this);
-
-		_current_scope()->validate();
+			_current_scope()->validate();
+		}
 		_close_scope(used_scope_name);
 
 		return ret;

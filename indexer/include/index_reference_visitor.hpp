@@ -51,7 +51,7 @@ namespace diplomat::index
 
 
 	public :
-		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx), _scoped_eval_lu_loc(), _scoped_eval_root_scope(nullptr) {};
+		explicit ReferenceVisitor(const slang::SourceManager* sm, IndexCore* idx) : _sm(sm), _index(idx), _scoped_eval_lu_loc(), _scoped_eval_root_scope(nullptr), _instance_scope(nullptr) {};
 
 			// void handle(const slang::syntax::ModuleHeaderSyntax& node);
 			void handle(const slang::syntax::HierarchyInstantiationSyntax& node);

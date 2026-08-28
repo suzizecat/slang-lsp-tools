@@ -4,12 +4,16 @@
 #include "slang/analysis/AnalysisManager.h"
 #include "slang/analysis/AnalysisOptions.h"
 #include "slang/ast/Compilation.h"
+#include "slang/diagnostics/Diagnostics.h"
+#include "slang/diagnostics/ParserDiags.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "spdlog/spdlog.h"
 
+#include <array>
 #include <chrono>
 #include <ranges>
 #include <stdexcept>
+#include "types/structs/Diagnostic.hpp"
 #include "types/structs/ExecuteCommandOptions.hpp"
 #include "types/structs/SetTraceParams.hpp"
 
@@ -443,6 +447,9 @@ void DiplomatLSP::_add_module_to_project_tree(const std::string& mod)
 void DiplomatLSP::_compile()
 {
     spdlog::info("Request design compilation");
+    std::string progress_token = create_progress_report();
+    
+    begin_progress(progress_token,{.title=std::string("Processing design"),.message{"Starting analysis..."},.percentage{0}} );
     
     if(_index.get() == nullptr)
         _index.reset(new index::IndexCore());
@@ -472,16 +479,15 @@ void DiplomatLSP::_compile()
 
     slang::DiagnosticEngine de = slang::DiagnosticEngine(*_sm);
     
-    de.setErrorLimit(500);
-    de.setIgnoreAllWarnings(false);
+    de.setErrorLimit(512);
+    //de.setWarningOptions(std::array<std::string, 1>{"-Weverything"});
     de.setSeverity(slang::diag::MismatchedTimeScales,slang::DiagnosticSeverity::Ignored);
     de.setSeverity(slang::diag::MissingTimeScale,slang::DiagnosticSeverity::Ignored);
-    de.setSeverity(slang::diag::UnusedDefinition,slang::DiagnosticSeverity::Ignored);
+    // de.setSeverity(slang::diag::UnusedDefinition,slang::DiagnosticSeverity::Ignored);
     de.addClient(_diagnostic_client);
 
     slang::ast::CompilationOptions coptions;
-    coptions.flags = slang::ast::CompilationFlags::AllowHierarchicalConst 
-    | slang::ast::CompilationFlags::AllowTopLevelIfacePorts ;
+    coptions.flags = slang::ast::CompilationFlags::AllowHierarchicalConst | slang::ast::CompilationFlags::AllowTopLevelIfacePorts ;
 
     
     if (_settings.top_level)
@@ -494,7 +500,8 @@ void DiplomatLSP::_compile()
 
     // Regenerate compilation object to allow for a "recompilation".
     _compilation.reset(new slang::ast::Compilation(bag));
-
+    
+    
 
     if(_settings.top_level)
     {
@@ -502,7 +509,7 @@ void DiplomatLSP::_compile()
         // Try to auto-compute it.
         if(! _project_file_tree_valid)
             _compute_project_tree();
-
+        report_progress(progress_token,{.message{"Reading files..."},.percentage{0}} );
         spdlog::info("Add syntax trees from project file tree");
         for (const auto& file : _cache.get_files_prj())
         {
@@ -525,16 +532,14 @@ void DiplomatLSP::_compile()
 
     // Actually compile and elaborate the design
     _compilation->getRoot();
-
     
     spdlog::info("Issuing diagnostics");
-    for (const slang::Diagnostic& diag : _compilation->getAllDiagnostics())
-        de.issue(diag);
-    
+    de.issue(_compilation->getAllDiagnostics());    
 
     spdlog::info("Run indexer");
+    report_progress(progress_token,{.message{"Indexing"},.percentage{0}} );
     
-   diplomat::index::IndexVisitor idx_visit(_compilation->getSourceManager(), std::move(_index));
+    diplomat::index::IndexVisitor idx_visit(_compilation->getSourceManager(), std::move(_index));
     try
     {
         spdlog::info("Processing symbols and hierarchy");
@@ -542,9 +547,13 @@ void DiplomatLSP::_compile()
         _index = std::move(idx_visit.get_index());
         _index->cleanup();
         spdlog::info("Processing references");
+        
+        size_t file_idx = 0;
+        const size_t file_qty = _index->get_indexed_files().size();
 
         for(const auto& file : _index->get_indexed_files())
         {
+            file_idx ++;
             if(! _accepted_extensions.contains(file->get_path().extension()))
                 continue;
             
@@ -554,6 +563,7 @@ void DiplomatLSP::_compile()
             }
             else
             {
+                report_progress(progress_token,{.message{fmt::format("References for file {:3d}/{}",file_idx,file_qty)},.percentage{(100*file_idx)/file_qty}} );
                 spdlog::info("Processing references for {}",file->get_path().generic_string());
 
                 auto stx = file->get_syntax_root();
@@ -582,19 +592,38 @@ void DiplomatLSP::_compile()
     {
         _index.reset();
         spdlog::error("Indexing error {}", e.what());
+        end_progress(progress_token,{.message{"Indexing failed"}} );
     }
 
     _compilation->freeze();
     spdlog::info("Running analysis");
-    slang::analysis::AnalysisManager ana_mgr;
-    ana_mgr.analyze(*_compilation);
-
-    for (const slang::Diagnostic& diag : ana_mgr.getDiagnostics())
-        de.issue(diag);
-
+    report_progress(progress_token,{.message{"Advanced analysis"},.percentage{100}});
+    
+    // Used only as temporary storage in case the compilation has errors.
+    std::vector<slang::Diagnostic> added_diag;
+    slang::analysis::AnalysisManager ana_mgr({.flags{slang::analysis::AnalysisFlags::CheckUnused | slang::analysis::AnalysisFlags::CheckShadow}});
+    if(_compilation->hasFatalErrors())
+    {
+        
+        // Analysis will not be run if we have fatal errors.
+        // This can occurs on incomplete designs.
+         for (auto def : _compilation->getUnreferencedDefinitions()) {
+            // hasUnusedAttribute is not publicly defined. If needed, reimplement.
+            if (!def->name.empty() && def->name != "_"sv /*&& !slang::analysis::hasUnusedAttrib(_compilation, *def)*/ ) {
+                de.issue(added_diag.emplace_back(*def, slang::diag::UnusedDefinition, def->location) << def->getKindString());
+            }
+        }
+        
+    }
+    else
+    {
+        ana_mgr.analyze(*_compilation);
+        report_progress(progress_token,{.message{"Issuing diagnostics"},.percentage{100}});
+        de.issue(ana_mgr.getDiagnostics());
+    }
     spdlog::info("Send diagnostics");
     _emit_diagnostics();
-
+    end_progress(progress_token,{.message{"Processing done successfully"}} );
     spdlog::info("Compilation done.");
 }
 

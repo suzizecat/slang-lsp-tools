@@ -101,8 +101,8 @@ void DiplomatLSP::_h_didSaveTextDocument(dlt::DidSaveTextDocumentParams param)
 {
 	uri p = uri(param.textDocument.uri);
 	_cache.process_file(p);
-	_assert_index();
-	_index->invalidate_file(std::filesystem::path("/" + p.get_path()));
+	if (_assert_index())
+		_index->invalidate_file(std::filesystem::path("/" + p.get_path()));
 	_compile();
 }
 
@@ -930,6 +930,7 @@ std::map<std::string,std::vector<dlt::Range>> DiplomatLSP::_h_list_symbols(std::
 
 lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json uri_path)
 {
+	_assert_index(true);
 	di::IndexFile* tgt_file = _index->get_file(_cache.standardize_path(uri_path.at("fsPath").template get<std::string>()));
 
 	dlt::FileAbstractContent ret;
@@ -942,6 +943,7 @@ lsp::types::FileAbstractContent DiplomatLSP::_h_get_file_abstract_content(json u
 
 			ret_symb.name = symb->get_name();
 			#ifdef DIPLOMAT_DEBUG
+			spdlog::debug(" - Found symbol {}", ret_symb.name);
 			ret_symb.kind = symb->get_kind();
 			#endif
 			ret_symb.defRange = _index_range_to_lsp(symb->get_source().value());

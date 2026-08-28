@@ -98,7 +98,7 @@ namespace diplomat::index
 			if(!new_scope)
 			{
 				_instance_scope = curr_scope;
-				spdlog::warn("Failed to select instance scope {}.{} (not found in scope tree)",curr_scope->get_full_path(),next_scope);
+				spdlog::debug("Failed to select instance scope {}.{} (not found in scope tree)",curr_scope->get_full_path(),next_scope);
 			}
 			_instance_scope = new_scope ? new_scope : curr_scope; 
 		}
@@ -181,10 +181,17 @@ namespace diplomat::index
 	void ReferenceVisitor::handle(const slang::syntax::NamedPortConnectionSyntax& node)
 	{
 		_add_reference_to_symbol(node.name.range(),node.name.rawText());
-		IndexScopeTreeNode* sub_instance_scope = _instance_scope;
-		_instance_scope = _instance_scope->get_parent();
-		visitDefault(node);
-		_instance_scope = sub_instance_scope;
+		if(_instance_scope)
+		{
+			IndexScopeTreeNode* sub_instance_scope = _instance_scope;
+			_instance_scope = _instance_scope->get_parent();
+			visitDefault(node);
+			_instance_scope = sub_instance_scope;
+		}
+		else
+		{
+			spdlog::error("  - Instance scope had not been set, port binding for {} will not be resolved.",node.name.rawText());
+		}
 	}
 
 	void ReferenceVisitor::handle(const slang::syntax::NamedParamAssignmentSyntax& node)
@@ -225,7 +232,12 @@ namespace diplomat::index
 				return;
 		}
 
-			
+		if(! _instance_scope) 
+		{
+			// Tis may be encountered with SV interfaces in top-level module interface.
+			spdlog::debug("No instance scope set for processing scoped name {}, aborting",node.toString());
+			return;
+		}
 		_scoped_eval_lu_loc = _instance_scope->get_source_range()->start;
 
 		switch (node.right->kind) {
