@@ -1,4 +1,5 @@
 #include "hier_visitor.h"
+#include "slang/ast/SemanticFacts.h"
 #include <slang/text/SourceManager.h>
 #include <iostream>
 using json = nlohmann::json;
@@ -28,11 +29,27 @@ void HierVisitor::handle(const slang::ast::InstanceSymbol &node)
 	_hierarchy[_pointer/"module"] = std::string(def.name);
 	_hierarchy[_pointer / "childs"] = json::array();
 
+	switch (def.definitionKind) 
+	{
+		case slang::ast::DefinitionKind::Interface :
+			_hierarchy[_pointer / "kind"] = "interface";
+			break;
+		case slang::ast::DefinitionKind::Module :
+			_hierarchy[_pointer / "kind"] = "module";
+			break;
+		case slang::ast::DefinitionKind::Program :
+			_hierarchy[_pointer / "kind"] = "module";
+			break;
+		default: 
+			// Do not add the attribute on unknown element.
+			break;	
+	}
+
 	const std::filesystem::path& filepath = sm->getFullPath(def.location.buffer());
 
 	if (_cache != nullptr)
 	{
-		_hierarchy[_pointer / "file"] = _cache->get_uri(filepath);	
+		_hierarchy[_pointer / "file"] = _cache->get_uri(filepath).to_string();	
 	}
 	else
 	{
