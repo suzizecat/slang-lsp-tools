@@ -18,11 +18,13 @@
 #include <climits>
 #include <stop_token>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <functional>
 #include <optional>
 #include <vector>
 
+#include <chrono>
 // For adl_serializer<std::optional<T>>
 #include "index_elements.hpp"
 
@@ -40,6 +42,7 @@
 
 namespace diplomat::lsp{
     using json = nlohmann::json;
+    using sysclk = std::chrono::system_clock;
 
     /**
      * @brief Base LSP class
@@ -74,15 +77,22 @@ namespace diplomat::lsp{
          */
         types::TraceValues _trace_level;
         
-        /** This map contains the requested workDoneTokens and their active state.*/
+        /** This map contains the requested workDoneTokens and their last usage (min if none).*/
         std::unordered_map<std::string, bool> _active_progress_tokens;
+        std::unordered_map<std::string, json> _queued_progress;
+        sysclk::time_point _last_progress_sent;
+        std::mutex _notif_mutex;
+
+        std::jthread _progress_sender;
         
 
         types::ClientCapabilities _client_capabilities;
 
         bool _filter_invocation(const std::string& fct_name, const json& args) const;
+        void _progress_sender_handler(std::stop_token tk);
 
         volatile const std::stop_token& _stop_tk;
+
 
 
     public:
