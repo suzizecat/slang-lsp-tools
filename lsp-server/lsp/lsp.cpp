@@ -217,7 +217,7 @@ namespace diplomat::lsp{
             
             {
                 std::lock_guard<std::mutex> lk(_notif_mutex);
-                std::unordered_map<std::string,json>::iterator prog;
+                std::map<std::string,json>::iterator prog;
                 while((prog = _queued_progress.begin()) != _queued_progress.end())
                 {
                     send_notification("$/progress",types::ProgressParams{.token=prog->first,.value=prog->second});
@@ -226,3 +226,4 @@ namespace diplomat::lsp{
             }
         }
     }
+}

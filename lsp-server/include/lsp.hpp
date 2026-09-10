@@ -78,8 +78,8 @@ namespace diplomat::lsp{
         types::TraceValues _trace_level;
         
         /** This map contains the requested workDoneTokens and their last usage (min if none).*/
-        std::unordered_map<std::string, bool> _active_progress_tokens;
-        std::unordered_map<std::string, json> _queued_progress;
+        std::map<std::string, bool> _active_progress_tokens;
+        std::map<std::string, json> _queued_progress;
         sysclk::time_point _last_progress_sent;
         std::mutex _notif_mutex;
 
@@ -88,7 +88,30 @@ namespace diplomat::lsp{
 
         types::ClientCapabilities _client_capabilities;
 
+        /**
+         * @brief Filter illegal or unwanted invocations
+         *
+         * This function is actually used by the ::_dispatcher .
+         * 
+         * @param fct_name LSP function to process
+         * @param args LSP function arguments
+         * @return true If the function shall be accepted by the dispatcher
+         * @return false If the function shall be gracefully rejected (ignored)
+         * @throws lsp_server_not_initialized_error If the server is not initialized and the function is not "initialize"
+         * @throws rpc_invalid_request_error If the server is shutting down.
+         */
         bool _filter_invocation(const std::string& fct_name, const json& args) const;
+        
+        /**
+         * @brief Handler for throttling $/progress notifications
+         * 
+         * As clients may not be fast enough and the $/progress notifications
+         * can come in high number very quickly, this function sends the *last* progress notification
+         * every period of time.
+         * It runs asynchronously (::_progress_sender ) and uses ::_notif_mutex . 
+         *
+         * @param tk Stop token to handle end of operation gracefully. 
+         */
         void _progress_sender_handler(std::stop_token tk);
 
         volatile const std::stop_token& _stop_tk;
