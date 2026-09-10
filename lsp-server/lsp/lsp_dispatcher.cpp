@@ -192,6 +192,7 @@ namespace diplomat::lsp {
 	{
 		if(_worker_running)
 		{
+			_worker.get_stop_source().request_stop();
 			std::unique_lock lk(_work_mutex);
 			_worker_cv.wait(lk,[this]{return ! _worker_running; });
 		}
